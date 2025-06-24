@@ -11,4 +11,5 @@ urlpatterns = [
     path(f"{API_PREFIX}logout/", LogoutView.as_view(), name="logout"),
     path(f"{API_PREFIX}admin/", admin.site.urls),
     path(f"{API_PREFIX}user/", include("user.urls")),
+    path(f"{API_PREFIX}", include("diarium.urls")),
 ]
