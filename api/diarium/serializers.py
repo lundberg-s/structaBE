@@ -14,7 +14,7 @@ class AttachmentSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Attachment
-        fields = ['id', 'file', 'filename', 'file_size', 'uploaded_by', 'uploaded_at']
+        fields = ['id', 'case', 'file', 'filename', 'file_size', 'mime_type', 'uploaded_by', 'uploaded_at']
         read_only_fields = ['id', 'uploaded_by', 'uploaded_at']
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -30,7 +30,7 @@ class ActivityLogSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = ActivityLog
-        fields = ['id', 'activity_type', 'description', 'user', 'created_at']
+        fields = ['id', 'case', 'activity_type', 'description', 'user', 'created_at']
         read_only_fields = ['id', 'user', 'created_at']
 
 class CaseSerializer(serializers.ModelSerializer):
