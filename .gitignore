@@ -61,3 +61,7 @@ Thumbs.db
 #venv
 .venv/
 venv/
+
+# attachments
+attachments/
+api/case_attachments/

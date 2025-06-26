@@ -1,18 +1,18 @@
-from rest_framework import status, generics
-from rest_framework.response import Response
+from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
-from django.shortcuts import get_object_or_404
-from django.db import transaction
+from rest_framework.filters import SearchFilter
+
+from django_filters.rest_framework import DjangoFilterBackend
 
 from diarium.models import Case, ActivityLog
 from diarium.serializers import CaseSerializer, CaseCreateSerializer, CaseUpdateSerializer
 
 class CaseListView(generics.ListCreateAPIView):
-    """
-    GET: List all cases
-    POST: Create a new case
-    """
     permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, SearchFilter]
+    filterset_fields = ['status', 'priority', 'assigned_user']
+    search_fields = ['title', 'description']
+
     
     def get_queryset(self):
         return Case.objects.select_related('assigned_user', 'created_by').prefetch_related(

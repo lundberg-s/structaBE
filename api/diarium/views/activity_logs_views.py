@@ -1,10 +1,17 @@
 from rest_framework import generics, permissions
+from rest_framework.filters import SearchFilter
+
+from django_filters.rest_framework import DjangoFilterBackend
+
 from diarium.models import ActivityLog
 from diarium.serializers import ActivityLogSerializer
 
 class ActivityLogListCreateView(generics.ListCreateAPIView):
     serializer_class = ActivityLogSerializer
     permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, SearchFilter]
+    filterset_fields = ['case', 'user', 'activity_type']
+    search_fields = ['description']
 
     def get_queryset(self):
         queryset = ActivityLog.objects.select_related('user', 'case').all()
