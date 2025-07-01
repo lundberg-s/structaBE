@@ -3,6 +3,7 @@ from diarium.views.case_views import CaseListView, CaseDetailView
 from diarium.views.attachments_views import AttachmentListCreateView, AttachmentRetrieveUpdateDestroyView
 from diarium.views.comments_views import CommentListCreateView, CommentRetrieveUpdateDestroyView
 from diarium.views.activity_logs_views import ActivityLogListCreateView, ActivityLogRetrieveView
+from diarium.views.statistics_views import CaseStatisticsView
 
 app_name = 'diarium'
 
@@ -22,4 +23,7 @@ urlpatterns = [
     # Activity Logs endpoints
     path('activity-logs/', ActivityLogListCreateView.as_view(), name='activity-log-list-create'),
     path('activity-logs/<uuid:id>/', ActivityLogRetrieveView.as_view(), name='activity-log-detail'),
+
+    # Statistics endpoint
+    path('case-statistics/', CaseStatisticsView.as_view(), name='case-statistics'),
 ]

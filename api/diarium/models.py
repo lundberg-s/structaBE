@@ -77,6 +77,8 @@ class ActivityLog(models.Model):
         ('created', 'Created'),
         ('updated', 'Updated'),
         ('status_changed', 'Status Changed'),
+        ('priority_changed', 'Priority Changed'),
+        ('deadline_changed', 'Deadline Changed'),
         ('assigned', 'Assigned'),
         ('commented', 'Commented'),
         ('attachment_added', 'Attachment Added'),

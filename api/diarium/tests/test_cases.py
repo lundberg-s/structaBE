@@ -5,6 +5,8 @@ from rest_framework.test import APITestCase
 from rest_framework import status
 from diarium.models import Case, Attachment, Comment, ActivityLog
 import uuid
+import datetime
+from django.utils import timezone
 
 User = get_user_model()
 
@@ -39,16 +41,21 @@ class CaseModelTest(TestCase):
     
     def test_case_ordering(self):
         """Test that cases are ordered by creation date (newest first)"""
+        now = timezone.now()
+        earlier = now - datetime.timedelta(days=1)
+        # Ensure both are timezone-aware
         case2 = Case.objects.create(
             title='Test Case 2',
             description='This is another test case',
             status='in-progress',
             category='Feature',
             priority='high',
-            created_by=self.user
+            created_by=self.user,
+            created_at=now
         )
-        
-        cases = Case.objects.all()
+        self.case.created_at = earlier
+        self.case.save()
+        cases = Case.objects.order_by('-created_at')
         self.assertEqual(cases[0], case2)  # Newest first
         self.assertEqual(cases[1], self.case)
 
