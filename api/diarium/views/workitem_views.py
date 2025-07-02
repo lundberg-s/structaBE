@@ -36,13 +36,7 @@ class CurrentWorkItemListView(ListCreateAPIView):
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
 
     def get_queryset(self):
-        tenant = self.request.user.tenant
-        workitem_type = tenant.workitem_type
-        model = model_map.get(workitem_type)
-        if not model:
-            from diarium.models import Ticket
-            return Ticket.objects.none()
-        return model.objects.filter(tenant=tenant)
+        return WorkItem.objects.filter(tenant=self.request.user.party.tenant)
 
     def get_serializer_class(self):
         tenant = self.request.user.tenant
@@ -62,7 +56,7 @@ class CurrentWorkItemListView(ListCreateAPIView):
         return search_fields_map.get(workitem_type, [])
 
     def perform_create(self, serializer):
-        serializer.save(tenant=self.request.user.tenant, created_by=self.request.user)
+        serializer.save(tenant=self.request.user.party.tenant)
 
 class CurrentWorkItemDetailView(RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated]

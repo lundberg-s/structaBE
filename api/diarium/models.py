@@ -5,44 +5,9 @@ from django.utils import timezone
 import uuid
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
-from user.models import Tenant
+from user.models import Tenant, Party, Organization
 
 User = get_user_model()
-
-class Entity(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    email = models.EmailField(blank=True, null=True)
-    phone = models.CharField(max_length=50, blank=True, null=True)
-    address = models.TextField(blank=True, null=True)
-    city = models.CharField(max_length=255, blank=True, null=True)
-    state = models.CharField(max_length=255, blank=True, null=True)
-    zip_code = models.CharField(max_length=255, blank=True, null=True)
-    country = models.CharField(max_length=255, blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        abstract = True
-
-class Organization(Entity):
-    name = models.CharField(max_length=255)
-    organization_number = models.CharField(max_length=100, blank=True, null=True)
-    def __str__(self):
-        return self.name
-
-class Customer(Entity):
-    first_name = models.CharField(max_length=255)
-    last_name = models.CharField(max_length=255)
-    customer_number = models.CharField(max_length=100, blank=True, null=True)
-    def __str__(self):
-        return f"{self.first_name} {self.last_name}"
-
-class Vendor(Entity):
-    name = models.CharField(max_length=255)
-    vendor_number = models.CharField(max_length=100, blank=True, null=True)
-    def __str__(self):
-        return self.name
-
 
 class WorkItem(models.Model):
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='workitems')
@@ -97,8 +62,8 @@ class Job(WorkItem):
     # entity: typically the customer or client for whom the job is performed
     pass
 
-class WorkItemEntityRole(models.Model):
-    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='workitem_entity_roles')
+class WorkItemPartyRole(models.Model):
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='workitem_party_roles')
     ROLE_CHOICES = [
         ('customer', 'Customer'),
         ('vendor', 'Vendor'),
@@ -106,17 +71,17 @@ class WorkItemEntityRole(models.Model):
         ('defendant', 'Defendant'),
         # Add more as needed
     ]
-    workitem = models.ForeignKey(WorkItem, on_delete=models.CASCADE, related_name='entity_roles')
+    workitem = models.ForeignKey(WorkItem, on_delete=models.CASCADE, related_name='party_roles')
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     object_id = models.UUIDField()
-    entity = GenericForeignKey('content_type', 'object_id')
+    party = GenericForeignKey('content_type', 'object_id')
     role = models.CharField(max_length=20, choices=ROLE_CHOICES)
 
     class Meta:
         unique_together = ('workitem', 'content_type', 'object_id', 'role', 'tenant')
 
     def __str__(self):
-        return f"{self.entity} as {self.role} for {self.workitem}"
+        return f"{self.party} as {self.role} for {self.workitem}"
 
 class Attachment(models.Model):
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='attachments')
@@ -151,7 +116,7 @@ class Comment(models.Model):
         ordering = ['created_at']
 
     def __str__(self):
-        return f"Comment by {str(self.author_id)} on {str(self.workitem_id)}"
+        return f"Comment by {str(self.author)} on {str(self.workitem)}"
 
 class ActivityLog(models.Model):
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='activity_logs')
@@ -176,5 +141,5 @@ class ActivityLog(models.Model):
         ordering = ['-created_at']
 
     def __str__(self):
-        return f"{self.activity_type} by {str(self.user_id)} on {str(self.workitem_id)}"
+        return f"{self.activity_type} by {str(self.user)} on {str(self.workitem)}"
 

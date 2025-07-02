@@ -1,7 +1,8 @@
 from rest_framework import serializers
-from diarium.models import WorkItem, Ticket, Case, Job, Attachment, Comment, ActivityLog, Entity, WorkItemEntityRole
+from diarium.models import WorkItem, Ticket, Case, Job, Attachment, Comment, ActivityLog, WorkItemPartyRole
 from django.contrib.auth import get_user_model
-from user.models import Tenant
+from user.models import Tenant, Party, Organization
+from user.serializers import PartySerializer
 from django.contrib.contenttypes.models import ContentType
 
 User = get_user_model()
@@ -11,15 +12,10 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ['id', 'username', 'email', 'first_name', 'last_name']
 
-class EntitySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Entity
-        fields = '__all__'
-
-class WorkItemEntityRoleSerializer(serializers.ModelSerializer):
-    entity = EntitySerializer(read_only=True)
+class WorkItemPartyRoleSerializer(serializers.ModelSerializer):
+    party = PartySerializer(read_only=True)
     content_type = serializers.SlugRelatedField(
-        queryset=ContentType.objects.filter(model__in=['customer', 'organization', 'vendor']),
+        queryset=ContentType.objects.filter(model__in=['person', 'organization']),
         slug_field='model',
         write_only=True
     )
@@ -27,12 +23,11 @@ class WorkItemEntityRoleSerializer(serializers.ModelSerializer):
     tenant = serializers.PrimaryKeyRelatedField(read_only=True)
 
     class Meta:
-        model = WorkItemEntityRole
-        fields = ['id', 'workitem', 'entity', 'content_type', 'object_id', 'role', 'tenant']
-        read_only_fields = ['id', 'entity', 'tenant']
+        model = WorkItemPartyRole
+        fields = ['id', 'workitem', 'party', 'content_type', 'object_id', 'role', 'tenant']
+        read_only_fields = ['id', 'party', 'tenant']
 
     def create(self, validated_data):
-        # Convert content_type from model name to ContentType instance
         content_type_model = validated_data.pop('content_type')
         content_type = ContentType.objects.get(model=content_type_model)
         validated_data['content_type'] = content_type
@@ -62,11 +57,11 @@ class ActivityLogSerializer(serializers.ModelSerializer):
         fields = ['id', 'workitem', 'activity_type', 'description', 'user', 'created_at', 'tenant']
         read_only_fields = ['id', 'user', 'created_at', 'tenant']
 
-class WorkItemEntityRoleNestedSerializer(serializers.ModelSerializer):
-    entity = EntitySerializer(read_only=True)
+class WorkItemPartyRoleNestedSerializer(serializers.ModelSerializer):
+    party = PartySerializer(read_only=True)
     class Meta:
-        model = WorkItemEntityRole
-        fields = ['id', 'entity', 'role']
+        model = WorkItemPartyRole
+        fields = ['id', 'party', 'role']
 
 class WorkItemListSerializer(serializers.ModelSerializer):
     assigned_user = UserSerializer(read_only=True)
@@ -85,16 +80,28 @@ class WorkItemSerializer(serializers.ModelSerializer):
     attachments = AttachmentSerializer(many=True, read_only=True)
     comments = CommentSerializer(many=True, read_only=True)
     activity_log = ActivityLogSerializer(many=True, read_only=True)
-    entity_roles = WorkItemEntityRoleNestedSerializer(many=True, read_only=True)
     tenant = serializers.PrimaryKeyRelatedField(read_only=True)
+    party_roles = WorkItemPartyRoleNestedSerializer(many=True, read_only=True)
     class Meta:
         model = WorkItem
         fields = [
             'id', 'title', 'description', 'status', 'category', 'priority',
             'deadline', 'assigned_user', 'created_by', 'attachments',
-            'comments', 'activity_log', 'entity_roles', 'created_at', 'updated_at', 'tenant'
+            'comments', 'activity_log', 'party_roles', 'created_at', 'updated_at', 'tenant'
         ]
         read_only_fields = ['id', 'created_by', 'created_at', 'updated_at', 'tenant']
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        # Dynamically add only roles that have entities
+        for role_obj in instance.party_roles.all():
+            role = role_obj.role
+            party_data = WorkItemPartyRoleNestedSerializer(role_obj.party).data
+            if role in data:
+                data[role].append(party_data)
+            else:
+                data[role] = [party_data]
+        return data
 
 class WorkItemCreateSerializer(serializers.ModelSerializer):
     class Meta:

@@ -7,18 +7,21 @@ from diarium.models import Comment
 from diarium.serializers import CommentSerializer
 
 class CommentListCreateView(generics.ListCreateAPIView):
-    queryset = Comment.objects.select_related('author', 'case').all()
+    queryset = Comment.objects.select_related('author', 'workitem').all()
     serializer_class = CommentSerializer
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter]
-    filterset_fields = ['case', 'author']
+    filterset_fields = ['workitem', 'author']
     search_fields = ['content']
 
+    def get_queryset(self):
+        return Comment.objects.filter(tenant=self.request.user.party.tenant)
+
     def perform_create(self, serializer):
-        serializer.save(author=self.request.user)
+        serializer.save(tenant=self.request.user.party.tenant)
 
 class CommentRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Comment.objects.select_related('author', 'case').all()
+    queryset = Comment.objects.select_related('author', 'workitem').all()
     serializer_class = CommentSerializer
     permission_classes = [permissions.IsAuthenticated]
     lookup_field = 'id' 
