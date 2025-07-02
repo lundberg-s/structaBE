@@ -15,10 +15,10 @@ class AttachmentListCreateView(generics.ListCreateAPIView):
     search_fields = ['filename']
 
     def get_queryset(self):
-        return Attachment.objects.filter(tenant=self.request.user.party.tenant)
+        return Attachment.objects.filter(tenant=self.request.user.tenant)
 
     def perform_create(self, serializer):
-        serializer.save(tenant=self.request.user.party.tenant, uploaded_by=self.request.user)
+        serializer.save(tenant=self.request.user.tenant, uploaded_by=self.request.user)
         ActivityLog.objects.create(
             workitem=serializer.instance.workitem,
             user=self.request.user,

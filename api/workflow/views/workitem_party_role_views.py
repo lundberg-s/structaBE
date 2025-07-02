@@ -10,7 +10,7 @@ class WorkItemPartyRoleViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return WorkItemPartyRole.objects.filter(tenant=self.request.user.party.tenant)
+        return WorkItemPartyRole.objects.filter(tenant=self.request.user.tenant)
 
     def perform_create(self, serializer):
-        serializer.save(tenant=self.request.user.party.tenant) 
+        serializer.save(tenant=self.request.user.tenant) 

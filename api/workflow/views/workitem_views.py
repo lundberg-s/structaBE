@@ -36,7 +36,7 @@ class CurrentWorkItemListView(ListCreateAPIView):
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
 
     def get_queryset(self):
-        return WorkItem.objects.filter(tenant=self.request.user.party.tenant)
+        return WorkItem.objects.filter(tenant=self.request.user.tenant)
 
     def get_serializer_class(self):
         tenant = self.request.user.tenant
@@ -56,7 +56,7 @@ class CurrentWorkItemListView(ListCreateAPIView):
         return search_fields_map.get(workitem_type, [])
 
     def perform_create(self, serializer):
-        serializer.save(tenant=self.request.user.party.tenant)
+        serializer.save(tenant=self.request.user.tenant)
 
 class CurrentWorkItemDetailView(RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated]

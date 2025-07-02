@@ -16,7 +16,7 @@ class ActivityLogListCreateView(generics.ListCreateAPIView):
     search_fields = ['description']
 
     def get_queryset(self):
-        return ActivityLog.objects.filter(tenant=self.request.user.party.tenant).select_related('user', 'workitem').all()
+        return ActivityLog.objects.filter(tenant=self.request.user.tenant).select_related('user', 'workitem').all()
 
     def filter_queryset(self, queryset):
         try:
@@ -26,7 +26,7 @@ class ActivityLogListCreateView(generics.ListCreateAPIView):
             return queryset.none()
 
     def perform_create(self, serializer):
-        serializer.save(tenant=self.request.user.party.tenant, user=self.request.user)
+        serializer.save(tenant=self.request.user.tenant, user=self.request.user)
 
 class ActivityLogRetrieveView(generics.RetrieveAPIView):
     queryset = ActivityLog.objects.select_related('user', 'workitem').all()

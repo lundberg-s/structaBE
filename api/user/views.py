@@ -39,7 +39,7 @@ class UserListView(ListAPIView):
     serializer_class = UserSerializer
 
     def get_queryset(self):
-        return User.objects.filter(party__tenant=self.request.user.party.tenant)
+        return User.objects.filter(tenant=self.request.user.tenant)
 
 class UserRegistrationView(generics.CreateAPIView):
     serializer_class = UserRegistrationSerializer
@@ -70,13 +70,13 @@ class PersonDetailView(generics.RetrieveAPIView):
     serializer_class = PersonSerializer
 
     def get_queryset(self):
-        return Person.objects.filter(tenant=self.request.user.party.tenant)
+        return Person.objects.filter(tenant=self.request.user.tenant)
 
 class PersonListView(generics.ListAPIView):
     serializer_class = PersonSerializer
 
     def get_queryset(self):
-        return Person.objects.filter(tenant=self.request.user.party.tenant)
+        return Person.objects.filter(tenant=self.request.user.tenant)
 
 class CompanyUserRegistrationView(generics.CreateAPIView):
     serializer_class = CompanyUserRegistrationSerializer
