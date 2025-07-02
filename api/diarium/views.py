@@ -1,3 +1,1 @@
-from django.shortcuts import render
-
-# Create your views here.
+# All main ViewSets have been moved to the views/ folder for modularity.

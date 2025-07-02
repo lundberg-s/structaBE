@@ -1,31 +1,62 @@
 from django.contrib import admin
-from diarium.models import Case, Attachment, Comment, ActivityLog
+from diarium.models import WorkItem, Ticket, Case, Job, Attachment, Comment, ActivityLog, WorkItemEntityRole
+
+@admin.register(WorkItem)
+class WorkItemAdmin(admin.ModelAdmin):
+    list_display = ['title', 'status', 'priority', 'category', 'created_by', 'assigned_user', 'tenant', 'created_at']
+    list_filter = ['status', 'priority', 'category', 'tenant', 'created_at']
+    search_fields = ['title', 'description']
+    readonly_fields = ['id', 'created_at', 'updated_at']
+    date_hierarchy = 'created_at'
+
+@admin.register(Ticket)
+class TicketAdmin(admin.ModelAdmin):
+    list_display = ['title', 'ticket_number', 'urgency', 'reported_by', 'status', 'tenant', 'created_at']
+    list_filter = ['urgency', 'status', 'tenant', 'created_at']
+    search_fields = ['title', 'ticket_number', 'reported_by']
+    readonly_fields = ['id', 'created_at', 'updated_at']
+    date_hierarchy = 'created_at'
 
 @admin.register(Case)
 class CaseAdmin(admin.ModelAdmin):
-    list_display = ['title', 'status', 'priority', 'category', 'created_by', 'assigned_user', 'created_at']
-    list_filter = ['status', 'priority', 'category', 'created_at']
-    search_fields = ['title', 'description']
+    list_display = ['title', 'case_reference', 'legal_area', 'status', 'priority', 'category', 'created_by', 'assigned_user', 'tenant', 'created_at']
+    list_filter = ['status', 'priority', 'category', 'legal_area', 'tenant', 'created_at']
+    search_fields = ['title', 'case_reference', 'legal_area', 'description']
+    readonly_fields = ['id', 'created_at', 'updated_at']
+    date_hierarchy = 'created_at'
+
+@admin.register(Job)
+class JobAdmin(admin.ModelAdmin):
+    list_display = ['title', 'job_code', 'assigned_team', 'estimated_hours', 'status', 'tenant', 'created_at']
+    list_filter = ['assigned_team', 'status', 'tenant', 'created_at']
+    search_fields = ['title', 'job_code', 'assigned_team']
     readonly_fields = ['id', 'created_at', 'updated_at']
     date_hierarchy = 'created_at'
 
 @admin.register(Attachment)
 class AttachmentAdmin(admin.ModelAdmin):
-    list_display = ['filename', 'case', 'uploaded_by', 'file_size', 'uploaded_at']
-    list_filter = ['uploaded_at']
-    search_fields = ['filename', 'case__title']
+    list_display = ['filename', 'workitem', 'uploaded_by', 'file_size', 'tenant', 'uploaded_at']
+    list_filter = ['uploaded_at', 'tenant']
+    search_fields = ['filename', 'workitem__title']
     readonly_fields = ['id', 'uploaded_at']
 
 @admin.register(Comment)
 class CommentAdmin(admin.ModelAdmin):
-    list_display = ['author', 'case', 'created_at']
-    list_filter = ['created_at']
-    search_fields = ['content', 'case__title', 'author__username']
+    list_display = ['author', 'workitem', 'tenant', 'created_at']
+    list_filter = ['created_at', 'tenant']
+    search_fields = ['content', 'workitem__title', 'author__username']
     readonly_fields = ['id', 'created_at', 'updated_at']
 
 @admin.register(ActivityLog)
 class ActivityLogAdmin(admin.ModelAdmin):
-    list_display = ['activity_type', 'user', 'case', 'created_at']
-    list_filter = ['activity_type', 'created_at']
-    search_fields = ['description', 'case__title', 'user__username']
+    list_display = ['activity_type', 'user', 'workitem', 'tenant', 'created_at']
+    list_filter = ['activity_type', 'created_at', 'tenant']
+    search_fields = ['description', 'workitem__title', 'user__username']
     readonly_fields = ['id', 'created_at']
+
+@admin.register(WorkItemEntityRole)
+class WorkItemEntityRoleAdmin(admin.ModelAdmin):
+    list_display = ['workitem', 'entity', 'role', 'tenant']
+    list_filter = ['role', 'tenant']
+    search_fields = ['workitem__title', 'role']
+    readonly_fields = ['id']

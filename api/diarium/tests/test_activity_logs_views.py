@@ -1,126 +1,136 @@
-import pytest
-from django.urls import reverse
-from diarium.tests.factory import create_user, authenticate_client
-from diarium.models import ActivityLog, Case
+from rest_framework.test import APITestCase, APIClient
 from rest_framework import status
-import uuid
+from django.urls import reverse
+from diarium.tests.factory import create_tenant, create_user, create_ticket
+from diarium.models import Ticket, ActivityLog
 
-pytestmark = pytest.mark.django_db
+class ActivityLogViewTests(APITestCase):
+    def setUp(self):
+        self.tenant = create_tenant('TenantA')
+        self.user = create_user(self.tenant, username='userA', password='passA')
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+        self.tenant.workitem_type = 'ticket'
+        self.tenant.save()
+        self.ticket = create_ticket(self.tenant, self.user, title='Log Ticket')
 
-def test_activity_log_list_unauthenticated():
-    url = reverse('diarium:activity-log-list-create')
-    from rest_framework.test import APIClient
-    client = APIClient()
-    response = client.get(url)
-    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    def test_create_activity_log(self):
+        url = reverse('activity-log-list-create')
+        data = {
+            'workitem': str(self.ticket.id),
+            'user': self.user.id,
+            'activity_type': 'created',
+            'description': 'Ticket created'
+        }
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, 201)  # type: ignore
+        self.assertEqual(response.data['activity_type'], 'created')  # type: ignore
+        self.assertEqual(response.data['description'], 'Ticket created')  # type: ignore
 
-def test_activity_log_retrieve_not_found():
-    client, user = authenticate_client()
-    url = reverse('diarium:activity-log-detail', kwargs={'id': '00000000-0000-0000-0000-000000000000'})
-    response = client.get(url)
-    assert response.status_code == status.HTTP_404_NOT_FOUND
+    def test_list_activity_logs(self):
+        ActivityLog.objects.create(
+            tenant=self.tenant,
+            workitem=self.ticket,
+            user=self.user,
+            activity_type='created',
+            description='Ticket created'
+        )
+        url = reverse('activity-log-list-create')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)  # type: ignore
+        self.assertTrue(any(log['description'] == 'Ticket created' for log in response.data))  # type: ignore
 
-def test_activity_log_create_invalid_data():
-    client, user = authenticate_client()
-    url = reverse('diarium:activity-log-list-create')
-    # Missing required fields
-    response = client.post(url, {}, format='json')
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    def test_activity_log_list_unauthenticated(self):
+        url = reverse('diarium:activity-log-list-create')
+        response = self.client.get(url)
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-def test_activity_log_create_and_retrieve():
-    client, user = authenticate_client()
-    from diarium.models import Case
-    case = Case.objects.create(title='Test', description='desc', status='open', category='Bug', priority='high', created_by=user)
-    url = reverse('diarium:activity-log-list-create')
-    payload = {
-        'case': str(case.id),
-        'activity_type': 'created',
-        'description': 'Case created'
-    }
-    response = client.post(url, payload, format='json')
-    assert response.status_code == status.HTTP_201_CREATED
-    log_id = response.data['id']
-    # Retrieve
-    detail_url = reverse('diarium:activity-log-detail', kwargs={'id': log_id})
-    get_response = client.get(detail_url)
-    assert get_response.status_code == status.HTTP_200_OK
+    def test_activity_log_retrieve_not_found(self):
+        url = reverse('diarium:activity-log-detail', kwargs={'id': '00000000-0000-0000-0000-000000000000'})
+        response = self.client.get(url)
+        assert response.status_code == status.HTTP_404_NOT_FOUND
 
-def test_activity_log_filter_by_case_user_activity_type():
-    client, user = authenticate_client()
-    from diarium.models import Case, ActivityLog
-    case1 = Case.objects.create(title='Case1', description='desc', status='open', category='Bug', priority='high', created_by=user)
-    case2 = Case.objects.create(title='Case2', description='desc', status='open', category='Bug', priority='high', created_by=user)
-    log1 = ActivityLog.objects.create(case=case1, user=user, activity_type='created', description='desc1')
-    log2 = ActivityLog.objects.create(case=case2, user=user, activity_type='updated', description='desc2')
-    url = reverse('diarium:activity-log-list-create')
-    # Filter by case
-    response = client.get(url, {'case': str(case1.id)})
-    assert response.status_code == status.HTTP_200_OK
-    assert all(str(item['case']) == str(case1.id) for item in response.data)
-    # Filter by user (should return at least one log for this user)
-    response = client.get(url, {'user': user.id})
-    assert response.status_code == status.HTTP_200_OK
-    assert any(str(item['user']['id']) == str(user.id) for item in response.data)
-    # Filter by activity_type
-    response = client.get(url, {'activity_type': 'created'})
-    assert response.status_code == status.HTTP_200_OK
-    assert any(item['activity_type'] == 'created' for item in response.data)
+    def test_activity_log_create_invalid_data(self):
+        url = reverse('activity-log-list-create')
+        response = self.client.post(url, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-def test_activity_log_search_by_description():
-    client, user = authenticate_client()
-    from diarium.models import Case, ActivityLog
-    case = Case.objects.create(title='Case', description='desc', status='open', category='Bug', priority='high', created_by=user)
-    ActivityLog.objects.create(case=case, user=user, activity_type='created', description='unique_search_term')
-    url = reverse('diarium:activity-log-list-create')
-    response = client.get(url, {'search': 'unique_search_term'})
-    assert response.status_code == status.HTTP_200_OK
-    assert any('unique_search_term' in item['description'] for item in response.data)
+    def test_activity_log_filter_by_workitem_user_activity_type(self):
+        log1 = ActivityLog.objects.create(
+            tenant=self.tenant,
+            workitem=self.ticket,
+            user=self.user,
+            activity_type='created',
+            description='desc1'
+        )
+        log2 = ActivityLog.objects.create(
+            tenant=self.tenant,
+            workitem=self.ticket,
+            user=self.user,
+            activity_type='updated',
+            description='desc2'
+        )
+        url = reverse('activity-log-list-create')
+        # Filter by workitem
+        response = self.client.get(url, {'workitem': str(self.ticket.id)})
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(all(str(item['workitem']) == str(self.ticket.id) for item in response.data))
+        # Filter by user
+        response = self.client.get(url, {'user': self.user.id})
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(any(str(item['user']['id']) == str(self.user.id) for item in response.data))
+        # Filter by activity_type
+        response = self.client.get(url, {'activity_type': 'created'})
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(any(item['activity_type'] == 'created' for item in response.data))
 
-def test_invalid_uuid_returns_400():
-    client, user = authenticate_client()
-    url = reverse('diarium:activity-log-list-create')
+    def test_activity_log_search_by_description(self):
+        ActivityLog.objects.create(
+            tenant=self.tenant,
+            workitem=self.ticket,
+            user=self.user,
+            activity_type='created',
+            description='unique_search_term'
+        )
+        url = reverse('activity-log-list-create')
+        response = self.client.get(url, {'search': 'unique_search_term'})
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(any('unique_search_term' in item['description'] for item in response.data))
 
-    # Invalid UUID (not in proper format)
-    response = client.get(url, {'case': 'not-a-uuid'})
-    assert response.status_code == status.HTTP_200_OK
-    assert response.data == []
+    def test_invalid_uuid_returns_400(self):
+        url = reverse('activity-log-list-create')
+        response = self.client.get(url, {'workitem': 'not-a-uuid'})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
 
+    def test_nonexistent_uuid_returns_200_and_empty_list(self):
+        import uuid
+        url = reverse('activity-log-list-create')
+        response = self.client.get(url, {'workitem': str(uuid.uuid4())})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
 
-def test_nonexistent_uuid_returns_200_and_empty_list():
-    client, user = authenticate_client()
-    url = reverse('diarium:activity-log-list-create')
+    def test_nonexistent_user_returns_200_and_empty_list(self):
+        url = reverse('activity-log-list-create')
+        response = self.client.get(url, {'user': 999999})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
 
-    # Valid but non-existent UUID
-    response = client.get(url, {'case': str(uuid.uuid4())})
-    assert response.status_code == status.HTTP_200_OK
-    assert response.data == []
+    def test_invalid_activity_type_returns_200_and_empty_list(self):
+        url = reverse('activity-log-list-create')
+        response = self.client.get(url, {'activity_type': 'not-a-type'})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
 
-
-def test_nonexistent_user_returns_200_and_empty_list():
-    client, user = authenticate_client()
-    url = reverse('diarium:activity-log-list-create')
-
-    # Non-existent user ID
-    response = client.get(url, {'user': 999999})
-    assert response.status_code == status.HTTP_200_OK
-    assert response.data == []
-
-
-def test_invalid_activity_type_returns_200_and_empty_list():
-    client, user = authenticate_client()
-    url = reverse('diarium:activity-log-list-create')
-
-    # Invalid activity_type
-    response = client.get(url, {'activity_type': 'not-a-type'})
-    assert response.status_code == status.HTTP_200_OK
-    assert response.data == []
-
-def test_activity_log_retrieve_existing():
-    client, user = authenticate_client()
-    from diarium.models import Case, ActivityLog
-    case = Case.objects.create(title='Case', description='desc', status='open', category='Bug', priority='high', created_by=user)
-    log = ActivityLog.objects.create(case=case, user=user, activity_type='created', description='desc')
-    url = reverse('diarium:activity-log-detail', kwargs={'id': log.id})
-    response = client.get(url)
-    assert response.status_code == status.HTTP_200_OK
-    assert response.data['id'] == str(log.id) 
+    def test_activity_log_retrieve_existing(self):
+        log = ActivityLog.objects.create(
+            tenant=self.tenant,
+            workitem=self.ticket,
+            user=self.user,
+            activity_type='created',
+            description='desc'
+        )
+        url = reverse('activity-log-detail', kwargs={'id': log.id})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['id'], str(log.id)) 

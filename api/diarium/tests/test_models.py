@@ -1,46 +1,28 @@
-import pytest
-from diarium.models import Attachment, Case, Comment, ActivityLog
-from diarium.tests.factory import create_user, create_case
-from django.core.files.uploadedfile import SimpleUploadedFile
-from django.utils import timezone
+from django.test import TestCase
+from diarium.tests.factory import create_tenant, create_user, create_ticket, create_comment, create_attachment
+from diarium.models import Ticket, Comment, Attachment
 
-pytestmark = pytest.mark.django_db
+class TicketModelTests(TestCase):
+    def setUp(self):
+        self.tenant = create_tenant('TenantA')
+        self.user = create_user(self.tenant, username='userA', password='passA')
 
-def test_attachment_save_sets_mime_type():
-    user = create_user()
-    case = create_case(user)
-    file = SimpleUploadedFile('test.txt', b'hello world', content_type='text/plain')
-    attachment = Attachment(
-        case=case,
-        file=file,
-        filename='test.txt',
-        file_size=11,
-        uploaded_by=user
-    )
-    attachment.save()
-    assert attachment.mime_type == 'text/plain'
+    def test_create_ticket(self):
+        ticket = create_ticket(self.tenant, self.user, title='Model Ticket')
+        self.assertEqual(ticket.title, 'Model Ticket')
+        self.assertEqual(ticket.tenant, self.tenant)
+        self.assertEqual(ticket.created_by, self.user)
 
-def test_attachment_save_no_file():
-    user = create_user()
-    case = create_case(user)
-    attachment = Attachment(
-        case=case,
-        filename='nofile.txt',
-        file_size=0,
-        uploaded_by=user
-    )
-    # Should not raise error even if file is None
-    attachment.save()
-    assert attachment.mime_type is None or attachment.mime_type == ''
+    def test_create_comment(self):
+        ticket = create_ticket(self.tenant, self.user, title='Comment Ticket')
+        comment = create_comment(ticket, self.user, content='A model comment')
+        self.assertEqual(comment.content, 'A model comment')
+        self.assertEqual(comment.workitem, ticket)
+        self.assertEqual(comment.tenant, self.tenant)
 
-def test_comment_str():
-    user = create_user()
-    case = create_case(user)
-    comment = Comment.objects.create(case=case, author=user, content='Test')
-    assert str(comment) == f"Comment by {user.username} on {case.title}"
-
-def test_activitylog_str():
-    user = create_user()
-    case = create_case(user)
-    log = ActivityLog.objects.create(case=case, user=user, activity_type='created', description='desc')
-    assert str(log) == f"created by {user.username} on {case.title}" 
+    def test_create_attachment(self):
+        ticket = create_ticket(self.tenant, self.user, title='Attachment Ticket')
+        attachment = create_attachment(ticket, self.user, filename='test.txt', content=b'hello world')
+        self.assertEqual(attachment.filename, 'test.txt')
+        self.assertEqual(attachment.workitem, ticket)
+        self.assertEqual(attachment.tenant, self.tenant) 

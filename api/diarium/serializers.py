@@ -1,6 +1,8 @@
 from rest_framework import serializers
-from diarium.models import Case, Attachment, Comment, ActivityLog
+from diarium.models import WorkItem, Ticket, Case, Job, Attachment, Comment, ActivityLog, Entity, WorkItemEntityRole
 from django.contrib.auth import get_user_model
+from user.models import Tenant
+from django.contrib.contenttypes.models import ContentType
 
 User = get_user_model()
 
@@ -9,29 +11,122 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ['id', 'username', 'email', 'first_name', 'last_name']
 
+class EntitySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Entity
+        fields = '__all__'
+
+class WorkItemEntityRoleSerializer(serializers.ModelSerializer):
+    entity = EntitySerializer(read_only=True)
+    content_type = serializers.SlugRelatedField(
+        queryset=ContentType.objects.filter(model__in=['customer', 'organization', 'vendor']),
+        slug_field='model',
+        write_only=True
+    )
+    object_id = serializers.UUIDField(write_only=True)
+    tenant = serializers.PrimaryKeyRelatedField(read_only=True)
+
+    class Meta:
+        model = WorkItemEntityRole
+        fields = ['id', 'workitem', 'entity', 'content_type', 'object_id', 'role', 'tenant']
+        read_only_fields = ['id', 'entity', 'tenant']
+
+    def create(self, validated_data):
+        # Convert content_type from model name to ContentType instance
+        content_type_model = validated_data.pop('content_type')
+        content_type = ContentType.objects.get(model=content_type_model)
+        validated_data['content_type'] = content_type
+        return super().create(validated_data)
+
 class AttachmentSerializer(serializers.ModelSerializer):
     uploaded_by = UserSerializer(read_only=True)
-    
+    tenant = serializers.PrimaryKeyRelatedField(read_only=True)
     class Meta:
         model = Attachment
-        fields = ['id', 'case', 'file', 'filename', 'file_size', 'mime_type', 'uploaded_by', 'uploaded_at']
-        read_only_fields = ['id', 'uploaded_by', 'uploaded_at']
+        fields = ['id', 'workitem', 'file', 'filename', 'file_size', 'mime_type', 'uploaded_by', 'uploaded_at', 'tenant']
+        read_only_fields = ['id', 'uploaded_by', 'uploaded_at', 'tenant']
 
 class CommentSerializer(serializers.ModelSerializer):
     author = UserSerializer(read_only=True)
-    
+    tenant = serializers.PrimaryKeyRelatedField(read_only=True)
     class Meta:
         model = Comment
-        fields = ['id', 'case', 'content', 'author', 'created_at', 'updated_at']
-        read_only_fields = ['id', 'author', 'created_at', 'updated_at']
+        fields = ['id', 'workitem', 'content', 'author', 'created_at', 'updated_at', 'tenant']
+        read_only_fields = ['id', 'author', 'created_at', 'updated_at', 'tenant']
 
 class ActivityLogSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
-    
+    tenant = serializers.PrimaryKeyRelatedField(read_only=True)
     class Meta:
         model = ActivityLog
-        fields = ['id', 'case', 'activity_type', 'description', 'user', 'created_at']
-        read_only_fields = ['id', 'user', 'created_at']
+        fields = ['id', 'workitem', 'activity_type', 'description', 'user', 'created_at', 'tenant']
+        read_only_fields = ['id', 'user', 'created_at', 'tenant']
+
+class WorkItemEntityRoleNestedSerializer(serializers.ModelSerializer):
+    entity = EntitySerializer(read_only=True)
+    class Meta:
+        model = WorkItemEntityRole
+        fields = ['id', 'entity', 'role']
+
+class WorkItemListSerializer(serializers.ModelSerializer):
+    assigned_user = UserSerializer(read_only=True)
+    tenant = serializers.PrimaryKeyRelatedField(read_only=True)
+    class Meta:
+        model = WorkItem
+        fields = [
+            'id', 'title', 'status', 'category', 'priority',
+            'deadline', 'assigned_user', 'tenant',
+        ]
+        read_only_fields = ['id', 'tenant']
+
+class WorkItemSerializer(serializers.ModelSerializer):
+    assigned_user = UserSerializer(read_only=True)
+    created_by = UserSerializer(read_only=True)
+    attachments = AttachmentSerializer(many=True, read_only=True)
+    comments = CommentSerializer(many=True, read_only=True)
+    activity_log = ActivityLogSerializer(many=True, read_only=True)
+    entity_roles = WorkItemEntityRoleNestedSerializer(many=True, read_only=True)
+    tenant = serializers.PrimaryKeyRelatedField(read_only=True)
+    class Meta:
+        model = WorkItem
+        fields = [
+            'id', 'title', 'description', 'status', 'category', 'priority',
+            'deadline', 'assigned_user', 'created_by', 'attachments',
+            'comments', 'activity_log', 'entity_roles', 'created_at', 'updated_at', 'tenant'
+        ]
+        read_only_fields = ['id', 'created_by', 'created_at', 'updated_at', 'tenant']
+
+class WorkItemCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WorkItem
+        fields = [
+            'title', 'description', 'status', 'category', 'priority',
+            'deadline', 'assigned_user'
+        ]
+
+class WorkItemUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WorkItem
+        fields = [
+            'title', 'description', 'status', 'category', 'priority',
+            'deadline', 'assigned_user'
+        ]
+
+# Ticket, Case, Job serializers with their specific fields
+class TicketSerializer(WorkItemSerializer):
+    class Meta(WorkItemSerializer.Meta):
+        model = Ticket
+        fields = WorkItemSerializer.Meta.fields + ['ticket_number', 'reported_by', 'urgency']
+
+class CaseSerializer(WorkItemSerializer):
+    class Meta(WorkItemSerializer.Meta):
+        model = Case
+        fields = WorkItemSerializer.Meta.fields + ['case_reference', 'legal_area', 'court_date']
+
+class JobSerializer(WorkItemSerializer):
+    class Meta(WorkItemSerializer.Meta):
+        model = Job
+        fields = WorkItemSerializer.Meta.fields + ['job_code', 'assigned_team', 'estimated_hours']
 
 class CaseListSerializer(serializers.ModelSerializer):
     assigned_user = UserSerializer(read_only=True)
@@ -43,30 +138,6 @@ class CaseListSerializer(serializers.ModelSerializer):
             'deadline', 'assigned_user',
         ]
         read_only_fields = ['id']
-
-class CaseSerializer(serializers.ModelSerializer):
-    assigned_user = UserSerializer(read_only=True)
-    created_by = UserSerializer(read_only=True)
-    attachments = serializers.SerializerMethodField()
-    comments = CommentSerializer(many=True, read_only=True)
-    activity_log = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Case
-        fields = [
-            'id', 'title', 'description', 'status', 'category', 'priority',
-            'deadline', 'assigned_user', 'created_by', 'attachments',
-            'comments', 'activity_log', 'created_at', 'updated_at'
-        ]
-        read_only_fields = ['id', 'created_by', 'created_at', 'updated_at']
-
-    def get_attachments(self, obj):
-        qs = obj.attachments.all().order_by('-uploaded_at')[:5]
-        return AttachmentSerializer(qs, many=True).data
-
-    def get_activity_log(self, obj):
-        qs = obj.activity_log.all().order_by('-created_at')[:5]
-        return ActivityLogSerializer(qs, many=True).data
 
 class CaseCreateSerializer(serializers.ModelSerializer):
     class Meta:
@@ -83,6 +154,15 @@ class CaseUpdateSerializer(serializers.ModelSerializer):
             'title', 'description', 'status', 'category', 'priority',
             'deadline', 'assigned_user'
         ]
+
+class ActiveCaseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Case
+        fields = [
+            'id', 'title', 'status', 'category', 'priority',
+            'deadline', 'assigned_user',
+        ]
+        read_only_fields = ['id']
 
 class LongestOpenCaseSerializer(serializers.Serializer):
     id = serializers.CharField()
