@@ -1,5 +1,5 @@
 from django.contrib import admin
-from diarium.models import WorkItem, Ticket, Case, Job, Attachment, Comment, ActivityLog, WorkItemPartyRole
+from workflow.models import WorkItem, Ticket, Case, Job, Attachment, Comment, ActivityLog, WorkItemPartyRole
 
 @admin.register(WorkItem)
 class WorkItemAdmin(admin.ModelAdmin):

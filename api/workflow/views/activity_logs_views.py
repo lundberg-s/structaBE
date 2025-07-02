@@ -5,8 +5,8 @@ from rest_framework.exceptions import ValidationError
 from django_filters.rest_framework import DjangoFilterBackend
 from django_filters import rest_framework as filters
 
-from diarium.models import ActivityLog
-from diarium.serializers import ActivityLogSerializer
+from workflow.models import ActivityLog
+from workflow.serializers import ActivityLogSerializer
 
 class ActivityLogListCreateView(generics.ListCreateAPIView):
     serializer_class = ActivityLogSerializer

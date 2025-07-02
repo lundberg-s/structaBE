@@ -1,9 +1,9 @@
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
-from diarium.models import WorkItemPartyRole
+from workflow.models import WorkItemPartyRole
 from user.models import Party
 from user.serializers import PartySerializer
-from diarium.serializers import WorkItemPartyRoleSerializer
+from workflow.serializers import WorkItemPartyRoleSerializer
 
 class WorkItemPartyRoleViewSet(viewsets.ModelViewSet):
     serializer_class = WorkItemPartyRoleSerializer

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from diarium.models import WorkItem, Ticket, Case, Job, Attachment, Comment, ActivityLog, WorkItemPartyRole
+from workflow.models import WorkItem, Ticket, Case, Job, Attachment, Comment, ActivityLog, WorkItemPartyRole
 from django.contrib.auth import get_user_model
 from user.models import Tenant, Party, Organization
 from user.serializers import PartySerializer

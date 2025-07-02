@@ -1,6 +1,6 @@
 import uuid
 from django.contrib.auth import get_user_model
-from diarium.models import Tenant, Ticket, Comment, Attachment
+from workflow.models import Tenant, Ticket, Comment, Attachment
 from django.core.files.uploadedfile import SimpleUploadedFile
 
 User = get_user_model()
@@ -48,7 +48,7 @@ def create_workitem(tenant, user, **kwargs):
             'court_date': kwargs.get('court_date', None),
         }
         base_kwargs.update(case_kwargs)
-        from diarium.models import Case
+        from workflow.models import Case
         return Case.objects.create(**base_kwargs)
     elif workitem_type == 'job':
         job_kwargs = {
@@ -57,7 +57,7 @@ def create_workitem(tenant, user, **kwargs):
             'estimated_hours': kwargs.get('estimated_hours', 1.0),
         }
         base_kwargs.update(job_kwargs)
-        from diarium.models import Job
+        from workflow.models import Job
         return Job.objects.create(**base_kwargs)
     else:
         raise ValueError(f"Unknown workitem_type: {workitem_type}")

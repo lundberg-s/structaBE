@@ -1,7 +1,7 @@
 from rest_framework.test import APITestCase, APIClient
 from django.urls import reverse
-from diarium.tests.factory import create_tenant, create_user, create_ticket
-from diarium.models import Ticket
+from workflow.tests.factory import create_tenant, create_user, create_ticket
+from workflow.models import Ticket
 
 class StatisticsEdgeCaseTests(APITestCase):
     def setUp(self):

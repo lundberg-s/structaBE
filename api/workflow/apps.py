@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class DiariumConfig(AppConfig):
+class workflowConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
-    name = "diarium"
+    name = "workflow"

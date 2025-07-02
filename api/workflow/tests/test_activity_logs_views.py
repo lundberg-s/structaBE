@@ -1,8 +1,8 @@
 from rest_framework.test import APITestCase, APIClient
 from rest_framework import status
 from django.urls import reverse
-from diarium.tests.factory import create_tenant, create_user, create_ticket
-from diarium.models import Ticket, ActivityLog
+from workflow.tests.factory import create_tenant, create_user, create_ticket
+from workflow.models import Ticket, ActivityLog
 
 class ActivityLogViewTests(APITestCase):
     def setUp(self):
@@ -41,12 +41,12 @@ class ActivityLogViewTests(APITestCase):
         self.assertTrue(any(log['description'] == 'Ticket created' for log in response.data))  # type: ignore
 
     def test_activity_log_list_unauthenticated(self):
-        url = reverse('diarium:activity-log-list-create')
+        url = reverse('workflow:activity-log-list-create')
         response = self.client.get(url)
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     def test_activity_log_retrieve_not_found(self):
-        url = reverse('diarium:activity-log-detail', kwargs={'id': '00000000-0000-0000-0000-000000000000'})
+        url = reverse('workflow:activity-log-detail', kwargs={'id': '00000000-0000-0000-0000-000000000000'})
         response = self.client.get(url)
         assert response.status_code == status.HTTP_404_NOT_FOUND
 

@@ -3,8 +3,8 @@ from rest_framework.filters import SearchFilter
 
 from django_filters.rest_framework import DjangoFilterBackend
 
-from diarium.models import Comment
-from diarium.serializers import CommentSerializer
+from workflow.models import Comment
+from workflow.serializers import CommentSerializer
 
 class CommentListCreateView(generics.ListCreateAPIView):
     queryset = Comment.objects.select_related('author', 'workitem').all()

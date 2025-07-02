@@ -1,13 +1,13 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from diarium.views.workitem_views import CurrentWorkItemListView, CurrentWorkItemDetailView
-from diarium.views.workitem_party_role_views import WorkItemPartyRoleViewSet
-from diarium.views.attachments_views import AttachmentListCreateView, AttachmentRetrieveUpdateDestroyView
-from diarium.views.comments_views import CommentListCreateView, CommentRetrieveUpdateDestroyView
-from diarium.views.activity_logs_views import ActivityLogListCreateView, ActivityLogRetrieveView
-from diarium.views.statistics_views import WorkItemStatisticsView
+from workflow.views.workitem_views import CurrentWorkItemListView, CurrentWorkItemDetailView
+from workflow.views.workitem_party_role_views import WorkItemPartyRoleViewSet
+from workflow.views.attachments_views import AttachmentListCreateView, AttachmentRetrieveUpdateDestroyView
+from workflow.views.comments_views import CommentListCreateView, CommentRetrieveUpdateDestroyView
+from workflow.views.activity_logs_views import ActivityLogListCreateView, ActivityLogRetrieveView
+from workflow.views.statistics_views import WorkItemStatisticsView
 
-app_name = 'diarium'
+app_name = 'workflow'
 
 router = DefaultRouter()
 router.register(r'workitem-party-roles', WorkItemPartyRoleViewSet, basename='workitempartyrole')

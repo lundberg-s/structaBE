@@ -1,7 +1,7 @@
 from rest_framework.test import APITestCase, APIClient
 from django.urls import reverse
-from diarium.tests.factory import create_tenant, create_user, create_ticket, create_attachment
-from diarium.models import Ticket, Attachment
+from workflow.tests.factory import create_tenant, create_user, create_ticket, create_attachment
+from workflow.models import Ticket, Attachment
 
 class AttachmentViewTests(APITestCase):
     def setUp(self):

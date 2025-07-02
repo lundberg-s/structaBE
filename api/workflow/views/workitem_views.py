@@ -1,7 +1,7 @@
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
-from diarium.models import WorkItem, Ticket, Job, Case
-from diarium.serializers import WorkItemSerializer, WorkItemCreateSerializer, WorkItemUpdateSerializer, TicketSerializer, JobSerializer, CaseSerializer
+from workflow.models import WorkItem, Ticket, Job, Case
+from workflow.serializers import WorkItemSerializer, WorkItemCreateSerializer, WorkItemUpdateSerializer, TicketSerializer, JobSerializer, CaseSerializer
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
@@ -67,7 +67,7 @@ class CurrentWorkItemDetailView(RetrieveUpdateDestroyAPIView):
         workitem_type = tenant.workitem_type
         model = model_map.get(workitem_type)
         if not model:
-            from diarium.models import Ticket
+            from workflow.models import Ticket
             return Ticket.objects.none()
         return model.objects.filter(tenant=tenant)
 

@@ -1,4 +1,4 @@
-from diarium.models import WorkItem, ActivityLog, Comment
+from workflow.models import WorkItem, ActivityLog, Comment
 from django.db.models import Count, Avg, F, ExpressionWrapper, DurationField
 from django.db.models.functions import TruncMonth, TruncWeek
 from django.utils import timezone

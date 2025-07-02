@@ -1,6 +1,6 @@
 from django.test import TestCase
-from diarium.tests.factory import create_tenant, create_user, create_ticket, create_comment, create_attachment
-from diarium.models import Ticket, Comment, Attachment
+from workflow.tests.factory import create_tenant, create_user, create_ticket, create_comment, create_attachment
+from workflow.models import Ticket, Comment, Attachment
 
 class TicketModelTests(TestCase):
     def setUp(self):

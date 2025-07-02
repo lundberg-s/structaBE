@@ -3,8 +3,8 @@ from rest_framework.filters import SearchFilter
 
 from django_filters.rest_framework import DjangoFilterBackend
 
-from diarium.models import Attachment, ActivityLog
-from diarium.serializers import AttachmentSerializer
+from workflow.models import Attachment, ActivityLog
+from workflow.serializers import AttachmentSerializer
 
 class AttachmentListCreateView(generics.ListCreateAPIView):
     queryset = Attachment.objects.select_related('uploaded_by', 'workitem').all()

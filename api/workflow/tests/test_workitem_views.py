@@ -1,7 +1,7 @@
 from rest_framework.test import APITestCase, APIClient
 from django.urls import reverse
-from diarium.tests.factory import create_tenant, create_user, create_workitem, create_comment, create_attachment
-from diarium.models import Ticket, Comment, Attachment
+from workflow.tests.factory import create_tenant, create_user, create_workitem, create_comment, create_attachment
+from workflow.models import Ticket, Comment, Attachment
 import uuid
 
 class WorkItemViewTests(APITestCase):
@@ -24,7 +24,7 @@ class WorkItemViewTests(APITestCase):
         attachment = create_attachment(workitem, self.user, filename='test.txt', content=b'hello world')
 
         # Fetch ticket detail
-        response = self.client.get(reverse('diarium:current-workitem-detail', kwargs={'pk': workitem.id}))
+        response = self.client.get(reverse('workflow:current-workitem-detail', kwargs={'pk': workitem.id}))
         self.assertEqual(response.status_code, 200)  # type: ignore
         data = response.data  # type: ignore
 
@@ -40,12 +40,12 @@ class WorkItemViewTests(APITestCase):
         t1 = create_workitem(self.tenant, self.user, title='Alpha Ticket', status='open')
         t2 = create_workitem(self.tenant, self.user, title='Beta Ticket', status='closed')
         # Filter by status
-        response = self.client.get(reverse('diarium:current-workitem-list'), {'status': 'open'})
+        response = self.client.get(reverse('workflow:current-workitem-list'), {'status': 'open'})
         self.assertEqual(response.status_code, 200)  # type: ignore
         self.assertTrue(any(t['title'] == 'Alpha Ticket' for t in response.data))  # type: ignore
         self.assertFalse(any(t['title'] == 'Beta Ticket' for t in response.data))  # type: ignore
         # Search by title
-        response = self.client.get(reverse('diarium:current-workitem-list'), {'search': 'Beta'})
+        response = self.client.get(reverse('workflow:current-workitem-list'), {'search': 'Beta'})
         self.assertEqual(response.status_code, 200)  # type: ignore
         self.assertTrue(any(t['title'] == 'Beta Ticket' for t in response.data))  # type: ignore
         self.assertFalse(any(t['title'] == 'Alpha Ticket' for t in response.data))  # type: ignore 
