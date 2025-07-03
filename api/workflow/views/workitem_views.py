@@ -1,77 +1,79 @@
-from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
-from workflow.models import WorkItem, Ticket, Job, Case
-from workflow.serializers import WorkItemSerializer, WorkItemCreateSerializer, WorkItemUpdateSerializer, TicketSerializer, JobSerializer, CaseSerializer
-from rest_framework.views import APIView
-from rest_framework.response import Response
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
 from rest_framework.filters import SearchFilter, OrderingFilter
+
 from django_filters.rest_framework import DjangoFilterBackend
-from django.shortcuts import get_object_or_404
 
+from workflow.serializers import TicketSerializer, JobSerializer, CaseSerializer, WorkItemSerializer
+from workflow.models import Ticket, Job, Case, WorkItem
 
-serializer_map = {
-    'ticket': TicketSerializer,
-    'job': JobSerializer,
-    'case': CaseSerializer,
-}
-model_map = {
-    'ticket': Ticket,
-    'job': Job,
-    'case': Case,
-}
-filterset_fields_map = {
-    'ticket': ['status', 'priority', 'assigned_user'],
-    'job': ['status', 'priority', 'assigned_user'],
-    'case': ['status', 'priority', 'assigned_user'],
-}
-search_fields_map = {
-    'ticket': ['title', 'description'],
-    'job': ['title', 'description'],
-    'case': ['title', 'description'],
-}
+from user.models import WorkItemType
 
-class CurrentWorkItemListView(ListCreateAPIView):
+class BaseWorkItemView(ListCreateAPIView):
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    allowed_type = None
 
     def get_queryset(self):
-        return WorkItem.objects.filter(tenant=self.request.user.tenant)
-
-    def get_serializer_class(self):
-        tenant = self.request.user.tenant
-        workitem_type = tenant.workitem_type
-        return serializer_map.get(workitem_type)
-
-    @property
-    def filterset_fields(self):
-        tenant = self.request.user.tenant
-        workitem_type = tenant.workitem_type
-        return filterset_fields_map.get(workitem_type, [])
-
-    @property
-    def search_fields(self):
-        tenant = self.request.user.tenant
-        workitem_type = tenant.workitem_type
-        return search_fields_map.get(workitem_type, [])
+        if self.request.user.tenant.workitem_type.lower() != self.allowed_type:
+            return self.model.objects.none()
+        return self.model.objects.filter(tenant=self.request.user.tenant)
 
     def perform_create(self, serializer):
-        serializer.save(tenant=self.request.user.tenant)
+        if self.request.user.tenant.workitem_type.lower() == self.allowed_type:
+            serializer.save(tenant=self.request.user.tenant)
 
-class CurrentWorkItemDetailView(RetrieveUpdateDestroyAPIView):
+
+class BaseWorkItemDetailView(RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated]
-    lookup_field = 'pk'
+    allowed_type = None
 
     def get_queryset(self):
-        tenant = self.request.user.tenant
-        workitem_type = tenant.workitem_type
-        model = model_map.get(workitem_type)
-        if not model:
-            from workflow.models import Ticket
-            return Ticket.objects.none()
-        return model.objects.filter(tenant=tenant)
+        if self.request.user.tenant.workitem_type.lower() != self.allowed_type:
+            return self.model.objects.none()
+        return self.model.objects.filter(tenant=self.request.user.tenant)
 
-    def get_serializer_class(self):
-        tenant = self.request.user.tenant
-        workitem_type = tenant.workitem_type
-        return serializer_map.get(workitem_type) 
+    def perform_update(self, serializer):
+        if self.request.user.tenant.workitem_type.lower() == self.allowed_type:
+            serializer.save(tenant=self.request.user.tenant)
+
+
+
+class TicketWorkItemListView(BaseWorkItemView):
+    model = Ticket
+    serializer_class = TicketSerializer
+    allowed_type = WorkItemType.TICKET
+    filterset_fields = ['status', 'priority', 'assigned_user']
+    search_fields = ['title', 'description']
+
+class TicketWorkItemDetailView(BaseWorkItemDetailView):
+    model = Ticket
+    serializer_class = TicketSerializer
+    allowed_type = WorkItemType.TICKET
+
+
+class CaseWorkItemListView(BaseWorkItemView):
+    model = Case
+    serializer_class = CaseSerializer
+    allowed_type = WorkItemType.CASE
+    filterset_fields = ['status', 'priority', 'assigned_user']
+    search_fields = ['title', 'description']
+
+class CaseWorkItemDetailView(BaseWorkItemDetailView):
+    model = Case
+    serializer_class = CaseSerializer
+    allowed_type = WorkItemType.CASE
+
+
+class JobWorkItemListView(BaseWorkItemView):
+    model = Job
+    serializer_class = JobSerializer
+    allowed_type = WorkItemType.JOB
+    filterset_fields = ['status', 'priority', 'assigned_user']
+    search_fields = ['title', 'description']
+
+class JobWorkItemDetailView(BaseWorkItemDetailView):
+    model = Job
+    serializer_class = JobSerializer
+    allowed_type = WorkItemType.JOB
+

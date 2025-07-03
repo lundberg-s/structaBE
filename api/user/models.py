@@ -12,6 +12,25 @@ from root.models import TimestampedModel
 # Allows roles, relationships, and references to be generic and flexible.
 # ---
 
+class WorkItemType(models.TextChoices):
+    TICKET = 'ticket', 'Ticket'
+    CASE = 'case', 'Case'
+    JOB = 'job', 'Job'
+
+
+class PartyRoleTypes(models.TextChoices):
+    SUPER_USER = 'super_user', 'Super User'
+    ADMIN = 'admin', 'Admin'
+    TENANT_OWNER = 'tenant_owner', 'Tenant Owner'
+    TENANT_ADMIN = 'tenant_admin', 'Tenant Admin'
+    MANAGER = 'manager', 'Manager'
+    MEMBER = 'member', 'Member'
+    BILLING = 'billing', 'Billing'
+    READ_ONLY = 'readonly', 'Read Only'
+    CUSTOMER = 'customer', 'Customer'
+    VENDOR = 'vendor', 'Vendor'
+    EMPLOYEE = 'employee', 'Employee'
+
 # Base Party model - can be person or organization
 class Party(TimestampedModel):
     """
@@ -62,22 +81,10 @@ class Role(TimestampedModel):
     Assigns a business role (admin, member, customer, etc.) to any Party (person or org).
     Users can have multiple roles per tenant.
     """
-    ROLE_CHOICES = [
-        ('super_user', 'Super User'),
-        ('admin', 'Admin'),
-        ('tenant_owner', 'Tenant Owner'),
-        ('tenant_admin', 'Tenant Admin'),
-        ('manager', 'Manager'),
-        ('member', 'Member'),
-        ('billing', 'Billing'),
-        ('readonly', 'Read Only'),
-        ('customer', 'Customer'),
-        ('vendor', 'Vendor'),
-        ('employee', 'Employee'),
-    ]
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     party = models.ForeignKey(Party, on_delete=models.CASCADE, related_name='roles')
-    role_type = models.CharField(max_length=50, choices=ROLE_CHOICES)
+    role_type = models.CharField(max_length=50, choices=PartyRoleTypes.choices)
 
     def __str__(self):
         return f"{self.party} as {self.role_type}"
@@ -88,8 +95,10 @@ class Tenant(TimestampedModel):
     Represents a SaaS account (a business using the platform).
     Linked 1:1 to a Party (usually an Organization).
     """
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     party = models.OneToOneField(Party, on_delete=models.CASCADE, related_name='tenant_obj')
+    workitem_type = models.CharField(max_length=50, default=WorkItemType.TICKET, choices=WorkItemType.choices)
     subscription_plan = models.CharField(max_length=50, default='free')
     subscription_status = models.CharField(max_length=50, default='trial')
     billing_email = models.EmailField(blank=True, null=True)

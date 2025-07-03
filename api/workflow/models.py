@@ -9,26 +9,47 @@ from user.models import Tenant, Party, Organization
 
 User = get_user_model()
 
+class WorkItemStatusTypes(models.TextChoices):
+    OPEN = 'open', 'Open'
+    IN_PROGRESS = 'in-progress', 'In Progress'
+    RESOLVED = 'resolved', 'Resolved'
+    CLOSED = 'closed', 'Closed'
+
+class WorkItemPriorityTypes(models.TextChoices):
+    LOW = 'low', 'Low'
+    MEDIUM = 'medium', 'Medium'
+    HIGH = 'high', 'High'
+    URGENT = 'urgent', 'Urgent'
+
+class WorkItemCategoryTypes(models.TextChoices):
+    TICKET = 'ticket', 'Ticket'
+    CASE = 'case', 'Case'
+    JOB = 'job', 'Job'
+
+class WorkItemPartyRoleTypes(models.TextChoices):
+    CUSTOMER = 'customer', 'Customer'
+    VENDOR = 'vendor', 'Vendor'
+    PLAINTIFF = 'plaintiff', 'Plaintiff'
+    DEFENDANT = 'defendant', 'Defendant'
+
+class ActivityLogActivityTypes(models.TextChoices):
+    CREATED = 'created', 'Created'
+    UPDATED = 'updated', 'Updated'
+    STATUS_CHANGED = 'status-changed', 'Status Changed'
+    PRIORITY_CHANGED = 'priority-changed', 'Priority Changed'
+    DEADLINE_CHANGED = 'deadline-changed', 'Deadline Changed'
+    ASSIGNED = 'assigned', 'Assigned'
+    COMMENTED = 'commented', 'Commented'
+    ATTACHMENT_ADDED = 'attachment-added', 'Attachment Added'
+
 class WorkItem(models.Model):
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='workitems')
-    STATUS_CHOICES = [
-        ('open', 'Open'),
-        ('in-progress', 'In Progress'),
-        ('resolved', 'Resolved'),
-        ('closed', 'Closed'),
-    ]
-    PRIORITY_CHOICES = [
-        ('low', 'Low'),
-        ('medium', 'Medium'),
-        ('high', 'High'),
-        ('urgent', 'Urgent'),
-    ]
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField(max_length=200)
     description = models.TextField()
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='open')
-    category = models.CharField(max_length=100)
-    priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default='medium')
+    status = models.CharField(max_length=20, choices=WorkItemStatusTypes.choices, default=WorkItemStatusTypes.OPEN)
+    category = models.CharField(max_length=100, choices=WorkItemCategoryTypes.choices)
+    priority = models.CharField(max_length=20, choices=WorkItemPriorityTypes.choices, default=WorkItemPriorityTypes.MEDIUM)
     deadline = models.DateTimeField(null=True, blank=True)
     assigned_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_workitems')
     created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_workitems')
@@ -44,7 +65,7 @@ class WorkItem(models.Model):
 class Ticket(WorkItem):
     ticket_number = models.CharField(max_length=50, unique=True)
     reported_by = models.CharField(max_length=255)
-    urgency = models.CharField(max_length=20, choices=[('low', 'Low'), ('medium', 'Medium'), ('high', 'High'), ('critical', 'Critical')])
+    urgency = models.CharField(max_length=20, choices=WorkItemPriorityTypes.choices, default=WorkItemPriorityTypes.MEDIUM)
     # entity: typically the customer or reporter
     pass
 
@@ -64,18 +85,11 @@ class Job(WorkItem):
 
 class WorkItemPartyRole(models.Model):
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='workitem_party_roles')
-    ROLE_CHOICES = [
-        ('customer', 'Customer'),
-        ('vendor', 'Vendor'),
-        ('plaintiff', 'Plaintiff'),
-        ('defendant', 'Defendant'),
-        # Add more as needed
-    ]
     workitem = models.ForeignKey(WorkItem, on_delete=models.CASCADE, related_name='party_roles')
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     object_id = models.UUIDField()
     party = GenericForeignKey('content_type', 'object_id')
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES)
+    role = models.CharField(max_length=20, choices=WorkItemPartyRoleTypes.choices)
 
     class Meta:
         unique_together = ('workitem', 'content_type', 'object_id', 'role', 'tenant')
@@ -120,20 +134,10 @@ class Comment(models.Model):
 
 class ActivityLog(models.Model):
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='activity_logs')
-    ACTIVITY_TYPES = [
-        ('created', 'Created'),
-        ('updated', 'Updated'),
-        ('status_changed', 'Status Changed'),
-        ('priority_changed', 'Priority Changed'),
-        ('deadline_changed', 'Deadline Changed'),
-        ('assigned', 'Assigned'),
-        ('commented', 'Commented'),
-        ('attachment_added', 'Attachment Added'),
-    ]
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     workitem = models.ForeignKey(WorkItem, on_delete=models.CASCADE, related_name='activity_log')
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    activity_type = models.CharField(max_length=20, choices=ACTIVITY_TYPES)
+    activity_type = models.CharField(max_length=20, choices=ActivityLogActivityTypes.choices)
     description = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
 

@@ -1,4 +1,5 @@
 from rest_framework.permissions import BasePermission
+from user.models import PartyRoleTypes
 
 # Helper function to check if a user has any of the allowed roles
 
@@ -19,28 +20,28 @@ class HasAnyRole(BasePermission):
 
 # Specific permission classes for each action in the matrix
 class CanManageTenantSettings(HasAnyRole):
-    allowed_roles = ['tenant_owner', 'tenant_admin']
+    allowed_roles = [PartyRoleTypes.TENANT_OWNER, PartyRoleTypes.TENANT_ADMIN]
 
 class CanManageUsersAndRoles(HasAnyRole):
-    allowed_roles = ['tenant_owner', 'tenant_admin', 'manager']
+    allowed_roles = [PartyRoleTypes.TENANT_OWNER, PartyRoleTypes.TENANT_ADMIN, PartyRoleTypes.MANAGER]
 
 class CanViewBillingInfo(HasAnyRole):
-    allowed_roles = ['tenant_owner', 'tenant_admin', 'billing']
+    allowed_roles = [PartyRoleTypes.TENANT_OWNER, PartyRoleTypes.TENANT_ADMIN, PartyRoleTypes.BILLING]
 
 class CanModifyBillingInfo(HasAnyRole):
-    allowed_roles = ['tenant_owner', 'tenant_admin', 'billing']
+    allowed_roles = [PartyRoleTypes.TENANT_OWNER, PartyRoleTypes.TENANT_ADMIN, PartyRoleTypes.BILLING]
 
 class CanCreateEditDeleteContent(HasAnyRole):
-    allowed_roles = ['tenant_owner', 'tenant_admin', 'manager', 'member', 'employee']
+    allowed_roles = [PartyRoleTypes.TENANT_OWNER, PartyRoleTypes.TENANT_ADMIN, PartyRoleTypes.MANAGER, PartyRoleTypes.MEMBER, PartyRoleTypes.EMPLOYEE]
 
 class CanViewContentOnly(HasAnyRole):
-    allowed_roles = ['tenant_owner', 'tenant_admin', 'manager', 'member', 'billing', 'readonly', 'customer', 'vendor', 'employee']
+    allowed_roles = [PartyRoleTypes.TENANT_OWNER, PartyRoleTypes.TENANT_ADMIN, PartyRoleTypes.MANAGER, PartyRoleTypes.MEMBER, PartyRoleTypes.BILLING, PartyRoleTypes.READ_ONLY, PartyRoleTypes.CUSTOMER, PartyRoleTypes.VENDOR, PartyRoleTypes.EMPLOYEE]
 
 class CanAccessCustomerData(HasAnyRole):
-    allowed_roles = ['tenant_owner', 'tenant_admin', 'manager', 'member', 'billing', 'customer', 'employee']
+    allowed_roles = [PartyRoleTypes.TENANT_OWNER, PartyRoleTypes.TENANT_ADMIN, PartyRoleTypes.MANAGER, PartyRoleTypes.MEMBER, PartyRoleTypes.BILLING, PartyRoleTypes.CUSTOMER, PartyRoleTypes.EMPLOYEE]
 
 class CanManageVendors(HasAnyRole):
-    allowed_roles = ['tenant_owner', 'tenant_admin', 'manager', 'vendor']
+    allowed_roles = [PartyRoleTypes.TENANT_OWNER, PartyRoleTypes.TENANT_ADMIN, PartyRoleTypes.MANAGER, PartyRoleTypes.VENDOR]
 
 class CanPerformAudits(HasAnyRole):
-    allowed_roles = ['tenant_owner', 'tenant_admin', 'manager'] 
+    allowed_roles = [PartyRoleTypes.TENANT_OWNER, PartyRoleTypes.TENANT_ADMIN, PartyRoleTypes.MANAGER]

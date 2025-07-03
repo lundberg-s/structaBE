@@ -6,12 +6,8 @@ from user.models import User, Person, Tenant, Organization, Party
 class TenantSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tenant
-        fields = ["name", "workitem_type"]
+        fields = ["workitem_type"]
 
-class PartySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Party
-        fields = '__all__'
 
 class OrganizationSerializer(serializers.ModelSerializer):
     class Meta:
@@ -25,13 +21,21 @@ class PersonSerializer(serializers.ModelSerializer):
         fields = ['id', 'first_name', 'last_name', 'email', 'phone']
 
 
+class PartySerializer(serializers.ModelSerializer):
+    organization = OrganizationSerializer(read_only=True)
+    person = PersonSerializer(read_only=True)
+    class Meta:
+        model = Party
+        fields = '__all__'
+
+
 class UserSerializer(serializers.ModelSerializer):
-    party = PersonSerializer(read_only=True)
-    tenant = serializers.StringRelatedField(read_only=True)
+    tenant = TenantSerializer(read_only=True)
+    person = PersonSerializer(source='party.person', read_only=True)
 
     class Meta:
         model = User
-        fields = ['id', 'email', 'footer_text', 'external_id', 'tenant', 'party']
+        fields = ['id', 'email', 'footer_text', 'external_id', 'tenant', 'person']
 
 
 class UserRegistrationSerializer(serializers.Serializer):
@@ -53,7 +57,7 @@ class UserRegistrationSerializer(serializers.Serializer):
         return value
 
 
-class CompanyUserRegistrationSerializer(serializers.Serializer):
+class SignupSerializer(serializers.Serializer):
     # Company fields
     company_name = serializers.CharField()
     organization_number = serializers.CharField(required=False, allow_blank=True)
