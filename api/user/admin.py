@@ -71,7 +71,7 @@ class PartnerAdmin(admin.ModelAdmin):
 
 @admin.register(Person)
 class PersonAdmin(admin.ModelAdmin):
-    list_display = ('id', 'full_name', 'email', 'phone', 'has_user', 'user_tenant', 'roles_count', 'created_at')
+    list_display = ('id', 'full_name', 'email', 'phone', 'has_user', 'user_tenant', 'role', 'created_at')
     list_filter = ('created_at', 'updated_at')
     search_fields = ('first_name', 'last_name', 'email', 'phone')
     readonly_fields = ('id', 'created_at', 'updated_at')
@@ -93,14 +93,14 @@ class PersonAdmin(admin.ModelAdmin):
         return 'No tenant access'
     user_tenant.short_description = 'Tenant'
     
-    def roles_count(self, obj):
-        count = obj.roles.count()
-        return count if count > 0 else '-'
-    roles_count.short_description = 'Roles'
+    def role(self, obj):
+        role = obj.roles.first()
+        return role.get_role_type_display() if role else "-"
+    role.short_description = 'Role'
 
 @admin.register(Organization)
 class OrganizationAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'organization_number', 'has_tenant', 'tenant_obj', 'roles_count', 'created_at')
+    list_display = ('id', 'name', 'organization_number', 'has_tenant', 'tenant_obj', 'role', 'created_at')
     list_filter = ('created_at', 'updated_at', 'tenant_obj')
     search_fields = ('name', 'organization_number')
     readonly_fields = ('id', 'created_at', 'updated_at')
@@ -114,10 +114,10 @@ class OrganizationAdmin(admin.ModelAdmin):
         return 'Yes' if hasattr(obj, 'tenant_obj') and obj.tenant_obj else 'No'
     has_tenant.short_description = 'Has Tenant'
     
-    def roles_count(self, obj):
-        count = obj.roles.count()
-        return count if count > 0 else '-'
-    roles_count.short_description = 'Roles'
+    def role(self, obj):
+        role = obj.roles.first()
+        return role.get_role_type_display() if role else "-"
+    role.short_description = 'Role'
 
 @admin.register(Role)
 class RoleAdmin(admin.ModelAdmin):
