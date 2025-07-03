@@ -1,10 +1,10 @@
 from django.contrib import admin
-from .models import User, Tenant, Party, Person, Organization, Role
+from .models import User, Tenant, Partner, Person, Organization, Role
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
-@admin.register(Party)
-class PartyAdmin(admin.ModelAdmin):
-    list_display = ('id', 'party_type', 'party_name', 'party_details', 'tenant_access', 'roles_count', 'user_count', 'created_at')
+@admin.register(Partner)
+class PartnerAdmin(admin.ModelAdmin):
+    list_display = ('id', 'partner_type', 'partner_name', 'partner_details', 'tenant_access', 'roles_count', 'user_count', 'created_at')
     list_filter = ('created_at', 'updated_at')
     search_fields = ('id', 'person__first_name', 'person__last_name', 'person__email', 'organization__name', 'organization__organization_number')
     readonly_fields = ('id', 'created_at', 'updated_at')
@@ -19,27 +19,27 @@ class PartyAdmin(admin.ModelAdmin):
         return 'No tenant access'
     tenant_access.short_description = 'Tenant'
     
-    def party_type(self, obj):
+    def partner_type(self, obj):
         """Show whether this is a Person or Organization"""
         if hasattr(obj, 'person'):
             return 'Person'
         elif hasattr(obj, 'organization'):
             return 'Organization'
         return 'Unknown'
-    party_type.short_description = 'Type'
-    party_type.admin_order_field = 'person__first_name'  # For sorting
+    partner_type.short_description = 'Type'
+    partner_type.admin_order_field = 'person__first_name'  # For sorting
     
-    def party_name(self, obj):
+    def partner_name(self, obj):
         """Show the name of the Person or Organization"""
         if hasattr(obj, 'person') and obj.person:
             return f"{obj.person.first_name} {obj.person.last_name}"
         elif hasattr(obj, 'organization') and obj.organization:
             return obj.organization.name
         return 'N/A'
-    party_name.short_description = 'Name'
-    party_name.admin_order_field = 'person__first_name'
+    partner_name.short_description = 'Name'
+    partner_name.admin_order_field = 'person__first_name'
     
-    def party_details(self, obj):
+    def partner_details(self, obj):
         """Show additional details like email for Person or org number for Organization"""
         if hasattr(obj, 'person') and obj.person:
             details = []
@@ -53,17 +53,17 @@ class PartyAdmin(admin.ModelAdmin):
                 return f"Org #: {obj.organization.organization_number}"
             return "No org number"
         return 'N/A'
-    party_details.short_description = 'Details'
+    partner_details.short_description = 'Details'
     
     def roles_count(self, obj):
-        """Show how many roles this party has"""
+        """Show how many roles this partner has"""
         count = obj.roles.count()
         return count if count > 0 else '-'
     roles_count.short_description = 'Roles'
     roles_count.admin_order_field = 'roles__count'
     
     def user_count(self, obj):
-        """Show if this party has a user account"""
+        """Show if this partner has a user account"""
         if hasattr(obj, 'user'):
             return 'Yes' if obj.user else 'No'
         return 'N/A'
@@ -121,51 +121,51 @@ class OrganizationAdmin(admin.ModelAdmin):
 
 @admin.register(Role)
 class RoleAdmin(admin.ModelAdmin):
-    list_display = ('id', 'party_name', 'party_type', 'role_type', 'party_tenant_access', 'created_at')
+    list_display = ('id', 'partner_name', 'partner_type', 'role_type', 'partner_tenant_access', 'created_at')
     list_filter = ('role_type', 'created_at', 'updated_at')
-    search_fields = ('party__person__first_name', 'party__person__last_name', 'party__organization__name', 'role_type')
+    search_fields = ('partner__person__first_name', 'partner__person__last_name', 'partner__organization__name', 'role_type')
     readonly_fields = ('id', 'created_at', 'updated_at')
     ordering = ('-created_at',)
     
-    def party_tenant_access(self, obj):
-        """Show tenant access for the party"""
-        party = obj.party
-        if hasattr(party, 'organization') and party.organization and hasattr(party.organization, 'tenant_obj') and party.organization.tenant_obj:
-            return f"{party.organization.tenant_obj}"
-        elif hasattr(party, 'person') and party.person and hasattr(party.person, 'user') and party.person.user and party.person.user.tenant:
-            return f"{party.person.user.tenant}"
+    def partner_tenant_access(self, obj):
+        """Show tenant access for the partner"""
+        partner = obj.partner
+        if hasattr(partner, 'organization') and partner.organization and hasattr(partner.organization, 'tenant_obj') and partner.organization.tenant_obj:
+            return f"{partner.organization.tenant_obj}"
+        elif hasattr(partner, 'person') and partner.person and hasattr(partner.person, 'user') and partner.person.user and partner.person.user.tenant:
+            return f"{partner.person.user.tenant}"
         return 'No tenant access'
-    party_tenant_access.short_description = 'Tenant'
+    partner_tenant_access.short_description = 'Tenant'
     
-    def party_name(self, obj):
-        if hasattr(obj.party, 'person') and obj.party.person:
-            return f"{obj.party.person.first_name} {obj.party.person.last_name}"
-        elif hasattr(obj.party, 'organization') and obj.party.organization:
-            return obj.party.organization.name
-        return str(obj.party)
-    party_name.short_description = 'Party Name'
-    party_name.admin_order_field = 'party__person__first_name'
+    def partner_name(self, obj):
+        if hasattr(obj.partner, 'person') and obj.partner.person:
+            return f"{obj.partner.person.first_name} {obj.partner.person.last_name}"
+        elif hasattr(obj.partner, 'organization') and obj.partner.organization:
+            return obj.partner.organization.name
+        return str(obj.partner)
+    partner_name.short_description = 'Partner Name'
+    partner_name.admin_order_field = 'partner__person__first_name'
     
-    def party_type(self, obj):
-        if hasattr(obj.party, 'person'):
+    def partner_type(self, obj):
+        if hasattr(obj.partner, 'person'):
             return 'Person'
-        elif hasattr(obj.party, 'organization'):
+        elif hasattr(obj.partner, 'organization'):
             return 'Organization'
         return 'Unknown'
-    party_type.short_description = 'Party Type'
+    partner_type.short_description = 'Partner Type'
     
-    def party_tenant(self, obj):
-        """Show the tenant associated with this party"""
-        if hasattr(obj.party, 'tenant_obj') and obj.party.tenant_obj:
-            return obj.party.tenant_obj
+    def partner_tenant(self, obj):
+        """Show the tenant associated with this partner"""
+        if hasattr(obj.partner, 'tenant_obj') and obj.partner.tenant_obj:
+            return obj.partner.tenant_obj
         return 'No tenant'
-    party_tenant.short_description = 'Tenant'
+    partner_tenant.short_description = 'Tenant'
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
     def tenant(self, obj):
-        return obj.party.tenant_obj if obj.party and hasattr(obj.party, 'tenant_obj') else None
-    tenant.admin_order_field = 'party__tenant_obj'
+        return obj.partner.tenant_obj if obj.partner and hasattr(obj.partner, 'tenant_obj') else None
+    tenant.admin_order_field = 'partner__tenant_obj'
     tenant.short_description = 'Tenant'
 
     list_display = ('email', 'username', 'tenant', 'is_staff', 'is_active')
@@ -174,22 +174,22 @@ class UserAdmin(BaseUserAdmin):
     ordering = ('email',)
     base_fieldsets = BaseUserAdmin.fieldsets if BaseUserAdmin.fieldsets is not None else tuple()
     fieldsets = base_fieldsets + (
-        (None, {'fields': ('party', 'tenant', 'footer_text', 'external_id')}),
+        (None, {'fields': ('partner', 'tenant', 'footer_text', 'external_id')}),
     )
 
 @admin.register(Tenant)
 class TenantAdmin(admin.ModelAdmin):
     list_display = ('company_name', 'subscription_plan', 'subscription_status', 'created_at', 'updated_at')
     list_filter = ('subscription_plan', 'subscription_status', 'created_at')
-    search_fields = ('party__name', 'billing_email')
+    search_fields = ('partner__name', 'billing_email')
     readonly_fields = ('id', 'created_at', 'updated_at')
 
     def company_name(self, obj):
-        party = obj.party
-        if isinstance(party, Organization):
-            return party.name
-        elif isinstance(party, Person):
-            return f"{party.first_name} {party.last_name}"
-        return str(party)
-    company_name.admin_order_field = 'party__name'
+        partner = obj.partner
+        if isinstance(partner, Organization):
+            return partner.name
+        elif isinstance(partner, Person):
+            return f"{partner.first_name} {partner.last_name}"
+        return str(partner)
+    company_name.admin_order_field = 'partner__name'
     company_name.short_description = 'Company Name'

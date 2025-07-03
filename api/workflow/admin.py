@@ -1,5 +1,5 @@
 from django.contrib import admin
-from workflow.models import WorkItem, Ticket, Case, Job, Attachment, Comment, ActivityLog, WorkItemPartyRole
+from workflow.models import WorkItem, Ticket, Case, Job, Attachment, Comment, ActivityLog, WorkItemPartnerRole
 
 @admin.register(WorkItem)
 class WorkItemAdmin(admin.ModelAdmin):
@@ -54,9 +54,9 @@ class ActivityLogAdmin(admin.ModelAdmin):
     search_fields = ['description', 'workitem__title', 'user__username']
     readonly_fields = ['id', 'created_at']
 
-@admin.register(WorkItemPartyRole)
-class WorkItemPartyRoleAdmin(admin.ModelAdmin):
-    list_display = ['workitem', 'party', 'role', 'tenant']
+@admin.register(WorkItemPartnerRole)
+class WorkItemPartnerRoleAdmin(admin.ModelAdmin):
+    list_display = ['workitem', 'partner', 'role', 'tenant']
     list_filter = ['role', 'tenant']
     search_fields = ['workitem__title', 'role']
     readonly_fields = ['id']

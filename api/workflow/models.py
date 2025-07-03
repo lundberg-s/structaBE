@@ -5,7 +5,7 @@ from django.utils import timezone
 import uuid
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
-from user.models import Tenant, Party, Organization
+from user.models import Tenant, Partner, Organization
 
 User = get_user_model()
 
@@ -26,7 +26,7 @@ class WorkItemCategoryTypes(models.TextChoices):
     CASE = 'case', 'Case'
     JOB = 'job', 'Job'
 
-class WorkItemPartyRoleTypes(models.TextChoices):
+class WorkItemPartnerRoleTypes(models.TextChoices):
     CUSTOMER = 'customer', 'Customer'
     VENDOR = 'vendor', 'Vendor'
     PLAINTIFF = 'plaintiff', 'Plaintiff'
@@ -73,7 +73,7 @@ class Case(WorkItem):
     case_reference = models.CharField(max_length=100, unique=True)
     legal_area = models.CharField(max_length=100)
     court_date = models.DateField(null=True, blank=True)
-    # entity: could be a person, organization, or other party involved
+    # entity: could be a person, organization, or other partner involved
     pass
 
 class Job(WorkItem):
@@ -83,19 +83,19 @@ class Job(WorkItem):
     # entity: typically the customer or client for whom the job is performed
     pass
 
-class WorkItemPartyRole(models.Model):
-    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='workitem_party_roles')
-    workitem = models.ForeignKey(WorkItem, on_delete=models.CASCADE, related_name='party_roles')
+class WorkItemPartnerRole(models.Model):
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='workitem_partner_roles')
+    workitem = models.ForeignKey(WorkItem, on_delete=models.CASCADE, related_name='partner_roles')
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     object_id = models.UUIDField()
-    party = GenericForeignKey('content_type', 'object_id')
-    role = models.CharField(max_length=20, choices=WorkItemPartyRoleTypes.choices)
+    partner = GenericForeignKey('content_type', 'object_id')
+    role = models.CharField(max_length=20, choices=WorkItemPartnerRoleTypes.choices)
 
     class Meta:
         unique_together = ('workitem', 'content_type', 'object_id', 'role', 'tenant')
 
     def __str__(self):
-        return f"{self.party} as {self.role} for {self.workitem}"
+        return f"{self.partner} as {self.role} for {self.workitem}"
 
 class Attachment(models.Model):
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='attachments')

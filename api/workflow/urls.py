@@ -1,7 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from workflow.views.workitem_views import TicketWorkItemListView, CaseWorkItemListView, JobWorkItemListView, TicketWorkItemDetailView, CaseWorkItemDetailView, JobWorkItemDetailView
-from workflow.views.workitem_party_role_views import WorkItemPartyRoleViewSet
+from workflow.views.workitem_partner_role_views import WorkItemPartnerRoleViewSet
 from workflow.views.attachments_views import AttachmentListCreateView, AttachmentRetrieveUpdateDestroyView
 from workflow.views.comments_views import CommentListCreateView, CommentRetrieveUpdateDestroyView
 from workflow.views.activity_logs_views import ActivityLogListCreateView, ActivityLogRetrieveView
@@ -10,7 +10,7 @@ from workflow.views.statistics_views import WorkItemStatisticsView
 app_name = 'workflow'
 
 router = DefaultRouter()
-router.register(r'workitem-party-roles', WorkItemPartyRoleViewSet, basename='workitempartyrole')
+router.register(r'workitem-partner-roles', WorkItemPartnerRoleViewSet, basename='workitempartnerrole')
 
 urlpatterns = [
     path('', include(router.urls)),

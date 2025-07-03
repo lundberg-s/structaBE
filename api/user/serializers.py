@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from user.models import User, Person, Tenant, Organization, Party
+from user.models import User, Person, Tenant, Organization, Partner
 
 
 class TenantSerializer(serializers.ModelSerializer):
@@ -21,17 +21,17 @@ class PersonSerializer(serializers.ModelSerializer):
         fields = ['id', 'first_name', 'last_name', 'email', 'phone']
 
 
-class PartySerializer(serializers.ModelSerializer):
+class PartnerSerializer(serializers.ModelSerializer):
     organization = OrganizationSerializer(read_only=True)
     person = PersonSerializer(read_only=True)
     class Meta:
-        model = Party
+        model = Partner
         fields = '__all__'
 
 
 class UserSerializer(serializers.ModelSerializer):
     tenant = TenantSerializer(read_only=True)
-    person = PersonSerializer(source='party.person', read_only=True)
+    person = PersonSerializer(source='partner.person', read_only=True)
 
     class Meta:
         model = User
