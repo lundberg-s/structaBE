@@ -7,11 +7,11 @@ from workflow.models import Comment
 from workflow.serializers import CommentSerializer
 
 class CommentListCreateView(generics.ListCreateAPIView):
-    queryset = Comment.objects.select_related('author', 'workitem').all()
+    queryset = Comment.objects.select_related('author', 'work_item').all()
     serializer_class = CommentSerializer
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter]
-    filterset_fields = ['workitem', 'author']
+    filterset_fields = ['work_item', 'author']
     search_fields = ['content']
 
     def get_queryset(self):
@@ -24,7 +24,7 @@ class CommentListCreateView(generics.ListCreateAPIView):
         )
 
 class CommentRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Comment.objects.select_related('author', 'workitem').all()
+    queryset = Comment.objects.select_related('author', 'work_item').all()
     serializer_class = CommentSerializer
     permission_classes = [permissions.IsAuthenticated]
     lookup_field = 'id' 

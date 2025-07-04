@@ -9,11 +9,11 @@ class StatisticsEdgeCaseTests(APITestCase):
         self.user = create_user(self.tenant, username='userA', password='passA')
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
-        self.tenant.workitem_type = 'ticket'
+        self.tenant.work_item_type = 'ticket'
         self.tenant.save()
 
     def test_statistics_no_tickets(self):
-        url = reverse('workitem-statistics')
+        url = reverse('work_item-statistics')
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)  # type: ignore
         stats = response.data['ticket']  # type: ignore
@@ -22,7 +22,7 @@ class StatisticsEdgeCaseTests(APITestCase):
     def test_statistics_all_closed(self):
         create_ticket(self.tenant, self.user, title='Closed Ticket 1', status='closed')
         create_ticket(self.tenant, self.user, title='Closed Ticket 2', status='closed')
-        url = reverse('workitem-statistics')
+        url = reverse('work_item-statistics')
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)  # type: ignore
         stats = response.data['ticket']  # type: ignore

@@ -1,7 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from workflow.views.workitem_views import TicketWorkItemListView, CaseWorkItemListView, JobWorkItemListView, TicketWorkItemDetailView, CaseWorkItemDetailView, JobWorkItemDetailView
-from workflow.views.workitem_partner_role_views import WorkItemPartnerRoleListView, WorkItemPartnerRoleDetailView
+from workflow.views.work_item_views import TicketWorkItemListView, CaseWorkItemListView, JobWorkItemListView, TicketWorkItemDetailView, CaseWorkItemDetailView, JobWorkItemDetailView
+from workflow.views.work_item_partner_role_views import WorkItemPartnerRoleListView, WorkItemPartnerRoleDetailView
 from workflow.views.attachments_views import AttachmentListCreateView, AttachmentRetrieveUpdateDestroyView
 from workflow.views.comments_views import CommentListCreateView, CommentRetrieveUpdateDestroyView
 from workflow.views.activity_logs_views import ActivityLogListCreateView, ActivityLogRetrieveView
@@ -11,8 +11,8 @@ app_name = 'workflow'
 
 
 urlpatterns = [
-    path('workitem-partner-roles/', WorkItemPartnerRoleListView.as_view(), name='workitem-partner-role-list'),
-    path('workitem-partner-roles/<uuid:pk>/', WorkItemPartnerRoleDetailView.as_view(), name='workitem-partner-role-detail'),
+    path('work_item-partner-roles/', WorkItemPartnerRoleListView.as_view(), name='work_item-partner-role-list'),
+    path('work_item-partner-roles/<uuid:pk>/', WorkItemPartnerRoleDetailView.as_view(), name='work_item-partner-role-detail'),
 
     path('tickets/', TicketWorkItemListView.as_view(), name='ticket-list-create'),
     path('tickets/<uuid:pk>/', TicketWorkItemDetailView.as_view(), name='ticket-detail'),
@@ -32,5 +32,5 @@ urlpatterns = [
     path('activity-logs/', ActivityLogListCreateView.as_view(), name='activity-log-list-create'),
     path('activity-logs/<uuid:id>/', ActivityLogRetrieveView.as_view(), name='activity-log-detail'),
     
-    path('statistics/', WorkItemStatisticsView.as_view(), name='workitem-statistics'),
+    path('statistics/', WorkItemStatisticsView.as_view(), name='work_item-statistics'),
 ]

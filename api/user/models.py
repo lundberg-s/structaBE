@@ -106,7 +106,7 @@ class Tenant(TimestampedModel):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     partner = models.OneToOneField(Partner, on_delete=models.CASCADE, related_name='tenant_obj')
-    workitem_type = models.CharField(max_length=50, default=WorkItemType.TICKET, choices=WorkItemType.choices)
+    work_item_type = models.CharField(max_length=50, default=WorkItemType.TICKET, choices=WorkItemType.choices)
     subscription_plan = models.CharField(max_length=50, default='free')
     subscription_status = models.CharField(max_length=50, default='trial')
     billing_email = models.EmailField(blank=True, null=True)

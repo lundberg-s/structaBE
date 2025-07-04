@@ -7,11 +7,11 @@ from workflow.models import Attachment, ActivityLog
 from workflow.serializers import AttachmentSerializer
 
 class AttachmentListCreateView(generics.ListCreateAPIView):
-    queryset = Attachment.objects.select_related('uploaded_by', 'workitem').all()
+    queryset = Attachment.objects.select_related('uploaded_by', 'work_item').all()
     serializer_class = AttachmentSerializer
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter]
-    filterset_fields = ['workitem', 'mime_type', 'uploaded_by']
+    filterset_fields = ['work_item', 'mime_type', 'uploaded_by']
     search_fields = ['filename']
 
     def get_queryset(self):
@@ -20,14 +20,14 @@ class AttachmentListCreateView(generics.ListCreateAPIView):
     def perform_create(self, serializer):
         serializer.save(tenant=self.request.user.tenant, uploaded_by=self.request.user)
         ActivityLog.objects.create(
-            workitem=serializer.instance.workitem,
+            work_item=serializer.instance.work_item,
             user=self.request.user,
             activity_type='attachment_added',
             description=f'Attachment "{serializer.instance.filename}" was added'
         )
 
 class AttachmentRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Attachment.objects.select_related('uploaded_by', 'workitem').all()
+    queryset = Attachment.objects.select_related('uploaded_by', 'work_item').all()
     serializer_class = AttachmentSerializer
     permission_classes = [permissions.IsAuthenticated]
     lookup_field = 'id'
@@ -35,7 +35,7 @@ class AttachmentRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView)
     def perform_update(self, serializer):
         attachment = serializer.save()
         ActivityLog.objects.create(
-            workitem=attachment.workitem,
+            work_item=attachment.work_item,
             user=self.request.user,
             activity_type='attachment_updated',
             description=f'Attachment "{attachment.filename}" was updated'
@@ -43,7 +43,7 @@ class AttachmentRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView)
 
     def perform_destroy(self, instance):
         ActivityLog.objects.create(
-            workitem=instance.workitem,
+            work_item=instance.work_item,
             user=self.request.user,
             activity_type='attachment_deleted',
             description=f'Attachment "{instance.filename}" was deleted'

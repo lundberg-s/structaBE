@@ -17,12 +17,12 @@ class TicketModelTests(TestCase):
         ticket = create_ticket(self.tenant, self.user, title='Comment Ticket')
         comment = create_comment(ticket, self.user, content='A model comment')
         self.assertEqual(comment.content, 'A model comment')
-        self.assertEqual(comment.workitem, ticket)
+        self.assertEqual(comment.work_item, ticket)
         self.assertEqual(comment.tenant, self.tenant)
 
     def test_create_attachment(self):
         ticket = create_ticket(self.tenant, self.user, title='Attachment Ticket')
         attachment = create_attachment(ticket, self.user, filename='test.txt', content=b'hello world')
         self.assertEqual(attachment.filename, 'test.txt')
-        self.assertEqual(attachment.workitem, ticket)
+        self.assertEqual(attachment.work_item, ticket)
         self.assertEqual(attachment.tenant, self.tenant) 

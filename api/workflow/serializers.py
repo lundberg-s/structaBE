@@ -19,7 +19,7 @@ class AttachmentSerializer(serializers.ModelSerializer):
     tenant = serializers.PrimaryKeyRelatedField(read_only=True)
     class Meta:
         model = Attachment
-        fields = ['id', 'workitem', 'file', 'filename', 'file_size', 'mime_type', 'uploaded_by', 'uploaded_at', 'tenant']
+        fields = ['id', 'work_item', 'file', 'filename', 'file_size', 'mime_type', 'uploaded_by', 'uploaded_at', 'tenant']
         read_only_fields = ['id', 'uploaded_by', 'uploaded_at', 'tenant']
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -27,7 +27,7 @@ class CommentSerializer(serializers.ModelSerializer):
     tenant = serializers.PrimaryKeyRelatedField(read_only=True)
     class Meta:
         model = Comment
-        fields = ['id', 'workitem', 'content', 'author', 'created_at', 'updated_at', 'tenant']
+        fields = ['id', 'work_item', 'content', 'author', 'created_at', 'updated_at', 'tenant']
         read_only_fields = ['id', 'author', 'created_at', 'updated_at', 'tenant']
         
 class ActivityLogSerializer(serializers.ModelSerializer):
@@ -35,7 +35,7 @@ class ActivityLogSerializer(serializers.ModelSerializer):
     tenant = serializers.PrimaryKeyRelatedField(read_only=True)
     class Meta:
         model = ActivityLog
-        fields = ['id', 'workitem', 'activity_type', 'description', 'user', 'created_at', 'tenant']
+        fields = ['id', 'work_item', 'activity_type', 'description', 'user', 'created_at', 'tenant']
         read_only_fields = ['id', 'user', 'created_at', 'tenant']
 
 class WorkItemPartnerRoleNestedSerializer(serializers.ModelSerializer):
@@ -193,7 +193,7 @@ class WorkItemPartnerRoleCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = WorkItemPartnerRole
-        fields = ['workitem', 'content_type', 'object_id', 'role']
+        fields = ['work_item', 'content_type', 'object_id', 'role']
 
     def validate(self, attrs):
         content_type = attrs.get('content_type')

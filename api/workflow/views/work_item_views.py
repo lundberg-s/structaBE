@@ -15,12 +15,12 @@ class BaseWorkItemView(ListCreateAPIView):
     allowed_type = None
 
     def get_queryset(self):
-        if self.request.user.tenant.workitem_type.lower() != self.allowed_type:
+        if self.request.user.tenant.work_item_type.lower() != self.allowed_type:
             return self.model.objects.none()
         return self.model.objects.filter(tenant=self.request.user.tenant)
 
     def perform_create(self, serializer):
-        if self.request.user.tenant.workitem_type.lower() == self.allowed_type:
+        if self.request.user.tenant.work_item_type.lower() == self.allowed_type:
             serializer.save(tenant=self.request.user.tenant)
 
 
@@ -29,12 +29,12 @@ class BaseWorkItemDetailView(RetrieveUpdateDestroyAPIView):
     allowed_type = None
 
     def get_queryset(self):
-        if self.request.user.tenant.workitem_type.lower() != self.allowed_type:
+        if self.request.user.tenant.work_item_type.lower() != self.allowed_type:
             return self.model.objects.none()
         return self.model.objects.filter(tenant=self.request.user.tenant)
 
     def perform_update(self, serializer):
-        if self.request.user.tenant.workitem_type.lower() == self.allowed_type:
+        if self.request.user.tenant.work_item_type.lower() == self.allowed_type:
             serializer.save(tenant=self.request.user.tenant)
 
 

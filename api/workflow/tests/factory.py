@@ -7,7 +7,7 @@ User = get_user_model()
 
 def create_tenant(name='TestTenant'):
     tenant = Tenant.objects.create(name=name)
-    tenant.workitem_type = 'ticket'
+    tenant.work_item_type = 'ticket'
     tenant.save()
     return tenant
 
@@ -17,11 +17,11 @@ def create_user(tenant, username='testuser', password='testpass', email=None):
     user = User.objects.create_user(username=username, email=email, password=password, tenant=tenant)
     return user
 
-def create_workitem(tenant, user, **kwargs):
+def create_work_item(tenant, user, **kwargs):
     """
-    Create a WorkItem of the correct subclass (Ticket, Case, or Job) based on the tenant's workitem_type.
+    Create a WorkItem of the correct subclass (Ticket, Case, or Job) based on the tenant's work_item_type.
     """
-    workitem_type = getattr(tenant, 'workitem_type', 'ticket')
+    work_item_type = getattr(tenant, 'work_item_type', 'ticket')
     base_kwargs = {
         'tenant': tenant,
         'created_by': user,
@@ -33,7 +33,7 @@ def create_workitem(tenant, user, **kwargs):
         'priority': kwargs.get('priority', 'medium'),
         'deadline': kwargs.get('deadline', None),
     }
-    if workitem_type == 'ticket':
+    if work_item_type == 'ticket':
         ticket_kwargs = {
             'ticket_number': kwargs.get('ticket_number', uuid.uuid4().hex),
             'reported_by': kwargs.get('reported_by', user.username if hasattr(user, 'username') else 'reporter'),
@@ -41,7 +41,7 @@ def create_workitem(tenant, user, **kwargs):
         }
         base_kwargs.update(ticket_kwargs)
         return Ticket.objects.create(**base_kwargs)
-    elif workitem_type == 'case':
+    elif work_item_type == 'case':
         case_kwargs = {
             'case_reference': kwargs.get('case_reference', uuid.uuid4().hex),
             'legal_area': kwargs.get('legal_area', 'General'),
@@ -50,7 +50,7 @@ def create_workitem(tenant, user, **kwargs):
         base_kwargs.update(case_kwargs)
         from workflow.models import Case
         return Case.objects.create(**base_kwargs)
-    elif workitem_type == 'job':
+    elif work_item_type == 'job':
         job_kwargs = {
             'job_code': kwargs.get('job_code', uuid.uuid4().hex),
             'assigned_team': kwargs.get('assigned_team', 'Team A'),
@@ -60,13 +60,13 @@ def create_workitem(tenant, user, **kwargs):
         from workflow.models import Job
         return Job.objects.create(**base_kwargs)
     else:
-        raise ValueError(f"Unknown workitem_type: {workitem_type}")
+        raise ValueError(f"Unknown work_item_type: {work_item_type}")
 
 
 def create_comment(ticket, author, content='Test comment'):
     return Comment.objects.create(
         tenant=ticket.tenant,
-        workitem=ticket,
+        work_item=ticket,
         author=author,
         content=content
     )
@@ -75,7 +75,7 @@ def create_attachment(ticket, uploaded_by, filename='test.txt', content=b'test c
     file = SimpleUploadedFile(filename, content)
     return Attachment.objects.create(
         tenant=ticket.tenant,
-        workitem=ticket,
+        work_item=ticket,
         file=file,
         filename=filename,
         file_size=len(content),

@@ -6,7 +6,7 @@ from collections import defaultdict
 from datetime import timedelta, datetime
 
 
-def get_workitem_statistics(model, tenant):
+def get_work_item_statistics(model, tenant):
     stats = {}
     now = timezone.now()
     qs = model.objects.filter(tenant=tenant)
@@ -105,7 +105,7 @@ def get_workitem_statistics(model, tenant):
     if hasattr(model, 'comments'):
         first_response_times = []
         for item in qs:
-            first_comment = Comment.objects.filter(workitem=item).order_by('created_at').first()
+            first_comment = Comment.objects.filter(work_item=item).order_by('created_at').first()
             if first_comment:
                 delta = first_comment.created_at - item.created_at
                 first_response_times.append(delta.total_seconds())
@@ -118,7 +118,7 @@ def get_workitem_statistics(model, tenant):
     if hasattr(model, 'activity_log'):
         status_times = defaultdict(list)
         for item in qs:
-            logs = list(ActivityLog.objects.filter(workitem=item, activity_type='status_changed').order_by('created_at'))
+            logs = list(ActivityLog.objects.filter(work_item=item, activity_type='status_changed').order_by('created_at'))
             prev_time = item.created_at
             prev_status = item.status
             for log in logs:
@@ -132,7 +132,7 @@ def get_workitem_statistics(model, tenant):
         # Reopened
         reopened = 0
         for item in qs:
-            logs = ActivityLog.objects.filter(workitem=item, activity_type='status_changed').order_by('created_at')
+            logs = ActivityLog.objects.filter(work_item=item, activity_type='status_changed').order_by('created_at')
             statuses = [log.description.split(' to ')[-1].replace('"', '') for log in logs]
             if statuses.count('resolved') > 1 or statuses.count('closed') > 1:
                 reopened += 1
@@ -178,10 +178,10 @@ def get_workitem_statistics(model, tenant):
     return stats
 
 
-def get_all_workitem_statistics(tenant):
+def get_all_work_item_statistics(tenant):
     # Auto-discover all WorkItem subclasses
     subclasses = WorkItem.__subclasses__()
     stats = {}
     for subclass in subclasses:
-        stats[subclass.__name__.lower()] = get_workitem_statistics(subclass, tenant)
+        stats[subclass.__name__.lower()] = get_work_item_statistics(subclass, tenant)
     return stats 

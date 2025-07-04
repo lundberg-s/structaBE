@@ -6,7 +6,7 @@ from user.models import User, Person, Tenant, Organization, Partner
 class TenantSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tenant
-        fields = ["id","workitem_type"]
+        fields = ["id","work_item_type"]
 
 
 class OrganizationSerializer(serializers.ModelSerializer):

@@ -40,28 +40,28 @@ class JobAdmin(admin.ModelAdmin):
 
 @admin.register(Attachment)
 class AttachmentAdmin(admin.ModelAdmin):
-    list_display = ['filename', 'workitem', 'uploaded_by', 'file_size', 'tenant', 'uploaded_at']
+    list_display = ['filename', 'work_item', 'uploaded_by', 'file_size', 'tenant', 'uploaded_at']
     list_filter = ['uploaded_at', 'tenant']
-    search_fields = ['filename', 'workitem__title']
+    search_fields = ['filename', 'work_item__title']
     readonly_fields = ['id', 'uploaded_at']
 
 @admin.register(Comment)
 class CommentAdmin(admin.ModelAdmin):
-    list_display = ['author', 'workitem', 'tenant', 'created_at']
+    list_display = ['author', 'work_item', 'tenant', 'created_at']
     list_filter = ['created_at', 'tenant']
-    search_fields = ['content', 'workitem__title', 'author__username']
+    search_fields = ['content', 'work_item__title', 'author__username']
     readonly_fields = ['id', 'created_at', 'updated_at']
 
 @admin.register(ActivityLog)
 class ActivityLogAdmin(admin.ModelAdmin):
-    list_display = ['activity_type', 'user', 'workitem', 'tenant', 'created_at']
+    list_display = ['activity_type', 'user', 'work_item', 'tenant', 'created_at']
     list_filter = ['activity_type', 'created_at', 'tenant']
-    search_fields = ['description', 'workitem__title', 'user__username']
+    search_fields = ['description', 'work_item__title', 'user__username']
     readonly_fields = ['id', 'created_at']
 
 @admin.register(WorkItemPartnerRole)
 class WorkItemPartnerRoleAdmin(admin.ModelAdmin):
-    list_display = ['workitem', 'partner', 'role', 'tenant']
+    list_display = ['work_item', 'partner', 'role', 'tenant']
     list_filter = ['role', 'tenant']
-    search_fields = ['workitem__title', 'role']
+    search_fields = ['work_item__title', 'role']
     readonly_fields = ['id']

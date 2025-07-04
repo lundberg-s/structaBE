@@ -10,14 +10,14 @@ class ActivityLogViewTests(APITestCase):
         self.user = create_user(self.tenant, username='userA', password='passA')
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
-        self.tenant.workitem_type = 'ticket'
+        self.tenant.work_item_type = 'ticket'
         self.tenant.save()
         self.ticket = create_ticket(self.tenant, self.user, title='Log Ticket')
 
     def test_create_activity_log(self):
         url = reverse('activity-log-list-create')
         data = {
-            'workitem': str(self.ticket.id),
+            'work_item': str(self.ticket.id),
             'user': self.user.id,
             'activity_type': 'created',
             'description': 'Ticket created'
@@ -30,7 +30,7 @@ class ActivityLogViewTests(APITestCase):
     def test_list_activity_logs(self):
         ActivityLog.objects.create(
             tenant=self.tenant,
-            workitem=self.ticket,
+            work_item=self.ticket,
             user=self.user,
             activity_type='created',
             description='Ticket created'
@@ -55,26 +55,26 @@ class ActivityLogViewTests(APITestCase):
         response = self.client.post(url, {}, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-    def test_activity_log_filter_by_workitem_user_activity_type(self):
+    def test_activity_log_filter_by_work_item_user_activity_type(self):
         log1 = ActivityLog.objects.create(
             tenant=self.tenant,
-            workitem=self.ticket,
+            work_item=self.ticket,
             user=self.user,
             activity_type='created',
             description='desc1'
         )
         log2 = ActivityLog.objects.create(
             tenant=self.tenant,
-            workitem=self.ticket,
+            work_item=self.ticket,
             user=self.user,
             activity_type='updated',
             description='desc2'
         )
         url = reverse('activity-log-list-create')
-        # Filter by workitem
-        response = self.client.get(url, {'workitem': str(self.ticket.id)})
+        # Filter by work_item
+        response = self.client.get(url, {'work_item': str(self.ticket.id)})
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(all(str(item['workitem']) == str(self.ticket.id) for item in response.data))
+        self.assertTrue(all(str(item['work_item']) == str(self.ticket.id) for item in response.data))
         # Filter by user
         response = self.client.get(url, {'user': self.user.id})
         self.assertEqual(response.status_code, 200)
@@ -87,7 +87,7 @@ class ActivityLogViewTests(APITestCase):
     def test_activity_log_search_by_description(self):
         ActivityLog.objects.create(
             tenant=self.tenant,
-            workitem=self.ticket,
+            work_item=self.ticket,
             user=self.user,
             activity_type='created',
             description='unique_search_term'
@@ -99,14 +99,14 @@ class ActivityLogViewTests(APITestCase):
 
     def test_invalid_uuid_returns_400(self):
         url = reverse('activity-log-list-create')
-        response = self.client.get(url, {'workitem': 'not-a-uuid'})
+        response = self.client.get(url, {'work_item': 'not-a-uuid'})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [])
 
     def test_nonexistent_uuid_returns_200_and_empty_list(self):
         import uuid
         url = reverse('activity-log-list-create')
-        response = self.client.get(url, {'workitem': str(uuid.uuid4())})
+        response = self.client.get(url, {'work_item': str(uuid.uuid4())})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [])
 
@@ -125,7 +125,7 @@ class ActivityLogViewTests(APITestCase):
     def test_activity_log_retrieve_existing(self):
         log = ActivityLog.objects.create(
             tenant=self.tenant,
-            workitem=self.ticket,
+            work_item=self.ticket,
             user=self.user,
             activity_type='created',
             description='desc'

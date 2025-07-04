@@ -9,7 +9,7 @@ class AttachmentViewTests(APITestCase):
         self.user = create_user(self.tenant, username='userA', password='passA')
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
-        self.tenant.workitem_type = 'ticket'
+        self.tenant.work_item_type = 'ticket'
         self.tenant.save()
         self.ticket = create_ticket(self.tenant, self.user, title='Attachment Ticket')
 
@@ -17,7 +17,7 @@ class AttachmentViewTests(APITestCase):
         url = reverse('attachment-list-create')
         file_content = b'hello world'
         data = {
-            'workitem': str(self.ticket.id),
+            'work_item': str(self.ticket.id),
             'filename': 'test.txt',
             'file': ('test.txt', file_content, 'text/plain'),
             'file_size': len(file_content),
