@@ -9,6 +9,10 @@ class WorkItemAdmin(admin.ModelAdmin):
     readonly_fields = ['id', 'created_at', 'updated_at']
     date_hierarchy = 'created_at'
 
+class WorkItemPartnerRoleInline(admin.TabularInline):
+    model = WorkItemPartnerRole
+    extra = 0
+
 @admin.register(Ticket)
 class TicketAdmin(admin.ModelAdmin):
     list_display = ['title', 'ticket_number', 'urgency', 'reported_by', 'status', 'tenant', 'created_at']
@@ -16,6 +20,7 @@ class TicketAdmin(admin.ModelAdmin):
     search_fields = ['title', 'ticket_number', 'reported_by']
     readonly_fields = ['id', 'created_at', 'updated_at']
     date_hierarchy = 'created_at'
+    inlines = [WorkItemPartnerRoleInline]
 
 @admin.register(Case)
 class CaseAdmin(admin.ModelAdmin):

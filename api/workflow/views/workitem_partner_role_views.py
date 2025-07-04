@@ -1,16 +1,32 @@
-from rest_framework import viewsets
+from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 from workflow.models import WorkItemPartnerRole
-from user.models import Partner
-from user.serializers import PartnerSerializer
-from workflow.serializers import WorkItemPartnerRoleSerializer
+from workflow.serializers import (
+    WorkItemPartnerRoleCreateSerializer,
+    WorkItemPartnerRoleGetSerializer,
+)
 
-class WorkItemPartnerRoleViewSet(viewsets.ModelViewSet):
-    serializer_class = WorkItemPartnerRoleSerializer
+class WorkItemPartnerRoleListView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         return WorkItemPartnerRole.objects.filter(tenant=self.request.user.tenant)
 
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return WorkItemPartnerRoleCreateSerializer
+        return WorkItemPartnerRoleGetSerializer
+
     def perform_create(self, serializer):
-        serializer.save(tenant=self.request.user.tenant) 
+        serializer.save(tenant=self.request.user.tenant)
+
+class WorkItemPartnerRoleDetailView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return WorkItemPartnerRole.objects.filter(tenant=self.request.user.tenant)
+
+    def get_serializer_class(self):
+        if self.request.method in ['PUT', 'PATCH']:
+            return WorkItemPartnerRoleCreateSerializer
+        return WorkItemPartnerRoleGetSerializer 

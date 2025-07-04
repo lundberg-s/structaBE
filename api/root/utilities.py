@@ -1,4 +1,6 @@
 from rest_framework.response import Response
+from user.models import Person, Organization
+from django.contrib.contenttypes.models import ContentType
 
 ACCESS_TOKEN_MAX_AGE = 300  # 5 minutes
 REFRESH_TOKEN_MAX_AGE = 604800  # 7 days

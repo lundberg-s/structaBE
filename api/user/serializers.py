@@ -6,7 +6,7 @@ from user.models import User, Person, Tenant, Organization, Partner
 class TenantSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tenant
-        fields = ["workitem_type"]
+        fields = ["id","workitem_type"]
 
 
 class OrganizationSerializer(serializers.ModelSerializer):
@@ -79,3 +79,14 @@ class SignupSerializer(serializers.Serializer):
         if Organization.objects.filter(name=value).exists():
             raise serializers.ValidationError("An organization with this name already exists.")
         return value
+
+
+class FlatOrganizationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Organization
+        fields = ['id', 'name', 'organization_number']
+
+class FlatPersonSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Person
+        fields = ['id', 'first_name', 'last_name', 'email', 'phone']

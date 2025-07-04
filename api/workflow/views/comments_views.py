@@ -18,7 +18,10 @@ class CommentListCreateView(generics.ListCreateAPIView):
         return Comment.objects.filter(tenant=self.request.user.tenant)
 
     def perform_create(self, serializer):
-        serializer.save(tenant=self.request.user.tenant)
+        serializer.save(
+            tenant=self.request.user.tenant,
+            author=self.request.user
+        )
 
 class CommentRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Comment.objects.select_related('author', 'workitem').all()

@@ -1,9 +1,11 @@
 from rest_framework import serializers
 from workflow.models import WorkItem, Ticket, Case, Job, Attachment, Comment, ActivityLog, WorkItemPartnerRole
 from django.contrib.auth import get_user_model
-from user.models import Tenant, Partner, Organization
-from user.serializers import PartnerSerializer
+from user.models import Tenant, Partner, Organization, Person
+from user.serializers import PartnerSerializer, OrganizationSerializer, PersonSerializer, FlatOrganizationSerializer, FlatPersonSerializer
 from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
+from workflow.utilities import get_partner_content_type_and_obj
 
 User = get_user_model()
 
@@ -11,27 +13,6 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'username', 'email', 'first_name', 'last_name']
-
-class WorkItemPartnerRoleSerializer(serializers.ModelSerializer):
-    partner = PartnerSerializer(read_only=True)
-    content_type = serializers.SlugRelatedField(
-        queryset=ContentType.objects.filter(model__in=['person', 'organization']),
-        slug_field='model',
-        write_only=True
-    )
-    object_id = serializers.UUIDField(write_only=True)
-    tenant = serializers.PrimaryKeyRelatedField(read_only=True)
-
-    class Meta:
-        model = WorkItemPartnerRole
-        fields = ['id', 'workitem', 'partner', 'content_type', 'object_id', 'role', 'tenant']
-        read_only_fields = ['id', 'partner', 'tenant']
-
-    def create(self, validated_data):
-        content_type_model = validated_data.pop('content_type')
-        content_type = ContentType.objects.get(model=content_type_model)
-        validated_data['content_type'] = content_type
-        return super().create(validated_data)
 
 class AttachmentSerializer(serializers.ModelSerializer):
     uploaded_by = UserSerializer(read_only=True)
@@ -48,7 +29,7 @@ class CommentSerializer(serializers.ModelSerializer):
         model = Comment
         fields = ['id', 'workitem', 'content', 'author', 'created_at', 'updated_at', 'tenant']
         read_only_fields = ['id', 'author', 'created_at', 'updated_at', 'tenant']
-
+        
 class ActivityLogSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     tenant = serializers.PrimaryKeyRelatedField(read_only=True)
@@ -61,7 +42,7 @@ class WorkItemPartnerRoleNestedSerializer(serializers.ModelSerializer):
     partner = PartnerSerializer(read_only=True)
     class Meta:
         model = WorkItemPartnerRole
-        fields = ['id', 'partner', 'role']
+        fields = ['id', 'partner']
 
 class WorkItemListSerializer(serializers.ModelSerializer):
     assigned_user = UserSerializer(read_only=True)
@@ -74,6 +55,20 @@ class WorkItemListSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'tenant']
 
+class FlatPartnerWithRoleSerializer(serializers.BaseSerializer):
+    def to_representation(self, obj):
+        partner = obj.partner
+        if partner is None:
+            return None
+        if isinstance(partner, Organization):
+            data = dict(FlatOrganizationSerializer(partner).data)
+        elif isinstance(partner, Person):
+            data = dict(FlatPersonSerializer(partner).data)
+        else:
+            data = {}
+        data['role'] = obj.role
+        return data
+
 class WorkItemSerializer(serializers.ModelSerializer):
     assigned_user = UserSerializer(read_only=True)
     created_by = UserSerializer(read_only=True)
@@ -81,7 +76,7 @@ class WorkItemSerializer(serializers.ModelSerializer):
     comments = CommentSerializer(many=True, read_only=True)
     activity_log = ActivityLogSerializer(many=True, read_only=True)
     tenant = serializers.PrimaryKeyRelatedField(read_only=True)
-    partner_roles = WorkItemPartnerRoleNestedSerializer(many=True, read_only=True)
+    partner_roles = FlatPartnerWithRoleSerializer(many=True, read_only=True)
     class Meta:
         model = WorkItem
         fields = [
@@ -90,18 +85,6 @@ class WorkItemSerializer(serializers.ModelSerializer):
             'comments', 'activity_log', 'partner_roles', 'created_at', 'updated_at', 'tenant'
         ]
         read_only_fields = ['id', 'created_by', 'created_at', 'updated_at', 'tenant']
-
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        # Dynamically add only roles that have entities
-        for role_obj in instance.partner_roles.all():
-            role = role_obj.role
-            partner_data = WorkItemPartnerRoleNestedSerializer(role_obj.partner).data
-            if role in data:
-                data[role].append(partner_data)
-            else:
-                data[role] = [partner_data]
-        return data
 
 class WorkItemCreateSerializer(serializers.ModelSerializer):
     class Meta:
@@ -200,3 +183,45 @@ class CaseStatisticsSerializer(serializers.Serializer):
     average_resolution_time_days = serializers.FloatField(allow_null=True)
     cases_by_assigned_user = serializers.DictField(child=serializers.IntegerField())
     cases_by_created_user = serializers.DictField(child=serializers.IntegerField()) 
+
+class WorkItemPartnerRoleCreateSerializer(serializers.ModelSerializer):
+    content_type = serializers.SlugRelatedField(
+        queryset=ContentType.objects.filter(model__in=['person', 'organization']),
+        slug_field='model'
+    )
+    object_id = serializers.UUIDField()
+
+    class Meta:
+        model = WorkItemPartnerRole
+        fields = ['workitem', 'content_type', 'object_id', 'role']
+
+    def validate(self, attrs):
+        content_type = attrs.get('content_type')
+        object_id = attrs.get('object_id')
+        model_class = content_type.model_class()
+        if not model_class.objects.filter(id=object_id).exists():
+            raise ValidationError({'object_id': 'No matching object found for this content type.'})
+        return attrs
+
+    def create(self, validated_data):
+        validated_data.pop('partner_id', None)
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        validated_data.pop('partner_id', None)
+        return super().update(instance, validated_data)
+
+class WorkItemPartnerRoleGetSerializer(serializers.ModelSerializer):
+    partner = serializers.SerializerMethodField()
+
+    class Meta:
+        model = WorkItemPartnerRole
+        fields = ['id', 'partner', 'role', 'tenant']
+
+    def get_partner(self, obj):
+        partner = obj.partner
+        if isinstance(partner, Organization):
+            return OrganizationSerializer(partner).data
+        elif isinstance(partner, Person):
+            return PersonSerializer(partner).data
+        return None 
