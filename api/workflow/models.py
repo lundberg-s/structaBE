@@ -63,8 +63,8 @@ class WorkItem(models.Model):
         return f"{self.title} - {self.status}"
         
 class Ticket(WorkItem):
-    ticket_number = models.CharField(max_length=50, unique=True)
-    reported_by = models.CharField(max_length=255)
+    ticket_number = models.CharField(max_length=50, null=True, blank=True)
+    reported_by = models.CharField(max_length=255, null=True, blank=True)
     urgency = models.CharField(max_length=20, choices=WorkItemPriorityTypes.choices, default=WorkItemPriorityTypes.MEDIUM)
     # entity: typically the customer or reporter
     pass

@@ -36,6 +36,24 @@ class PartnerRoleTypes(models.TextChoices):
     # Partner roles
     CONTACT_INFO = 'contact_info', 'Contact Info'
 
+# Tenant is your SaaS account, linked 1:1 with Partner
+class Tenant(TimestampedModel):
+    """
+    Represents a SaaS account (a business using the platform).
+    Linked 1:1 to a Partner (usually an Organization).
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    work_item_type = models.CharField(max_length=50, default=WorkItemType.TICKET, choices=WorkItemType.choices)
+    subscription_plan = models.CharField(max_length=50, default='free')
+    subscription_status = models.CharField(max_length=50, default='trial')
+    billing_email = models.EmailField(blank=True, null=True)
+    billing_address = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return str(self.id)
+
+
 # Base Partner model - can be person or organization
 class Partner(TimestampedModel):
     """
@@ -43,6 +61,7 @@ class Partner(TimestampedModel):
     Do not use directly; use Person or Organization.
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='partners')
 
     class Meta:
         verbose_name = "Partner"
@@ -88,29 +107,13 @@ class Role(TimestampedModel):
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='roles')
     partner = models.ForeignKey(Partner, on_delete=models.CASCADE, related_name='roles')
     role_type = models.CharField(max_length=50, choices=PartnerRoleTypes.choices)
 
     def __str__(self):
         return f"{self.partner} as {self.role_type}"
 
-# Tenant is your SaaS account, linked 1:1 with Partner
-class Tenant(TimestampedModel):
-    """
-    Represents a SaaS account (a business using the platform).
-    Linked 1:1 to a Partner (usually an Organization).
-    """
-
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    partner = models.OneToOneField(Partner, on_delete=models.CASCADE, related_name='tenant_obj')
-    work_item_type = models.CharField(max_length=50, default=WorkItemType.TICKET, choices=WorkItemType.choices)
-    subscription_plan = models.CharField(max_length=50, default='free')
-    subscription_status = models.CharField(max_length=50, default='trial')
-    billing_email = models.EmailField(blank=True, null=True)
-    billing_address = models.TextField(blank=True, null=True)
-
-    def __str__(self):
-        return str(self.partner)
 
 class User(AbstractUser, TimestampedModel):
     """
@@ -119,11 +122,10 @@ class User(AbstractUser, TimestampedModel):
     id = models.UUIDField(
         default=uuid.uuid4, editable=False, unique=True, db_index=True , primary_key=True
     )
-    email = models.EmailField("email address", unique=True)
-    footer_text = models.TextField(blank=True)
-    external_id = models.TextField(blank=True, null=True)
-    partner = models.OneToOneField(Partner, on_delete=models.CASCADE, related_name='user', null=True, blank=True)
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='users', null=True, blank=True)
+    partner = models.OneToOneField(Partner, on_delete=models.CASCADE, related_name='user', null=True, blank=True)
+    email = models.EmailField("email address", unique=True)
+
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []

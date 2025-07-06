@@ -11,11 +11,9 @@ class PartnerAdmin(admin.ModelAdmin):
     ordering = ('-created_at',)
     
     def tenant_access(self, obj):
-        """Show tenant access - either through organization ownership or user account"""
-        if hasattr(obj, 'organization') and obj.organization and hasattr(obj.organization, 'tenant_obj') and obj.organization.tenant_obj:
-            return f"{obj.organization.tenant_obj}"
-        elif hasattr(obj, 'person') and obj.person and hasattr(obj.person, 'user') and obj.person.user and obj.person.user.tenant:
-            return f" {obj.person.user.tenant}"
+        """Show tenant access - partner now has direct tenant relationship"""
+        if hasattr(obj, 'tenant') and obj.tenant:
+            return f"{obj.tenant}"
         return 'No tenant access'
     tenant_access.short_description = 'Tenant'
     
@@ -87,9 +85,9 @@ class PersonAdmin(admin.ModelAdmin):
     has_user.short_description = 'Has User Account'
     
     def user_tenant(self, obj):
-        """Show the tenant through the user account"""
-        if hasattr(obj, 'user') and obj.user and obj.user.tenant:
-            return obj.user.tenant
+        """Show the tenant - person now has direct tenant relationship"""
+        if hasattr(obj, 'tenant') and obj.tenant:
+            return obj.tenant
         return 'No tenant access'
     user_tenant.short_description = 'Tenant'
     
@@ -100,18 +98,18 @@ class PersonAdmin(admin.ModelAdmin):
 
 @admin.register(Organization)
 class OrganizationAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'organization_number', 'has_tenant', 'tenant_obj', 'role', 'created_at')
-    list_filter = ('created_at', 'updated_at', 'tenant_obj')
+    list_display = ('id', 'name', 'organization_number', 'has_tenant', 'tenant', 'role', 'created_at')
+    list_filter = ('created_at', 'updated_at', 'tenant')
     search_fields = ('name', 'organization_number')
     readonly_fields = ('id', 'created_at', 'updated_at')
     ordering = ('name',)
     
     def get_queryset(self, request):
         """Optimize queryset to reduce database queries"""
-        return super().get_queryset(request).select_related('tenant_obj')
+        return super().get_queryset(request).select_related('tenant')
     
     def has_tenant(self, obj):
-        return 'Yes' if hasattr(obj, 'tenant_obj') and obj.tenant_obj else 'No'
+        return 'Yes' if hasattr(obj, 'tenant') and obj.tenant else 'No'
     has_tenant.short_description = 'Has Tenant'
     
     def role(self, obj):
@@ -130,10 +128,8 @@ class RoleAdmin(admin.ModelAdmin):
     def partner_tenant_access(self, obj):
         """Show tenant access for the partner"""
         partner = obj.partner
-        if hasattr(partner, 'organization') and partner.organization and hasattr(partner.organization, 'tenant_obj') and partner.organization.tenant_obj:
-            return f"{partner.organization.tenant_obj}"
-        elif hasattr(partner, 'person') and partner.person and hasattr(partner.person, 'user') and partner.person.user and partner.person.user.tenant:
-            return f"{partner.person.user.tenant}"
+        if hasattr(partner, 'tenant') and partner.tenant:
+            return f"{partner.tenant}"
         return 'No tenant access'
     partner_tenant_access.short_description = 'Tenant'
     
@@ -156,40 +152,35 @@ class RoleAdmin(admin.ModelAdmin):
     
     def partner_tenant(self, obj):
         """Show the tenant associated with this partner"""
-        if hasattr(obj.partner, 'tenant_obj') and obj.partner.tenant_obj:
-            return obj.partner.tenant_obj
+        if hasattr(obj.partner, 'tenant') and obj.partner.tenant:
+            return obj.partner.tenant
         return 'No tenant'
     partner_tenant.short_description = 'Tenant'
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
     def tenant(self, obj):
-        return obj.partner.tenant_obj if obj.partner and hasattr(obj.partner, 'tenant_obj') else None
-    tenant.admin_order_field = 'partner__tenant_obj'
+        return obj.tenant if obj.tenant else None
+    tenant.admin_order_field = 'tenant'
     tenant.short_description = 'Tenant'
 
-    list_display = ('email', 'username', 'tenant', 'is_staff', 'is_active')
+    def related_partner_object(self, obj):
+        return obj.partner.person if obj.partner and obj.partner.person else None
+    related_partner_object.admin_order_field = 'partner__person'
+    related_partner_object.short_description = 'Related Partner Object'
+
+    list_display = ('email', 'username', 'tenant', 'related_partner_object', 'is_staff', 'is_active')
     list_filter = ('is_staff', 'is_active', 'tenant')
     search_fields = ('email', 'username')
     ordering = ('email',)
     base_fieldsets = BaseUserAdmin.fieldsets if BaseUserAdmin.fieldsets is not None else tuple()
     fieldsets = base_fieldsets + (
-        (None, {'fields': ('partner', 'tenant', 'footer_text', 'external_id')}),
+        (None, {'fields': ('partner', 'tenant')}),
     )
 
 @admin.register(Tenant)
 class TenantAdmin(admin.ModelAdmin):
-    list_display = ('company_name', 'subscription_plan', 'subscription_status', 'created_at', 'updated_at')
+    list_display = ('id', 'subscription_plan', 'subscription_status', 'billing_email', 'created_at', 'updated_at')
     list_filter = ('subscription_plan', 'subscription_status', 'created_at')
-    search_fields = ('partner__name', 'billing_email')
+    search_fields = ('billing_email',)
     readonly_fields = ('id', 'created_at', 'updated_at')
-
-    def company_name(self, obj):
-        partner = obj.partner
-        if isinstance(partner, Organization):
-            return partner.name
-        elif isinstance(partner, Person):
-            return f"{partner.first_name} {partner.last_name}"
-        return str(partner)
-    company_name.admin_order_field = 'partner__name'
-    company_name.short_description = 'Company Name'

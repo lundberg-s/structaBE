@@ -29,19 +29,27 @@ class PartnerDetailView(RetrieveAPIView):
 class PersonListView(PartnerListView):
     model = Person
     serializer_class = PersonSerializer
-    filterset_fields = ['first_name', 'last_name', 'email', 'phone']
+    
+    def get_queryset(self):
+        return Person.objects.filter(tenant=self.request.user.tenant)
 
 class PersonDetailView(PartnerDetailView):
     model = Person
     serializer_class = PersonSerializer
-    filterset_fields = ['first_name', 'last_name', 'email', 'phone']
+    
+    def get_queryset(self):
+        return Person.objects.filter(tenant=self.request.user.tenant)
 
 class OrganizationListView(PartnerListView):
     model = Organization
     serializer_class = OrganizationSerializer
-    filterset_fields = ['name', 'organization_number']
+    
+    def get_queryset(self):
+        return Organization.objects.filter(tenant=self.request.user.tenant)
 
 class OrganizationDetailView(PartnerDetailView):
     model = Organization
     serializer_class = OrganizationSerializer
-    filterset_fields = ['name', 'organization_number']
+    
+    def get_queryset(self):
+        return Organization.objects.filter(tenant=self.request.user.tenant)

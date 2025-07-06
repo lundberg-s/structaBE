@@ -21,7 +21,7 @@ class BaseWorkItemView(ListCreateAPIView):
 
     def perform_create(self, serializer):
         if self.request.user.tenant.work_item_type.lower() == self.allowed_type:
-            serializer.save(tenant=self.request.user.tenant)
+            serializer.save(tenant=self.request.user.tenant, created_by=self.request.user)
 
 
 class BaseWorkItemDetailView(RetrieveUpdateDestroyAPIView):
