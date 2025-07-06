@@ -10,9 +10,23 @@ from workflow.utilities import get_partner_content_type_and_obj
 User = get_user_model()
 
 class UserSerializer(serializers.ModelSerializer):
+    first_name = serializers.SerializerMethodField()
+    last_name = serializers.SerializerMethodField()
+    
     class Meta:
         model = User
         fields = ['id', 'username', 'email', 'first_name', 'last_name']
+    
+    def _get_partner_person_field(self, obj, field_name):
+        if hasattr(obj, 'partner') and obj.partner and hasattr(obj.partner, 'person'):
+            return getattr(obj.partner.person, field_name)
+        return getattr(obj, field_name) or ''
+    
+    def get_first_name(self, obj):
+        return self._get_partner_person_field(obj, 'first_name')
+    
+    def get_last_name(self, obj):
+        return self._get_partner_person_field(obj, 'last_name')
 
 class AttachmentSerializer(serializers.ModelSerializer):
     uploaded_by = UserSerializer(read_only=True)
@@ -62,12 +76,25 @@ class FlatPartnerWithRoleSerializer(serializers.BaseSerializer):
             return None
         if isinstance(partner, Organization):
             data = dict(FlatOrganizationSerializer(partner).data)
+            data['role'] = obj.role
+            data['content_type'] = obj.content_type.model
+            return {
+                'organization': data
+            }
         elif isinstance(partner, Person):
             data = dict(FlatPersonSerializer(partner).data)
+            data['role'] = obj.role
+            data['content_type'] = obj.content_type.model
+            return {
+                'person': data
+            }
         else:
             data = {}
-        data['role'] = obj.role
-        return data
+            data['role'] = obj.role
+            data['content_type'] = obj.content_type.model if obj.content_type else None
+            return {
+                'unknown': data
+            }
 
 class WorkItemSerializer(serializers.ModelSerializer):
     assigned_user = UserSerializer(read_only=True)

@@ -20,6 +20,7 @@ class AttachmentListCreateView(generics.ListCreateAPIView):
     def perform_create(self, serializer):
         serializer.save(tenant=self.request.user.tenant, uploaded_by=self.request.user)
         ActivityLog.objects.create(
+            tenant=self.request.user.tenant,
             work_item=serializer.instance.work_item,
             user=self.request.user,
             activity_type='attachment_added',
@@ -35,6 +36,7 @@ class AttachmentRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView)
     def perform_update(self, serializer):
         attachment = serializer.save()
         ActivityLog.objects.create(
+            tenant=self.request.user.tenant,
             work_item=attachment.work_item,
             user=self.request.user,
             activity_type='attachment_updated',
@@ -43,6 +45,7 @@ class AttachmentRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView)
 
     def perform_destroy(self, instance):
         ActivityLog.objects.create(
+            tenant=self.request.user.tenant,
             work_item=instance.work_item,
             user=self.request.user,
             activity_type='attachment_deleted',

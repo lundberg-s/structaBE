@@ -34,10 +34,7 @@ class PartnerRoleTypes(models.TextChoices):
     TENANT_EMPLOYEE = 'tenant_employee', 'Tenant Employee'
     TENANT_READ_ONLY = 'tenant_readonly', 'Tenant Read Only'
     # Partner roles
-    PARTNER_CUSTOMER = 'partner_customer', 'Partner Customer'
-    PARTNER_VENDOR = 'partner_vendor', 'Partner Vendor'
-    PARTNER_SUPPLIER = 'partner_supplier', 'Partner Supplier'
-    PARTNER_EMPLOYEE = 'partner_employee', 'Partner Employee'
+    CONTACT_INFO = 'contact_info', 'Contact Info'
 
 # Base Partner model - can be person or organization
 class Partner(TimestampedModel):
