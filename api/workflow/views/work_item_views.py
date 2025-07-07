@@ -4,7 +4,7 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 
 from django_filters.rest_framework import DjangoFilterBackend
 
-from workflow.serializers import TicketSerializer, JobSerializer, CaseSerializer, WorkItemSerializer
+from workflow.serializers import TicketSerializer, JobSerializer, CaseSerializer, WorkItemSerializer, TicketWritableSerializer
 from workflow.models import Ticket, Job, Case, WorkItem
 
 from user.models import WorkItemType
@@ -50,6 +50,13 @@ class TicketWorkItemDetailView(BaseWorkItemDetailView):
     model = Ticket
     serializer_class = TicketSerializer
     allowed_type = WorkItemType.TICKET
+    
+    def get_serializer_class(self):
+        if self.request.method in ['PUT', 'PATCH']:
+            from workflow.serializers import TicketWritableSerializer
+            return TicketWritableSerializer
+        from workflow.serializers import TicketSerializer
+        return TicketSerializer
 
 
 class CaseWorkItemListView(BaseWorkItemView):

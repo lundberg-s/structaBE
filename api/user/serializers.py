@@ -9,24 +9,44 @@ class TenantSerializer(serializers.ModelSerializer):
         fields = ["id","work_item_type"]
 
 
-class OrganizationSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Organization
-        fields = ["name", "organization_number"]
-
-
-class PersonSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Person
-        fields = ['id', 'first_name', 'last_name', 'email', 'phone']
-
-
 class PartnerSerializer(serializers.ModelSerializer):
-    organization = OrganizationSerializer(read_only=True)
-    person = PersonSerializer(read_only=True)
+    role = serializers.SerializerMethodField()
+    content_type = serializers.SerializerMethodField()
+
     class Meta:
         model = Partner
-        fields = '__all__'
+        fields = ['id', 'role', 'content_type']
+
+    def get_role(self, obj):
+        role = obj.roles.first()
+        return role.get_role_type_display() if role else None
+
+    def get_content_type(self, obj):
+        return obj._meta.model_name
+
+class PersonSerializer(PartnerSerializer):
+    class Meta(PartnerSerializer.Meta):
+        model = Person
+        fields = [
+            'id',
+            'first_name',
+            'last_name',
+            'email',
+            'phone',
+            'role',
+            'content_type',
+        ]
+
+class OrganizationSerializer(PartnerSerializer):
+    class Meta(PartnerSerializer.Meta):
+        model = Organization
+        fields = [
+            'id',
+            'name',
+            'organization_number',
+            'role',
+            'content_type',
+        ]
 
 
 class UserSerializer(serializers.ModelSerializer):

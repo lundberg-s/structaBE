@@ -1,7 +1,7 @@
 from django.urls import path
 from user.views.signup_views import SignupView
 from user.views.user_views import UserMeView, UserListView, UserDetailView
-from user.views.partner_views import PersonListView, PersonDetailView, OrganizationListView, OrganizationDetailView
+from user.views.partner_views import PersonListView, PersonDetailView, OrganizationListView, OrganizationDetailView, PartnerListView
 
 app_name = "core"
 
@@ -17,5 +17,4 @@ urlpatterns = [
 
     path("organizations/", OrganizationListView.as_view(), name="organization-list"),
     path("organizations/<uuid:pk>/", OrganizationDetailView.as_view(), name="organization-detail"),
-
 ]

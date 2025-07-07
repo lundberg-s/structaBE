@@ -1,6 +1,6 @@
 from rest_framework.generics import RetrieveAPIView, ListCreateAPIView
 from rest_framework.permissions import IsAuthenticated
-from user.models import Person, Organization, Partner
+from user.models import Person, Organization, Partner, Role, PartnerRoleTypes   
 from user.serializers import (
     PersonSerializer, OrganizationSerializer
 )
@@ -17,6 +17,11 @@ class PartnerListView(ListCreateAPIView):
 
     def perform_create(self, serializer):
         serializer.save(tenant=self.request.user.tenant)
+        Role.objects.create(
+            partner=serializer.instance,
+            role_type=PartnerRoleTypes.CONTACT_INFO,
+            tenant=self.request.user.tenant
+        )
 
 
 class PartnerDetailView(RetrieveAPIView):

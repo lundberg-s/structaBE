@@ -252,3 +252,18 @@ class WorkItemPartnerRoleGetSerializer(serializers.ModelSerializer):
         elif isinstance(partner, Person):
             return PersonSerializer(partner).data
         return None 
+
+class WorkItemWritableSerializer(serializers.ModelSerializer):
+    assigned_user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), required=False, allow_null=True)
+
+    class Meta:
+        model = WorkItem
+        fields = [
+            'title', 'description', 'status', 'category', 'priority',
+            'deadline', 'assigned_user'
+        ]
+
+class TicketWritableSerializer(WorkItemWritableSerializer):
+    class Meta(WorkItemWritableSerializer.Meta):
+        model = Ticket
+        fields = WorkItemWritableSerializer.Meta.fields + ['ticket_number', 'reported_by', 'urgency'] 
