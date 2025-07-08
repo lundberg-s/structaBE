@@ -51,7 +51,7 @@ class WorkItem(models.Model):
     category = models.CharField(max_length=100, choices=WorkItemCategoryTypes.choices)
     priority = models.CharField(max_length=20, choices=WorkItemPriorityTypes.choices, default=WorkItemPriorityTypes.MEDIUM)
     deadline = models.DateTimeField(null=True, blank=True)
-    assigned_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_work_items')
+    # assigned_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_work_items')
     created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_work_items')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -146,4 +146,16 @@ class ActivityLog(models.Model):
 
     def __str__(self):
         return f"{self.activity_type} by {str(self.user)} on {str(self.work_item)}"
+
+class Assignment(models.Model):
+    work_item = models.ForeignKey('WorkItem', on_delete=models.CASCADE, related_name='assignments')
+    user = models.ForeignKey('user.User', on_delete=models.CASCADE, related_name='assignments')
+    assigned_by = models.ForeignKey('user.User', on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_assignments')
+    assigned_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('work_item', 'user')
+
+    def __str__(self):
+        return f"{self.user} assigned to {self.work_item} by {self.assigned_by}"
 

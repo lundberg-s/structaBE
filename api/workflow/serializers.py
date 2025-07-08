@@ -6,6 +6,7 @@ from user.serializers import PartnerSerializer, OrganizationSerializer, PersonSe
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from workflow.utilities import get_partner_content_type_and_obj
+from workflow.models import Assignment
 
 User = get_user_model()
 
@@ -97,7 +98,7 @@ class FlatPartnerWithRoleSerializer(serializers.BaseSerializer):
             }
 
 class WorkItemSerializer(serializers.ModelSerializer):
-    assigned_user = UserSerializer(read_only=True)
+    assigned_to = serializers.SerializerMethodField()
     created_by = UserSerializer(read_only=True)
     attachments = AttachmentSerializer(many=True, read_only=True)
     comments = CommentSerializer(many=True, read_only=True)
@@ -108,17 +109,20 @@ class WorkItemSerializer(serializers.ModelSerializer):
         model = WorkItem
         fields = [
             'id', 'title', 'description', 'status', 'category', 'priority',
-            'deadline', 'assigned_user', 'created_by', 'attachments',
+            'deadline', 'assigned_to', 'created_by', 'attachments',
             'comments', 'activity_log', 'partner_roles', 'created_at', 'updated_at', 'tenant'
         ]
         read_only_fields = ['id', 'created_by', 'created_at', 'updated_at', 'tenant']
+
+    def get_assigned_to(self, obj):
+        return [UserSerializer(a.user).data for a in obj.assignments.all()]
 
 class WorkItemCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = WorkItem
         fields = [
             'title', 'description', 'status', 'category', 'priority',
-            'deadline', 'assigned_user'
+            'deadline'
         ]
 
 class WorkItemUpdateSerializer(serializers.ModelSerializer):
@@ -126,7 +130,7 @@ class WorkItemUpdateSerializer(serializers.ModelSerializer):
         model = WorkItem
         fields = [
             'title', 'description', 'status', 'category', 'priority',
-            'deadline', 'assigned_user'
+            'deadline'
         ]
 
 # Ticket, Case, Job serializers with their specific fields
@@ -267,3 +271,16 @@ class TicketWritableSerializer(WorkItemWritableSerializer):
     class Meta(WorkItemWritableSerializer.Meta):
         model = Ticket
         fields = WorkItemWritableSerializer.Meta.fields + ['ticket_number', 'reported_by', 'urgency'] 
+
+class AssignmentCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Assignment
+        fields = ['work_item', 'user']
+
+class AssignmentSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+    assigned_by = UserSerializer(read_only=True)
+
+    class Meta:
+        model = Assignment
+        fields = ['id', 'user', 'assigned_by', 'assigned_at'] 

@@ -8,8 +8,11 @@ from workflow.serializers import TicketSerializer, JobSerializer, CaseSerializer
 from workflow.models import Ticket, Job, Case, WorkItem
 
 from user.models import WorkItemType
+from workflow.models import Assignment
+from workflow.serializers import AssignmentSerializer
+from rest_framework import generics
 
-class BaseWorkItemView(ListCreateAPIView):
+class BaseWorkItemListView(ListCreateAPIView):
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     allowed_type = None
@@ -39,11 +42,11 @@ class BaseWorkItemDetailView(RetrieveUpdateDestroyAPIView):
 
 
 
-class TicketWorkItemListView(BaseWorkItemView):
+class TicketWorkItemListView(BaseWorkItemListView):
     model = Ticket
     serializer_class = TicketSerializer
     allowed_type = WorkItemType.TICKET
-    filterset_fields = ['status', 'priority', 'assigned_user']
+    filterset_fields = ['status', 'priority']
     search_fields = ['title', 'description']
 
 class TicketWorkItemDetailView(BaseWorkItemDetailView):
@@ -59,11 +62,11 @@ class TicketWorkItemDetailView(BaseWorkItemDetailView):
         return TicketSerializer
 
 
-class CaseWorkItemListView(BaseWorkItemView):
+class CaseWorkItemListView(BaseWorkItemListView):
     model = Case
     serializer_class = CaseSerializer
     allowed_type = WorkItemType.CASE
-    filterset_fields = ['status', 'priority', 'assigned_user']
+    filterset_fields = ['status', 'priority']
     search_fields = ['title', 'description']
 
 class CaseWorkItemDetailView(BaseWorkItemDetailView):
@@ -72,15 +75,29 @@ class CaseWorkItemDetailView(BaseWorkItemDetailView):
     allowed_type = WorkItemType.CASE
 
 
-class JobWorkItemListView(BaseWorkItemView):
+class JobWorkItemListView(BaseWorkItemListView):
     model = Job
     serializer_class = JobSerializer
     allowed_type = WorkItemType.JOB
-    filterset_fields = ['status', 'priority', 'assigned_user']
+    filterset_fields = ['status', 'priority']
     search_fields = ['title', 'description']
 
 class JobWorkItemDetailView(BaseWorkItemDetailView):
     model = Job
     serializer_class = JobSerializer
     allowed_type = WorkItemType.JOB
+
+
+class AssignmentCreateView(generics.CreateAPIView):
+    queryset = Assignment.objects.all()
+
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            from workflow.serializers import AssignmentCreateSerializer
+            return AssignmentCreateSerializer
+        from workflow.serializers import AssignmentSerializer
+        return AssignmentSerializer
+
+    def perform_create(self, serializer):
+        serializer.save(assigned_by=self.request.user)
 

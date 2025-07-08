@@ -1,13 +1,18 @@
 from django.contrib import admin
-from workflow.models import WorkItem, Ticket, Case, Job, Attachment, Comment, ActivityLog, WorkItemPartnerRole
+from workflow.models import WorkItem, Ticket, Case, Job, Attachment, Comment, ActivityLog, WorkItemPartnerRole, Assignment
 
 @admin.register(WorkItem)
 class WorkItemAdmin(admin.ModelAdmin):
-    list_display = ['title', 'status', 'priority', 'category', 'created_by', 'assigned_user', 'tenant', 'created_at']
+    list_display = ['title', 'status', 'priority', 'category', 'created_by', 'tenant', 'created_at']
     list_filter = ['status', 'priority', 'category', 'tenant', 'created_at']
     search_fields = ['title', 'description']
     readonly_fields = ['id', 'created_at', 'updated_at']
     date_hierarchy = 'created_at'
+
+class AssignmentInline(admin.TabularInline):
+    model = Assignment
+    extra = 0
+    readonly_fields = ['assigned_by', 'assigned_at']
 
 class WorkItemPartnerRoleInline(admin.TabularInline):
     model = WorkItemPartnerRole
@@ -20,15 +25,16 @@ class TicketAdmin(admin.ModelAdmin):
     search_fields = ['title', 'ticket_number', 'reported_by']
     readonly_fields = ['id', 'created_at', 'updated_at']
     date_hierarchy = 'created_at'
-    inlines = [WorkItemPartnerRoleInline]
+    inlines = [WorkItemPartnerRoleInline, AssignmentInline]
 
 @admin.register(Case)
 class CaseAdmin(admin.ModelAdmin):
-    list_display = ['title', 'case_reference', 'legal_area', 'status', 'priority', 'category', 'created_by', 'assigned_user', 'tenant', 'created_at']
+    list_display = ['title', 'case_reference', 'legal_area', 'status', 'priority', 'category', 'created_by', 'tenant', 'created_at']
     list_filter = ['status', 'priority', 'category', 'legal_area', 'tenant', 'created_at']
     search_fields = ['title', 'case_reference', 'legal_area', 'description']
     readonly_fields = ['id', 'created_at', 'updated_at']
     date_hierarchy = 'created_at'
+    inlines = [AssignmentInline]
 
 @admin.register(Job)
 class JobAdmin(admin.ModelAdmin):
@@ -37,6 +43,13 @@ class JobAdmin(admin.ModelAdmin):
     search_fields = ['title', 'job_code', 'assigned_team']
     readonly_fields = ['id', 'created_at', 'updated_at']
     date_hierarchy = 'created_at'
+
+@admin.register(Assignment)
+class AssignmentAdmin(admin.ModelAdmin):
+    list_display = ['work_item', 'user', 'assigned_by', 'assigned_at']
+    list_filter = ['assigned_by', 'assigned_at']
+    search_fields = ['work_item__title', 'user__email', 'assigned_by__email']
+    readonly_fields = ['assigned_at']
 
 @admin.register(Attachment)
 class AttachmentAdmin(admin.ModelAdmin):
