@@ -5,7 +5,7 @@ from django.utils import timezone
 import uuid
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
-from user.models import Tenant, Partner, Organization
+from user.models import Tenant
 
 User = get_user_model()
 

@@ -1,10 +1,7 @@
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 from workflow.models import WorkItemPartnerRole
-from workflow.serializers import (
-    WorkItemPartnerRoleCreateSerializer,
-    WorkItemPartnerRoleGetSerializer,
-)
+from workflow.serializers.partner_role_serializers import WorkItemPartnerRoleCreateSerializer, WorkItemPartnerRoleGetSerializer
 
 class WorkItemPartnerRoleListView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]

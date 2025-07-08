@@ -4,7 +4,7 @@ from rest_framework.filters import SearchFilter
 from django_filters.rest_framework import DjangoFilterBackend
 
 from workflow.models import Attachment, ActivityLog
-from workflow.serializers import AttachmentSerializer
+from workflow.serializers.attachment_serializers import AttachmentSerializer
 
 class AttachmentListCreateView(generics.ListCreateAPIView):
     queryset = Attachment.objects.select_related('uploaded_by', 'work_item').all()

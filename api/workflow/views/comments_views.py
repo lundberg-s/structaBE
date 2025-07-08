@@ -4,7 +4,7 @@ from rest_framework.filters import SearchFilter
 from django_filters.rest_framework import DjangoFilterBackend
 
 from workflow.models import Comment
-from workflow.serializers import CommentSerializer
+from workflow.serializers.comment_serializers import CommentSerializer
 
 class CommentListCreateView(generics.ListCreateAPIView):
     queryset = Comment.objects.select_related('author', 'work_item').all()

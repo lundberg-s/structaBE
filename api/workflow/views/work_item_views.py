@@ -4,15 +4,17 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 
 from django_filters.rest_framework import DjangoFilterBackend
 
-from workflow.serializers import TicketSerializer, JobSerializer, CaseSerializer, WorkItemSerializer, TicketWritableSerializer
+from workflow.serializers.ticket_serializers import TicketSerializer, TicketWritableSerializer
+from workflow.serializers.job_serializers import JobSerializer
+from workflow.serializers.case_serializers import CaseSerializer
+
 from workflow.models import Ticket, Job, Case, WorkItem
 
 from user.models import WorkItemType
-from workflow.models import Assignment
-from workflow.serializers import AssignmentSerializer
-from rest_framework import generics
+
 
 class BaseWorkItemListView(ListCreateAPIView):
+    model = None
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     allowed_type = None
@@ -28,6 +30,7 @@ class BaseWorkItemListView(ListCreateAPIView):
 
 
 class BaseWorkItemDetailView(RetrieveUpdateDestroyAPIView):
+    model = None
     permission_classes = [IsAuthenticated]
     allowed_type = None
 
@@ -56,7 +59,6 @@ class TicketWorkItemDetailView(BaseWorkItemDetailView):
     
     def get_serializer_class(self):
         if self.request.method in ['PUT', 'PATCH']:
-            from workflow.serializers import TicketWritableSerializer
             return TicketWritableSerializer
         from workflow.serializers import TicketSerializer
         return TicketSerializer
@@ -86,18 +88,4 @@ class JobWorkItemDetailView(BaseWorkItemDetailView):
     model = Job
     serializer_class = JobSerializer
     allowed_type = WorkItemType.JOB
-
-
-class AssignmentCreateView(generics.CreateAPIView):
-    queryset = Assignment.objects.all()
-
-    def get_serializer_class(self):
-        if self.request.method == 'POST':
-            from workflow.serializers import AssignmentCreateSerializer
-            return AssignmentCreateSerializer
-        from workflow.serializers import AssignmentSerializer
-        return AssignmentSerializer
-
-    def perform_create(self, serializer):
-        serializer.save(assigned_by=self.request.user)
 

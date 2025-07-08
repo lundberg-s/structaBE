@@ -1,12 +1,13 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from workflow.statistics_utils import get_all_work_item_statistics
+from workflow.statistics import get_all_work_item_statistics
+from workflow.models import WorkItem, ActivityLog, Comment
 
 class WorkItemStatisticsView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         tenant = request.user.tenant
-        stats = get_all_work_item_statistics(tenant)
+        stats = get_all_work_item_statistics(tenant, Comment, ActivityLog, WorkItem)
         return Response(stats) 

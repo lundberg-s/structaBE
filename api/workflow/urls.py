@@ -1,6 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from workflow.views.work_item_views import TicketWorkItemListView, CaseWorkItemListView, JobWorkItemListView, TicketWorkItemDetailView, CaseWorkItemDetailView, JobWorkItemDetailView, AssignmentCreateView
+from workflow.views.work_item_views import TicketWorkItemListView, CaseWorkItemListView, JobWorkItemListView, TicketWorkItemDetailView, CaseWorkItemDetailView, JobWorkItemDetailView
+from workflow.views.assignment_views import AssignmentCreateView
 from workflow.views.work_item_partner_role_views import WorkItemPartnerRoleListView, WorkItemPartnerRoleDetailView
 from workflow.views.attachments_views import AttachmentListCreateView, AttachmentRetrieveUpdateDestroyView
 from workflow.views.comments_views import CommentListCreateView, CommentRetrieveUpdateDestroyView

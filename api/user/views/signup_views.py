@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.db import transaction
 from user.models import User, Person, Tenant, Organization, Role, PartnerRoleTypes
-from user.serializers import SignupSerializer, UserSerializer
+from user.serializers.signup_serializers import SignupSerializer
 
 class SignupView(CreateAPIView):
     serializer_class = SignupSerializer

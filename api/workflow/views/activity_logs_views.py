@@ -6,7 +6,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django_filters import rest_framework as filters
 
 from workflow.models import ActivityLog
-from workflow.serializers import ActivityLogSerializer
+from workflow.serializers.activity_log_serializers import ActivityLogSerializer
 
 class ActivityLogListCreateView(generics.ListCreateAPIView):
     serializer_class = ActivityLogSerializer

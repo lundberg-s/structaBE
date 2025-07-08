@@ -1,9 +1,9 @@
 from rest_framework.generics import RetrieveAPIView, ListCreateAPIView
 from rest_framework.permissions import IsAuthenticated
 from user.models import Person, Organization, Partner, Role, PartnerRoleTypes   
-from user.serializers import (
-    PersonSerializer, OrganizationSerializer
-)
+from user.serializers.organization_serializers import OrganizationSerializer
+from user.serializers.person_serializers import PersonSerializer
+
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django_filters.rest_framework import DjangoFilterBackend
 

@@ -3,13 +3,12 @@ from rest_framework.generics import RetrieveAPIView, ListAPIView, CreateAPIView,
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework.exceptions import AuthenticationFailed
-from rest_framework import generics, status
+from rest_framework import status
 from rest_framework.response import Response
-from django.db import transaction
-from user.models import User, Person, Tenant, Organization, Partner
-from user.serializers import (
-    UserSerializer, PersonSerializer, SignupSerializer, OrganizationSerializer
-)
+from user.models import User, Person
+
+from user.serializers.user_serializers import UserSerializer
+
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django_filters.rest_framework import DjangoFilterBackend
 
