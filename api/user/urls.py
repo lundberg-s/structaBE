@@ -1,7 +1,9 @@
 from django.urls import path
+
 from user.views.signup_views import SignupView
 from user.views.user_views import UserMeView, UserListView, UserDetailView
-from user.views.partner_views import PersonListView, PersonDetailView, OrganizationListView, OrganizationDetailView, PartnerListView
+from user.views.person_views import PersonListView, PersonDetailView
+from user.views.organization_views import OrganizationListView, OrganizationDetailView
 
 app_name = "core"
 

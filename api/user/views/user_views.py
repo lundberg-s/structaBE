@@ -1,16 +1,15 @@
 from django.contrib.auth import get_user_model
-from rest_framework.generics import RetrieveAPIView, ListAPIView, CreateAPIView, ListCreateAPIView
+from rest_framework.generics import RetrieveAPIView, ListCreateAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import AccessToken
+from rest_framework.response import Response
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework import status
-from rest_framework.response import Response
+
 from user.models import User, Person
 
 from user.serializers.user_serializers import UserSerializer
 
-from rest_framework.filters import SearchFilter, OrderingFilter
-from django_filters.rest_framework import DjangoFilterBackend
 
 User = get_user_model()
 

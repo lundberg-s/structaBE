@@ -1,11 +1,11 @@
 from rest_framework.generics import RetrieveAPIView, ListCreateAPIView
 from rest_framework.permissions import IsAuthenticated
-from user.models import Person, Organization, Partner, Role, PartnerRoleTypes   
-from user.serializers.organization_serializers import OrganizationSerializer
-from user.serializers.person_serializers import PersonSerializer
-
 from rest_framework.filters import SearchFilter, OrderingFilter
+
 from django_filters.rest_framework import DjangoFilterBackend
+
+from user.models import Partner, Role, PartnerRoleTypes
+
 
 
 class PartnerListView(ListCreateAPIView):
@@ -29,32 +29,3 @@ class PartnerDetailView(RetrieveAPIView):
 
     def get_queryset(self):
         return Partner.objects.filter(tenant=self.request.user.tenant)
-
-
-class PersonListView(PartnerListView):
-    model = Person
-    serializer_class = PersonSerializer
-    
-    def get_queryset(self):
-        return Person.objects.filter(tenant=self.request.user.tenant)
-
-class PersonDetailView(PartnerDetailView):
-    model = Person
-    serializer_class = PersonSerializer
-    
-    def get_queryset(self):
-        return Person.objects.filter(tenant=self.request.user.tenant)
-
-class OrganizationListView(PartnerListView):
-    model = Organization
-    serializer_class = OrganizationSerializer
-    
-    def get_queryset(self):
-        return Organization.objects.filter(tenant=self.request.user.tenant)
-
-class OrganizationDetailView(PartnerDetailView):
-    model = Organization
-    serializer_class = OrganizationSerializer
-    
-    def get_queryset(self):
-        return Organization.objects.filter(tenant=self.request.user.tenant)
