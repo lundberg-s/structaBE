@@ -65,3 +65,5 @@ venv/
 # attachments
 attachments/
 api/case_attachments/
+
+case_attachments

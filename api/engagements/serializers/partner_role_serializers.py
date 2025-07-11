@@ -50,7 +50,7 @@ class WorkItemPartnerRoleCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = WorkItemPartnerRole
-        fields = ['work_item', 'content_type', 'object_id', 'role']
+        fields = ['id', 'work_item', 'content_type', 'object_id', 'role']
 
     def validate(self, attrs):
         content_type = attrs.get('content_type')
@@ -58,6 +58,17 @@ class WorkItemPartnerRoleCreateSerializer(serializers.ModelSerializer):
         model_class = content_type.model_class()
         if not model_class.objects.filter(id=object_id).exists():
             raise ValidationError({'object_id': 'No matching object found for this content type.'})
+        # Duplicate check
+        request = self.context.get('request')
+        tenant = request.user.tenant if request else None
+        if WorkItemPartnerRole.objects.filter(
+            work_item=attrs['work_item'],
+            content_type=attrs['content_type'],
+            object_id=attrs['object_id'],
+            role=attrs['role'],
+            tenant=tenant
+        ).exists():
+            raise ValidationError('This partner role already exists for this work item.')
         return attrs
 
     def create(self, validated_data):

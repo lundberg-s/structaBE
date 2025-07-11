@@ -5,6 +5,7 @@ from rest_framework.response import Response
 
 from engagements.models import Assignment
 from engagements.serializers.assignment_serializers import AssignmentSerializer, AssignmentCreateSerializer
+from engagements.models import ActivityLog
 
 
 class AssignmentCreateView(CreateAPIView):
@@ -23,7 +24,14 @@ class AssignmentCreateView(CreateAPIView):
         request_tenant = self.request.user.tenant
         if work_item.tenant != request_tenant or user.tenant != request_tenant:
             raise serializers.ValidationError('Work item and user must belong to your tenant.')
-        serializer.save(assigned_by=self.request.user)
+        instance = serializer.save(assigned_by=self.request.user)
+        ActivityLog.objects.create(
+            tenant=request_tenant,
+            work_item=work_item,
+            user=self.request.user,
+            activity_type='assigned',
+            description=f'User {user.username} assigned to "{work_item.title}".'
+        )
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)

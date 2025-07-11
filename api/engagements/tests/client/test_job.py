@@ -138,7 +138,14 @@ class TestJobFlow(JobTenancySetup, APITestCase):
         url = reverse('engagements:job-detail', args=[job.id])
         response = self.client.delete(url)
         self.assertEqual(response.status_code, 204)
-        self.assertFalse(Job.objects.filter(id=job.id).exists())
+        job.refresh_from_db()
+        self.assertTrue(job.is_deleted)
+        # Optionally check not in list or detail
+        list_url = reverse('engagements:job-list')
+        list_response = self.client.get(list_url)
+        self.assertFalse(any(j['id'] == str(job.id) for j in list_response.data))
+        detail_response = self.client.get(url)
+        self.assertEqual(detail_response.status_code, 404)
 
     def test_delete_job_from_other_user_fails(self):
         self.authenticate_client()
@@ -248,3 +255,25 @@ class TestJobFlow(JobTenancySetup, APITestCase):
         for job in response.data:
             self.assertEqual(job['tenant'], self.tenant.id)
             self.assertIn('MyTenantTitle', job['title'])
+
+    def test_job_partner_roles_are_serialized(self):
+        self.authenticate_client()
+        from engagements.tests.factory import create_job
+        job = create_job(tenant=self.tenant, created_by=self.user)
+        from relations.models import Organization
+        from django.contrib.contenttypes.models import ContentType
+        org = Organization.objects.create(tenant=self.tenant, name='Test Org')
+        content_type = ContentType.objects.get_for_model(Organization)
+        from engagements.models import WorkItemPartnerRole
+        WorkItemPartnerRole.objects.create(
+            tenant=self.tenant,
+            work_item=job,
+            content_type=content_type,
+            object_id=org.id,
+            role='customer',
+        )
+        url = reverse('engagements:job-detail', args=[job.id])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('partner_roles', response.data)
+        self.assertGreater(len(response.data['partner_roles']), 0)

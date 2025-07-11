@@ -141,7 +141,14 @@ class TestCaseFlow(Case, APITestCase):
         url = reverse('engagements:case-detail', args=[case.id])
         response = self.client.delete(url)
         self.assertEqual(response.status_code, 204)
-        self.assertFalse(CaseModel.objects.filter(id=case.id).exists())
+        case.refresh_from_db()
+        self.assertTrue(case.is_deleted)
+        # Optionally check not in list or detail
+        list_url = reverse('engagements:case-list')
+        list_response = self.client.get(list_url)
+        self.assertFalse(any(c['id'] == str(case.id) for c in list_response.data))
+        detail_response = self.client.get(url)
+        self.assertEqual(detail_response.status_code, 404)
 
     def test_delete_case_from_other_user_fails(self):
         self.authenticate_client()
@@ -253,3 +260,25 @@ class TestCaseFlow(Case, APITestCase):
         for case in response.data:
             self.assertEqual(case['tenant'], self.tenant.id)
             self.assertIn('MyTenantTitle', case['title'])
+
+    def test_case_partner_roles_are_serialized(self):
+        self.authenticate_client()
+        from engagements.tests.factory import create_case
+        case = create_case(tenant=self.tenant, created_by=self.user)
+        from relations.models import Organization
+        from django.contrib.contenttypes.models import ContentType
+        org = Organization.objects.create(tenant=self.tenant, name='Test Org')
+        content_type = ContentType.objects.get_for_model(Organization)
+        from engagements.models import WorkItemPartnerRole
+        WorkItemPartnerRole.objects.create(
+            tenant=self.tenant,
+            work_item=case,
+            content_type=content_type,
+            object_id=org.id,
+            role='customer',
+        )
+        url = reverse('engagements:case-detail', args=[case.id])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('partner_roles', response.data)
+        self.assertGreater(len(response.data['partner_roles']), 0)

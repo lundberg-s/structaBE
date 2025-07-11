@@ -138,7 +138,14 @@ class TestTicketFlow(TicketTenancySetup, APITestCase):
         url = reverse('engagements:ticket-detail', args=[ticket.id])
         response = self.client.delete(url)
         self.assertEqual(response.status_code, 204)
-        self.assertFalse(Ticket.objects.filter(id=ticket.id).exists())
+        ticket.refresh_from_db()
+        self.assertTrue(ticket.is_deleted)
+        # Optionally check not in list or detail
+        list_url = reverse('engagements:ticket-list')
+        list_response = self.client.get(list_url)
+        self.assertFalse(any(t['id'] == str(ticket.id) for t in list_response.data))
+        detail_response = self.client.get(url)
+        self.assertEqual(detail_response.status_code, 404)
 
     def test_delete_ticket_from_other_user_fails(self):
         self.authenticate_client()
@@ -248,3 +255,24 @@ class TestTicketFlow(TicketTenancySetup, APITestCase):
         for ticket in response.data:
             self.assertEqual(ticket['tenant'], self.tenant.id)
             self.assertIn('MyTenantTitle', ticket['title'])
+
+    def test_ticket_partner_roles_are_serialized(self):
+        self.authenticate_client()
+        ticket = create_ticket(tenant=self.tenant, created_by=self.user)
+        from relations.models import Organization
+        from django.contrib.contenttypes.models import ContentType
+        org = Organization.objects.create(tenant=self.tenant, name='Test Org')
+        content_type = ContentType.objects.get_for_model(Organization)
+        from engagements.models import WorkItemPartnerRole
+        WorkItemPartnerRole.objects.create(
+            tenant=self.tenant,
+            work_item=ticket,
+            content_type=content_type,
+            object_id=org.id,
+            role='customer',
+        )
+        url = reverse('engagements:ticket-detail', args=[ticket.id])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('partner_roles', response.data)
+        self.assertGreater(len(response.data['partner_roles']), 0)
