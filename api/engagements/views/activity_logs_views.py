@@ -8,7 +8,7 @@ from django_filters import rest_framework as filters
 from engagements.models import ActivityLog
 from engagements.serializers.activity_log_serializers import ActivityLogSerializer
 
-class ActivityLogListCreateView(generics.ListCreateAPIView):
+class ActivityLogListView(generics.ListCreateAPIView):
     serializer_class = ActivityLogSerializer
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter]
@@ -28,7 +28,7 @@ class ActivityLogListCreateView(generics.ListCreateAPIView):
     def perform_create(self, serializer):
         serializer.save(tenant=self.request.user.tenant, user=self.request.user)
 
-class ActivityLogRetrieveView(generics.RetrieveAPIView):
+class ActivityLogDetailView(generics.RetrieveAPIView):
     queryset = ActivityLog.objects.select_related('user', 'work_item').all()
     serializer_class = ActivityLogSerializer
     permission_classes = [permissions.IsAuthenticated]
