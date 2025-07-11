@@ -2,7 +2,7 @@ import pytest
 from django.urls import reverse
 from django.test import Client
 from core.models import Tenant
-from .factory import create_user
+from users.tests.factory import create_user
 
 @pytest.mark.django_db
 def test_create_user_and_login_view():

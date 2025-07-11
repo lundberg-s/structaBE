@@ -9,6 +9,7 @@ class PartnerSerializer(ModelSerializer):
     class Meta:
         model = Partner
         fields = ['id', 'role', 'content_type']
+        read_only_fields = ['id', 'role', 'content_type']
 
     def get_role(self, obj):
         role = obj.roles.first()
