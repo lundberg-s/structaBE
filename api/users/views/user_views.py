@@ -7,17 +7,16 @@ from rest_framework.exceptions import AuthenticationFailed
 from rest_framework import status
 
 from users.models import User
-
+from users.permissions import CanManageUsersAndRoles, CanViewContentOnly
 from relations.models import Person
-
 from users.serializers.user_serializers import UserSerializer
-
 
 User = get_user_model()
 
 class UserMeView(RetrieveAPIView):
     queryset = User.objects.none()
     serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
 
     def get_object(self):
         access_token = self.request.COOKIES.get('access_token')
@@ -35,7 +34,6 @@ class UserMeView(RetrieveAPIView):
             raise AuthenticationFailed('User not found')
 
         return user
-
 
 class UserListView(ListCreateAPIView):
     permission_classes = [IsAuthenticated]
