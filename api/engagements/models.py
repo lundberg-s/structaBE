@@ -2,6 +2,7 @@ import mimetypes
 import uuid
 
 from django.db import models
+from django.db.models import Q
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
@@ -43,6 +44,12 @@ class ActivityLogActivityTypes(models.TextChoices):
     COMMENTED = 'commented', 'Commented'
     ATTACHMENT_ADDED = 'attachment-added', 'Attachment Added'
 
+class WorkItemQuerySet(models.QuerySet):
+    def active(self):
+        return self.filter(is_deleted=False)
+    def all_with_deleted(self):
+        return self.all()
+
 class WorkItem(TimestampedModel):
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='work_items')
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -53,9 +60,19 @@ class WorkItem(TimestampedModel):
     priority = models.CharField(max_length=20, choices=WorkItemPriorityTypes.choices, default=WorkItemPriorityTypes.MEDIUM)
     deadline = models.DateTimeField(null=True, blank=True)
     created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_work_items')
+    is_deleted = models.BooleanField(default=False)
+
+    objects = WorkItemQuerySet.as_manager()
 
     class Meta:
         ordering = ['-created_at']
+
+    def delete(self, *args, **kwargs):
+        self.is_deleted = True
+        self.save()
+
+    def hard_delete(self, *args, **kwargs):
+        super().delete(*args, **kwargs)
 
     def __str__(self):
         return f"{self.title} - {self.status}"
@@ -82,6 +99,7 @@ class Job(WorkItem):
     pass
 
 class WorkItemPartnerRole(TimestampedModel):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='work_item_partner_roles')
     work_item = models.ForeignKey(WorkItem, on_delete=models.CASCADE, related_name='partner_roles')
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
@@ -130,7 +148,7 @@ class Comment(TimestampedModel):
 class ActivityLog(TimestampedModel):
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='activity_logs')
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    work_item = models.ForeignKey(WorkItem, on_delete=models.CASCADE, related_name='activity_log')
+    work_item = models.ForeignKey(WorkItem, on_delete=models.SET_NULL, null=True, blank=True, related_name='activity_log')
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     activity_type = models.CharField(max_length=20, choices=ActivityLogActivityTypes.choices)
     description = models.TextField()

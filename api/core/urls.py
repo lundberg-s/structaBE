@@ -10,7 +10,7 @@ urlpatterns = [
     path(f"{API_PREFIX}verify/", CookieTokenVerifyView.as_view(), name="verify_token"),
     path(f"{API_PREFIX}logout/", LogoutView.as_view(), name="logout"),
     path(f"{API_PREFIX}admin/", admin.site.urls),
-    path(f"{API_PREFIX}user/", include("users.urls")),
+    path(f"{API_PREFIX}", include("users.urls")),
     path(f"{API_PREFIX}", include("engagements.urls")),
     path(f"{API_PREFIX}", include("relations.urls")),
 

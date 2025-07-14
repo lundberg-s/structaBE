@@ -1,3 +1,4 @@
+from rest_framework.generics import RetrieveUpdateDestroyAPIView
 from relations.models import Person  
 
 from relations.serializers.person_serializers import PersonSerializer
@@ -11,7 +12,7 @@ class PersonListView(PartnerListView):
     def get_queryset(self):
         return Person.objects.filter(tenant=self.request.user.tenant)
 
-class PersonDetailView(PartnerDetailView):
+class PersonDetailView(RetrieveUpdateDestroyAPIView):
     model = Person
     serializer_class = PersonSerializer
     
