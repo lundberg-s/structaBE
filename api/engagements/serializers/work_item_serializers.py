@@ -7,6 +7,7 @@ from engagements.serializers.attachment_serializers import AttachmentSerializer
 from engagements.serializers.comment_serializers import CommentSerializer
 from engagements.serializers.activity_log_serializers import ActivityLogSerializer
 from engagements.serializers.partner_role_serializers import FlatPartnerWithRoleSerializer
+from engagements.utilities.assignment_utilities import update_work_item_assignments
 
 User = get_user_model()
 
@@ -47,22 +48,41 @@ class WorkItemUpdateSerializer(serializers.ModelSerializer):
         ]
 
 class WorkItemWritableSerializer(serializers.ModelSerializer):
-    assigned_user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), required=False, allow_null=True)
+    assigned_to = serializers.ListField(
+        child=serializers.UUIDField(),
+        required=False,
+        allow_empty=True
+    )
 
     class Meta:
         model = WorkItem
         fields = [
             'title', 'description', 'status', 'category', 'priority',
-            'deadline', 'assigned_user'
+            'deadline', 'assigned_to'
         ]
 
+    def update(self, instance, validated_data):
+        assigned_to_ids = validated_data.pop('assigned_to', None)
+
+        # Standard update
+        instance = super().update(instance, validated_data)
+
+        if assigned_to_ids is not None:
+            update_work_item_assignments(
+                work_item=instance,
+                new_user_ids=assigned_to_ids,
+                assigned_by_user=self.context['request'].user
+            )
+
+        return instance
+
 class WorkItemListSerializer(serializers.ModelSerializer):
-    assigned_user = UserWithPersonSerializer(read_only=True)
+    assigned_to = UserWithPersonSerializer(read_only=True)
     tenant = serializers.PrimaryKeyRelatedField(read_only=True)
     class Meta:
         model = WorkItem
         fields = [
             'id', 'title', 'status', 'category', 'priority',
-            'deadline', 'assigned_user', 'tenant',
+            'deadline', 'assigned_to', 'tenant',
         ]
         read_only_fields = ['id', 'tenant'] 
