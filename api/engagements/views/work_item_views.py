@@ -2,16 +2,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
 from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.exceptions import PermissionDenied
-from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 
-from engagements.serializers.ticket_serializers import TicketSerializer, TicketWritableSerializer
-from engagements.serializers.job_serializers import JobSerializer
-from engagements.serializers.case_serializers import CaseSerializer
-
-from engagements.models import Ticket, Job, Case, WorkItem, ActivityLog
-
-from core.models import WorkItemType
+from engagements.models import ActivityLog
 
 
 class BaseWorkItemListView(ListCreateAPIView):
@@ -70,15 +63,8 @@ class BaseWorkItemDetailView(RetrieveUpdateDestroyAPIView):
         return self.model.objects.active().filter(tenant=self.request.user.tenant).select_related(
             'created_by__partner__person',
             'tenant'
-        ).prefetch_related(
-            'assignments__user__partner__person',
-            'attachments',
-            'comments__author__partner__person',
-            'activity_log__user__partner__person',
-            'partner_roles__partner__person',
-            'partner_roles__partner__organization'
         )
-
+        
     def check_object_permissions(self, request, obj):
         super().check_object_permissions(request, obj)
         # Only creator can update/delete
@@ -106,55 +92,4 @@ class BaseWorkItemDetailView(RetrieveUpdateDestroyAPIView):
         )
         instance.delete()
 
-
-class TicketListView(BaseWorkItemListView):
-    model = Ticket
-    allowed_type = WorkItemType.TICKET
-    filterset_fields = ['status', 'priority']
-    search_fields = ['title', 'description']
-    
-    def get_serializer_class(self):
-        if self.request.method == 'GET':
-            from engagements.serializers.work_item_serializers import WorkItemListSerializer
-            return WorkItemListSerializer
-        elif self.request.method == 'POST':
-            from engagements.serializers.ticket_serializers import TicketCreateSerializer
-            return TicketCreateSerializer
-        return TicketSerializer
-
-class TicketDetailView(BaseWorkItemDetailView):
-    model = Ticket
-    allowed_type = WorkItemType.TICKET
-
-    def get_serializer_class(self):
-        if self.request.method in ['PUT', 'PATCH']:
-            return TicketWritableSerializer
-        return TicketSerializer
-    serializer_class = TicketSerializer
-
-
-class CaseListView(BaseWorkItemListView):
-    model = Case
-    serializer_class = CaseSerializer
-    allowed_type = WorkItemType.CASE
-    filterset_fields = ['status', 'priority']
-    search_fields = ['title', 'description']
-
-class CaseDetailView(BaseWorkItemDetailView):
-    model = Case
-    serializer_class = CaseSerializer
-    allowed_type = WorkItemType.CASE
-
-
-class JobListView(BaseWorkItemListView):
-    model = Job
-    serializer_class = JobSerializer
-    allowed_type = WorkItemType.JOB
-    filterset_fields = ['status', 'priority']
-    search_fields = ['title', 'description']
-
-class JobDetailView(BaseWorkItemDetailView):
-    model = Job
-    serializer_class = JobSerializer
-    allowed_type = WorkItemType.JOB
 

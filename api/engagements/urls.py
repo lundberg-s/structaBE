@@ -1,5 +1,9 @@
 from django.urls import path
-from engagements.views.work_item_views import TicketListView, CaseListView, JobListView, TicketDetailView, CaseDetailView, JobDetailView
+
+from engagements.views.ticket_views import TicketListView, TicketDetailView
+from engagements.views.case_views import CaseListView, CaseDetailView
+from engagements.views.job_views import JobListView, JobDetailView
+
 from engagements.views.assignment_views import AssignmentCreateView
 from engagements.views.work_item_partner_role_views import WorkItemPartnerRoleListView, WorkItemPartnerRoleDetailView
 from engagements.views.attachments_views import AttachmentListView, AttachmentDetailView

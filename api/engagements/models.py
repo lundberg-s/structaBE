@@ -154,6 +154,15 @@ class WorkItem(AuditModel):
 
     def __str__(self):
         return f"{self.title} - {self.status}"
+    
+    @property
+    def assigned_to(self):
+        """Get all users assigned to this work item"""
+        # Use prefetched data if available
+        if hasattr(self, '_prefetched_objects_cache') and 'assignments' in self._prefetched_objects_cache:
+            return [assignment.user for assignment in self._prefetched_objects_cache['assignments']]
+        # Fallback to database query
+        return [assignment.user for assignment in self.assignments.all()]
         
 class Ticket(WorkItem):
     ticket_number = models.CharField(max_length=50, null=True, blank=True)

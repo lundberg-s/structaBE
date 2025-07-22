@@ -42,7 +42,40 @@ class QueryCountMiddleware(MiddlewareMixin):
             print(f"{emoji} {request.method} {request.path} [{timestamp}]")
             print(f"   📊 Queries: {query_count} | DB Time: {total_query_time:.3f}s | Total: {request_time:.3f}s")
             
-            # Show slow queries (>0.1s)
+            # Show all queries in a readable format
+            if query_count > 0:
+                print(f"   🔍 SQL Queries:")
+                for i, query in enumerate(connection.queries):
+                    query_time = query['time']
+                    sql = query['sql']
+                    
+                    # Simple table name extraction
+                    table_name = "unknown"
+                    if 'FROM' in sql:
+                        parts = sql.split('FROM')[1].split()
+                        if parts:
+                            table_name = parts[0].strip('"').split('.')[-1]
+                    
+                    # Simple operation detection
+                    if 'INNER JOIN' in sql:
+                        operation = "JOIN"
+                    elif 'WHERE' in sql:
+                        operation = "FILTER"
+                    elif 'ORDER BY' in sql:
+                        operation = "SORT"
+                    else:
+                        operation = "SELECT"
+                    
+                    # Clean output
+                    print(f"      {i+1}. {query_time}s - {operation} {table_name}")
+                    
+                    # Simple optimization hints
+                    if 'INNER JOIN' in sql:
+                        print(f"           💡 Use prefetch_related()")
+                    elif 'WHERE' in sql and 'LIMIT 21' in sql:
+                        print(f"           💡 Use select_related()")
+            
+            # Show slow queries (>0.1s) with more detail
             slow_queries = [q for q in connection.queries if float(q['time']) > 0.1]
             if slow_queries:
                 print(f"   🐌 Slow queries ({len(slow_queries)}):")

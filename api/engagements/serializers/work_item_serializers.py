@@ -11,27 +11,46 @@ from engagements.utilities.assignment_utilities import update_work_item_assignme
 
 User = get_user_model()
 
+class WorkItemListSerializer(serializers.ModelSerializer):
+    tenant = serializers.PrimaryKeyRelatedField(read_only=True)
+    
+    class Meta:
+        model = WorkItem
+        fields = [
+            'id', 'title', 'status', 'category', 'priority',
+            'deadline', 'tenant', 'created_at'
+        ]
+        read_only_fields = ['id', 'tenant', 'created_at'] 
+
 class WorkItemSerializer(serializers.ModelSerializer):
-    assigned_to = serializers.SerializerMethodField()
+    assigned_to = UserWithPersonSerializer(many=True, read_only=True)
     created_by = UserWithPersonSerializer(read_only=True)
     attachments = AttachmentSerializer(many=True, read_only=True)
     comments = CommentSerializer(many=True, read_only=True)
     activity_log = ActivityLogSerializer(many=True, read_only=True)
     tenant = serializers.PrimaryKeyRelatedField(read_only=True)
-    partner_roles = FlatPartnerWithRoleSerializer(many=True, read_only=True)
     class Meta:
         model = WorkItem
         fields = [
             'id', 'title', 'description', 'status', 'category', 'priority',
             'deadline', 'assigned_to', 'created_by', 'attachments',
-            'comments', 'activity_log', 'partner_roles', 'created_at', 'updated_at', 'tenant'
+            'comments', 'activity_log', 'created_at', 'updated_at', 'tenant'
         ]
         read_only_fields = ['id', 'created_by', 'created_at', 'updated_at', 'tenant']
 
     def get_assigned_to(self, obj):
-        # Optimize to avoid N+1 queries
+        # Use the prefetched data directly without creating new serializers
         if hasattr(obj, '_prefetched_objects_cache') and 'assignments' in obj._prefetched_objects_cache:
-            return [UserWithPersonSerializer(a.user).data for a in obj.assignments.all()]
+            return [
+                {
+                    'id': str(a.user.id),
+                    'username': a.user.username,
+                    'email': a.user.email,
+                    'first_name': a.user.partner.person.first_name if hasattr(a.user, 'partner') and a.user.partner and hasattr(a.user.partner, 'person') else '',
+                    'last_name': a.user.partner.person.last_name if hasattr(a.user, 'partner') and a.user.partner and hasattr(a.user.partner, 'person') else ''
+                }
+                for a in obj.assignments.all()
+            ]
         # Fallback for when prefetch is not available
         return [UserWithPersonSerializer(a.user).data for a in obj.assignments.select_related('user__partner__person').all()]
 
@@ -79,14 +98,3 @@ class WorkItemWritableSerializer(serializers.ModelSerializer):
             )
 
         return instance
-
-class WorkItemListSerializer(serializers.ModelSerializer):
-    tenant = serializers.PrimaryKeyRelatedField(read_only=True)
-    
-    class Meta:
-        model = WorkItem
-        fields = [
-            'id', 'title', 'status', 'category', 'priority',
-            'deadline', 'tenant', 'created_at'
-        ]
-        read_only_fields = ['id', 'tenant', 'created_at'] 
