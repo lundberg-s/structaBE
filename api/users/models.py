@@ -5,9 +5,7 @@ from django.db import models
 
 from users.managers import UserManager
 
-from relations.models import Partner
-
-from core.models import TimestampedModel, Tenant
+from core.models import AuditModel, Tenant
 
 # ---
 # Partner Pattern: Unifies people and organizations as 'actors' in the system.
@@ -15,7 +13,7 @@ from core.models import TimestampedModel, Tenant
 # ---
 
 
-class User(AbstractUser, TimestampedModel):
+class User(AbstractUser, AuditModel):
     """
     Represents a login account. Linked 1:1 to a Person (which is a Partner).
     """
@@ -23,7 +21,7 @@ class User(AbstractUser, TimestampedModel):
         default=uuid.uuid4, editable=False, unique=True, db_index=True , primary_key=True
     )
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='users', null=True, blank=True)
-    partner = models.OneToOneField(Partner, on_delete=models.CASCADE, related_name='user', null=True, blank=True)
+    partner = models.OneToOneField('relations.Partner', on_delete=models.CASCADE, related_name='user', null=True, blank=True)
     email = models.EmailField("email address", unique=True)
 
 

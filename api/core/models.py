@@ -7,7 +7,7 @@ class WorkItemType(models.TextChoices):
     CASE = 'case', 'Case'
     JOB = 'job', 'Job'
 
-class TimestampedModel(models.Model):
+class AuditModel(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -16,7 +16,7 @@ class TimestampedModel(models.Model):
 
 
 # Tenant is your SaaS account, linked 1:1 with Partner
-class Tenant(TimestampedModel):
+class Tenant(AuditModel):
     """
     Represents a SaaS account (a business using the platform).
     Linked 1:1 to a Partner (usually an Organization).

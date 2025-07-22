@@ -13,7 +13,6 @@ class PersonSerializer(PartnerSerializer):
             'last_name',
             'email',
             'phone',
-            'role',
             'content_type',
         ]
 

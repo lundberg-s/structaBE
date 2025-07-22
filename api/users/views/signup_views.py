@@ -5,7 +5,9 @@ from rest_framework.permissions import AllowAny
 from django.db import transaction
 from users.models import User, Tenant
 from core.models import Tenant
-from relations.models import Person, Organization, Role, PartnerRoleTypes
+from relations.models import Person, Organization, Role
+from relations.choices import SystemRole
+from relations.tests.factory import create_relation_reference_for_person
 from users.serializers.signup_serializers import SignupSerializer
 from users.serializers.user_serializers import UserSerializer
 
@@ -48,6 +50,11 @@ class SignupView(CreateAPIView):
             tenant=tenant,
             partner=person,
         )
-        # 5. Assign admin role to person
-        Role.objects.create(partner=person, role_type=PartnerRoleTypes.TENANT_OWNER, tenant=tenant)
+        # 5. Create RelationReference for person and assign admin role
+        person_ref = create_relation_reference_for_person(person)
+        Role.objects.create(
+            tenant=tenant,
+            target=person_ref,
+            system_role=SystemRole.TENANT_OWNER
+        )
         return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)

@@ -1,4 +1,4 @@
-from engagements.models import Tenant
+from core.models import Tenant
 
 def create_tenant(work_item_type='ticket'):
     tenant = Tenant.objects.create(

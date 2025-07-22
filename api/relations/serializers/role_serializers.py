@@ -1,14 +1,16 @@
 from rest_framework import serializers
-from relations.models import Role, Partner, PartnerRoleTypes
+from relations.models import Role, RelationReference, CustomRole
+from relations.choices import SystemRole
 
 class RoleSerializer(serializers.ModelSerializer):
-    partner = serializers.PrimaryKeyRelatedField(queryset=Partner.objects.all())
+    target = serializers.PrimaryKeyRelatedField(queryset=RelationReference.objects.all())
     tenant = serializers.PrimaryKeyRelatedField(read_only=True)
-    role_type = serializers.ChoiceField(choices=PartnerRoleTypes.choices)
+    system_role = serializers.ChoiceField(choices=SystemRole.choices, required=False, allow_null=True)
+    custom_role = serializers.PrimaryKeyRelatedField(queryset=CustomRole.objects.all(), required=False, allow_null=True)
 
     class Meta:
         model = Role
-        fields = ['id', 'partner', 'role_type', 'tenant', 'created_at', 'updated_at']
+        fields = ['id', 'target', 'system_role', 'custom_role', 'tenant', 'created_at', 'updated_at']
         read_only_fields = ['id', 'tenant', 'created_at', 'updated_at']
 
     def create(self, validated_data):

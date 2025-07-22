@@ -4,9 +4,9 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 
 from django_filters.rest_framework import DjangoFilterBackend
 
-from relations.models import Partner, Role, PartnerRoleTypes
-
-
+from relations.models import Partner, Role
+from relations.choices import SystemRole
+from relations.tests.factory import create_relation_reference_for_person, create_relation_reference_for_organization
 
 class PartnerListView(ListCreateAPIView):
     permission_classes = [IsAuthenticated]
@@ -16,11 +16,20 @@ class PartnerListView(ListCreateAPIView):
         return Partner.objects.filter(tenant=self.request.user.tenant)
 
     def perform_create(self, serializer):
-        serializer.save(tenant=self.request.user.tenant)
+        partner = serializer.save(tenant=self.request.user.tenant)
+        # Create RelationReference for the partner
+        if hasattr(partner, 'person'):
+            ref = create_relation_reference_for_person(partner)
+        elif hasattr(partner, 'organization'):
+            ref = create_relation_reference_for_organization(partner)
+        else:
+            return  # Should not happen
+        
+        # Create a role for the partner
         Role.objects.create(
-            partner=serializer.instance,
-            role_type=PartnerRoleTypes.CONTACT_INFO,
-            tenant=self.request.user.tenant
+            tenant=self.request.user.tenant,
+            target=ref,
+            system_role=SystemRole.CONTACT_INFO
         )
 
 

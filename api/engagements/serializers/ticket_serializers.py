@@ -10,4 +10,15 @@ class TicketSerializer(WorkItemSerializer):
 class TicketWritableSerializer(WorkItemWritableSerializer):
     class Meta(WorkItemWritableSerializer.Meta):
         model = Ticket
-        fields = WorkItemWritableSerializer.Meta.fields + ['ticket_number', 'reported_by', 'urgency'] 
+        fields = WorkItemWritableSerializer.Meta.fields + ['ticket_number', 'reported_by', 'urgency']
+
+class TicketCreateSerializer(serializers.ModelSerializer):
+    """Lightweight serializer for ticket creation - no related data loading"""
+    class Meta:
+        model = Ticket
+        fields = [
+            'id', 'title', 'description', 'status', 'category', 'priority',
+            'deadline', 'ticket_number', 'reported_by', 'urgency',
+            'created_at', 'updated_at', 'tenant'
+        ]
+        read_only_fields = ['id', 'created_by', 'created_at', 'updated_at', 'tenant'] 

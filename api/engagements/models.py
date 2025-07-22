@@ -7,7 +7,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 
-from core.models import Tenant, TimestampedModel
+from core.models import Tenant, AuditModel
 
 User = get_user_model()
 
@@ -47,10 +47,63 @@ class ActivityLogActivityTypes(models.TextChoices):
 class WorkItemQuerySet(models.QuerySet):
     def active(self):
         return self.filter(is_deleted=False)
+    
     def all_with_deleted(self):
         return self.all()
 
-class WorkItem(TimestampedModel):
+    def with_details(self):
+        """Preload all related objects for better performance."""
+        return self.select_related(
+            'tenant',
+            'created_by'
+        ).prefetch_related(
+            'attachments',
+            'comments',
+            'assignments',
+            'activity_log',
+            'partner_roles'
+        )
+
+    def by_tenant(self, tenant):
+        """Get work items for a specific tenant with optimized queries."""
+        return self.filter(tenant=tenant).with_details()
+
+    def by_status(self, status):
+        """Get work items by status with optimized queries."""
+        return self.filter(status=status).with_details()
+
+    def by_category(self, category):
+        """Get work items by category with optimized queries."""
+        return self.filter(category=category).with_details()
+
+    def by_priority(self, priority):
+        """Get work items by priority with optimized queries."""
+        return self.filter(priority=priority).with_details()
+
+    def by_author(self, author):
+        """Get work items by author with optimized queries."""
+        return self.filter(created_by=author).with_details()
+
+    def overdue(self):
+        """Get overdue work items with optimized queries."""
+        from django.utils import timezone
+        return self.filter(
+            deadline__lt=timezone.now(),
+            status__in=['open', 'in-progress']
+        ).with_details()
+
+    def due_soon(self, days=7):
+        """Get work items due soon with optimized queries."""
+        from django.utils import timezone
+        from datetime import timedelta
+        future_date = timezone.now() + timedelta(days=days)
+        return self.filter(
+            deadline__lte=future_date,
+            deadline__gt=timezone.now(),
+            status__in=['open', 'in-progress']
+        ).with_details()
+
+class WorkItem(AuditModel):
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='work_items')
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField(max_length=200)
@@ -66,6 +119,31 @@ class WorkItem(TimestampedModel):
 
     class Meta:
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['tenant']),
+            models.Index(fields=['status']),
+            models.Index(fields=['category']),
+            models.Index(fields=['priority']),
+            models.Index(fields=['created_by']),
+            models.Index(fields=['is_deleted']),
+            models.Index(fields=['created_at']),
+            models.Index(fields=['deadline']),
+            models.Index(fields=['tenant', 'status']),
+            models.Index(fields=['tenant', 'category']),
+            models.Index(fields=['tenant', 'priority']),
+            models.Index(fields=['tenant', 'is_deleted']),
+            models.Index(fields=['status', 'priority']),
+            models.Index(fields=['category', 'status']),
+        ]
+
+    def get_real_instance(self):
+        if hasattr(self, 'ticket'):
+            return self.ticket
+        if hasattr(self, 'case'):
+            return self.case
+        if hasattr(self, 'job'):
+            return self.job
+        return self
 
     def delete(self, *args, **kwargs):
         self.is_deleted = True
@@ -98,7 +176,7 @@ class Job(WorkItem):
     # entity: typically the customer or client for whom the job is performed
     pass
 
-class WorkItemPartnerRole(TimestampedModel):
+class WorkItemPartnerRole(AuditModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='work_item_partner_roles')
     work_item = models.ForeignKey(WorkItem, on_delete=models.CASCADE, related_name='partner_roles')
@@ -109,11 +187,19 @@ class WorkItemPartnerRole(TimestampedModel):
 
     class Meta:
         unique_together = ('work_item', 'content_type', 'object_id', 'role', 'tenant')
+        indexes = [
+            models.Index(fields=['tenant']),
+            models.Index(fields=['work_item']),
+            models.Index(fields=['role']),
+            models.Index(fields=['content_type', 'object_id']),
+            models.Index(fields=['tenant', 'work_item']),
+            models.Index(fields=['tenant', 'role']),
+        ]
 
     def __str__(self):
         return f"{self.partner} as {self.role} for {self.work_item}"
 
-class Attachment(TimestampedModel):
+class Attachment(AuditModel):
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='attachments')
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     work_item = models.ForeignKey(WorkItem, on_delete=models.CASCADE, related_name='attachments')
@@ -130,9 +216,20 @@ class Attachment(TimestampedModel):
         super().save(*args, **kwargs) 
 
     def __str__(self):
-        return self.filename
+        return f"{self.filename} - {self.work_item.title}"
 
-class Comment(TimestampedModel):
+    class Meta:
+        indexes = [
+            models.Index(fields=['tenant']),
+            models.Index(fields=['work_item']),
+            models.Index(fields=['uploaded_by']),
+            models.Index(fields=['filename']),
+            models.Index(fields=['mime_type']),
+            models.Index(fields=['tenant', 'work_item']),
+            models.Index(fields=['uploaded_by', 'created_at']),
+        ]
+
+class Comment(AuditModel):
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='comments')
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     work_item = models.ForeignKey(WorkItem, on_delete=models.CASCADE, related_name='comments')
@@ -141,11 +238,19 @@ class Comment(TimestampedModel):
 
     class Meta:
         ordering = ['created_at']
+        indexes = [
+            models.Index(fields=['tenant']),
+            models.Index(fields=['work_item']),
+            models.Index(fields=['author']),
+            models.Index(fields=['created_at']),
+            models.Index(fields=['tenant', 'work_item']),
+            models.Index(fields=['author', 'created_at']),
+        ]
 
     def __str__(self):
         return f"Comment by {str(self.author)} on {str(self.work_item)}"
 
-class ActivityLog(TimestampedModel):
+class ActivityLog(AuditModel):
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='activity_logs')
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     work_item = models.ForeignKey(WorkItem, on_delete=models.SET_NULL, null=True, blank=True, related_name='activity_log')
@@ -155,11 +260,21 @@ class ActivityLog(TimestampedModel):
 
     class Meta:
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['tenant']),
+            models.Index(fields=['work_item']),
+            models.Index(fields=['user']),
+            models.Index(fields=['activity_type']),
+            models.Index(fields=['created_at']),
+            models.Index(fields=['tenant', 'work_item']),
+            models.Index(fields=['user', 'activity_type']),
+            models.Index(fields=['work_item', 'created_at']),
+        ]
 
     def __str__(self):
         return f"{self.activity_type} by {str(self.user)} on {str(self.work_item)}"
 
-class Assignment(TimestampedModel):
+class Assignment(AuditModel):
     work_item = models.ForeignKey('WorkItem', on_delete=models.CASCADE, related_name='assignments')
     user = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='assignments')
     assigned_by = models.ForeignKey('users.User', on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_assignments')
@@ -167,6 +282,13 @@ class Assignment(TimestampedModel):
 
     class Meta:
         unique_together = ('work_item', 'user')
+        indexes = [
+            models.Index(fields=['work_item']),
+            models.Index(fields=['user']),
+            models.Index(fields=['assigned_by']),
+            models.Index(fields=['assigned_at']),
+            models.Index(fields=['user', 'assigned_at']),
+        ]
 
     def __str__(self):
         return f"{self.user} assigned to {self.work_item} by {self.assigned_by}"

@@ -29,7 +29,11 @@ class WorkItemSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_by', 'created_at', 'updated_at', 'tenant']
 
     def get_assigned_to(self, obj):
-        return [UserWithPersonSerializer(a.user).data for a in obj.assignments.all()]
+        # Optimize to avoid N+1 queries
+        if hasattr(obj, '_prefetched_objects_cache') and 'assignments' in obj._prefetched_objects_cache:
+            return [UserWithPersonSerializer(a.user).data for a in obj.assignments.all()]
+        # Fallback for when prefetch is not available
+        return [UserWithPersonSerializer(a.user).data for a in obj.assignments.select_related('user__partner__person').all()]
 
 class WorkItemCreateSerializer(serializers.ModelSerializer):
     class Meta:
@@ -77,12 +81,12 @@ class WorkItemWritableSerializer(serializers.ModelSerializer):
         return instance
 
 class WorkItemListSerializer(serializers.ModelSerializer):
-    assigned_to = UserWithPersonSerializer(read_only=True)
     tenant = serializers.PrimaryKeyRelatedField(read_only=True)
+    
     class Meta:
         model = WorkItem
         fields = [
             'id', 'title', 'status', 'category', 'priority',
-            'deadline', 'assigned_to', 'tenant',
+            'deadline', 'tenant', 'created_at'
         ]
-        read_only_fields = ['id', 'tenant'] 
+        read_only_fields = ['id', 'tenant', 'created_at'] 

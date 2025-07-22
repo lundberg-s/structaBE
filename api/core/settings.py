@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-v#u1p13v7b^*li$dct3csf^aw+jk77iql4-#glcatu=(ah%ddh
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'testserver']
 
 # Application definition
 
@@ -45,16 +45,85 @@ INSTALLED_APPS = [
     'relations',
 ]
 
+# Cache configuration for performance optimization
+# Temporarily disabled for testing - uncomment when Redis is available
+# CACHES = {
+#     'default': {
+#         'BACKEND': 'django_redis.cache.RedisCache',
+#         'LOCATION': 'redis://127.0.0.1:6379/1',
+#         'OPTIONS': {
+#             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+#         },
+#         'KEY_PREFIX': 'structaBE',
+#         'TIMEOUT': 300,  # 5 minutes default
+#     },
+#     'session': {
+#         'BACKEND': 'django_redis.cache.RedisCache',
+#         'LOCATION': 'redis://127.0.0.1:6379/2',
+#         'OPTIONS': {
+#             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+#         },
+#         'KEY_PREFIX': 'session',
+#     },
+#     'long_term': {
+#         'BACKEND': 'django_redis.cache.RedisCache',
+#         'LOCATION': 'redis://127.0.0.1:6379/3',
+#         'OPTIONS': {
+#             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+#         },
+#         'KEY_PREFIX': 'long_term',
+#         'TIMEOUT': 3600,  # 1 hour
+#     }
+# }
+
+# Use default cache for now
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+    }
+}
+
+# Use Redis for session storage
+# SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+# SESSION_CACHE_ALIAS = 'session'
+
+# Cache middleware for performance
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
+    # 'core.middleware.TenantMiddleware',  # Doesn't exist yet
+    'core.middleware.QueryCountMiddleware',  # Clean query monitoring
+    # 'core.middleware.CacheMiddleware',  # Temporarily disabled
 ]
+
+# Django Debug Toolbar for query monitoring
+if DEBUG:
+    INSTALLED_APPS += [
+        'debug_toolbar',
+    ]
+    
+    MIDDLEWARE += [
+        'debug_toolbar.middleware.DebugToolbarMiddleware',
+    ]
+    
+    INTERNAL_IPS = [
+        '127.0.0.1',
+        'localhost',
+    ]
+    
+    # Debug Toolbar Configuration
+    DEBUG_TOOLBAR_CONFIG = {
+        'SHOW_TOOLBAR_CALLBACK': lambda request: DEBUG,
+        'SHOW_COLLAPSED': True,
+        'SHOW_TEMPLATE_CONTEXT': True,
+    }
 
 ROOT_URLCONF = 'core.urls'
 
@@ -122,6 +191,7 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "core.custom_auth.CookieJWTAuthentication",
     ),
+    "EXCEPTION_HANDLER": "core.exceptions.custom_exception_handler",
     # "DEFAULT_PAGINATION_CLASS": ("rest_framework.pagination.PageNumberPagination"),
     # "PAGE_SIZE": 50,
 }
@@ -160,3 +230,6 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Performance monitoring - clean query monitoring via middleware only
+# (No verbose SQL logging - use QueryCountMiddleware instead)

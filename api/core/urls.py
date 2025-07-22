@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.urls import path, include
 from core.views.token_views import CookieTokenObtainPairView, CookieTokenRefreshView, CookieTokenVerifyView, LogoutView
+from django.conf import settings
 
 API_PREFIX = "api/"
 
@@ -13,5 +14,11 @@ urlpatterns = [
     path(f"{API_PREFIX}", include("users.urls")),
     path(f"{API_PREFIX}", include("engagements.urls")),
     path(f"{API_PREFIX}", include("relations.urls")),
-
 ]
+
+# Add debug toolbar URLs in development
+if settings.DEBUG:
+    import debug_toolbar
+    urlpatterns += [
+        path('__debug__/', include(debug_toolbar.urls)),
+    ]
