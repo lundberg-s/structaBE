@@ -9,8 +9,8 @@ class AssignmentCreateSerializer(serializers.ModelSerializer):
 
 class AssignmentSerializer(serializers.ModelSerializer):
     user = UserWithPersonSerializer(read_only=True)
-    assigned_by = UserWithPersonSerializer(read_only=True)
+    created_by = UserWithPersonSerializer(read_only=True)
 
     class Meta:
         model = Assignment
-        fields = ['id', 'user', 'assigned_by', 'assigned_at'] 
+        fields = ['id', 'user', 'created_by', 'created_at'] 

@@ -41,7 +41,7 @@ class BaseWorkItemListView(BaseWorkItemView, ListCreateAPIView):
     def get_queryset(self):
         if not self._check_tenant_type():
             return self.model.objects.none()
-
+        
         # Use the serializer's optimized queryset instead of managers.py
         base_queryset = self.model.objects.active().for_tenant(self._get_tenant())
         return self.get_serializer_class().get_optimized_queryset(base_queryset)
@@ -49,7 +49,7 @@ class BaseWorkItemListView(BaseWorkItemView, ListCreateAPIView):
     def perform_create(self, serializer):
         if not self._check_tenant_type():
             return  # Optionally raise PermissionDenied
-
+            
         instance = serializer.save(
             tenant=self._get_tenant(), created_by=self.get_user()
         )

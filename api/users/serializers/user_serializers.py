@@ -12,7 +12,7 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'email', 'tenant', 'person']
-    
+
     @classmethod
     def get_optimized_queryset(cls, queryset=None):
         """Return queryset optimized for user serialization."""

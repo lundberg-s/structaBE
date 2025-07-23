@@ -26,7 +26,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name="assignment",
-            name="assigned_by",
+            name="created_by",
             field=models.ForeignKey(
                 blank=True,
                 null=True,

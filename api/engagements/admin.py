@@ -12,7 +12,7 @@ class WorkItemAdmin(admin.ModelAdmin):
 class AssignmentInline(admin.TabularInline):
     model = Assignment
     extra = 0
-    readonly_fields = ['assigned_by', 'assigned_at']
+    readonly_fields = ['created_by', 'created_at']
 
 @admin.register(Ticket)
 class TicketAdmin(admin.ModelAdmin):
@@ -42,10 +42,10 @@ class JobAdmin(admin.ModelAdmin):
 
 @admin.register(Assignment)
 class AssignmentAdmin(admin.ModelAdmin):
-    list_display = ['work_item', 'user', 'assigned_by', 'assigned_at']
-    list_filter = ['assigned_by', 'assigned_at']
-    search_fields = ['work_item__title', 'user__email', 'assigned_by__email']
-    readonly_fields = ['assigned_at']
+    list_display = ['work_item', 'user', 'created_by', 'created_at']
+    list_filter = ['created_by', 'created_at']
+    search_fields = ['work_item__title', 'user__email', 'created_by__email']
+    readonly_fields = ['created_at']
 
 @admin.register(Attachment)
 class AttachmentAdmin(admin.ModelAdmin):

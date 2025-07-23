@@ -25,7 +25,7 @@ class TestAssignmentFlow(FullySetupTest, APITestCase):
         assignment = Assignment.objects.get(id=response.data['id'])
         self.assertEqual(assignment.user.id, self.assignee.id)
         self.assertEqual(assignment.work_item.id, self.work_item.id)
-        self.assertEqual(assignment.assigned_by, self.user)
+        self.assertEqual(assignment.created_by, self.user)
 
     def test_cannot_assign_same_user_twice(self):
         self.authenticate_client()
@@ -70,13 +70,13 @@ class TestAssignmentFlow(FullySetupTest, APITestCase):
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, 400)
 
-    def test_assignment_assigned_by_is_set_to_request_user(self):
+    def test_assignment_created_by_is_set_to_request_user(self):
         self.authenticate_client()
         url = reverse('engagements:assignment-create')
         response = self.client.post(url, self.assignment_data, format='json')
         self.assertIn(response.status_code, (200, 201))
         assignment = Assignment.objects.get(id=response.data['id'])
-        self.assertEqual(assignment.assigned_by, self.user)
+        self.assertEqual(assignment.created_by, self.user)
 
     def test_assignment_serializer_returns_expected_fields(self):
         self.authenticate_client()
@@ -85,5 +85,5 @@ class TestAssignmentFlow(FullySetupTest, APITestCase):
         self.assertIn(response.status_code, (200, 201))
         self.assertIn('id', response.data)
         self.assertIn('user', response.data)
-        self.assertIn('assigned_by', response.data)
-        self.assertIn('assigned_at', response.data)
+        self.assertIn('created_by', response.data)
+        self.assertIn('created_at', response.data)

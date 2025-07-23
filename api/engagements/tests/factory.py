@@ -68,11 +68,11 @@ def create_attachment(work_item, uploaded_by, filename='test.txt', content=b'tes
         uploaded_by=uploaded_by
     )
 
-def create_assignment(work_item, user, assigned_by=None):
-    if assigned_by is None:
-        assigned_by = user
+def create_assignment(work_item, user, created_by=None):
+    if created_by is None:
+        created_by = user
     return Assignment.objects.create(
         work_item=work_item,
         user=user,
-        assigned_by=assigned_by
+        created_by=created_by
     )

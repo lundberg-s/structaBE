@@ -74,19 +74,19 @@ class Migration(migrations.Migration):
         migrations.AddIndex(
             model_name="assignment",
             index=models.Index(
-                fields=["assigned_by"], name="engagements_assigne_b947f3_idx"
+                fields=["created_by"], name="engagements_assigne_b947f3_idx"
             ),
         ),
         migrations.AddIndex(
             model_name="assignment",
             index=models.Index(
-                fields=["assigned_at"], name="engagements_assigne_5642d9_idx"
+                fields=["created_at"], name="engagements_assigne_5642d9_idx"
             ),
         ),
         migrations.AddIndex(
             model_name="assignment",
             index=models.Index(
-                fields=["user", "assigned_at"], name="engagements_user_id_6883a0_idx"
+                fields=["user", "created_at"], name="engagements_user_id_6883a0_idx"
             ),
         ),
         migrations.AddIndex(

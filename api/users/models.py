@@ -1,4 +1,3 @@
-import uuid
 
 from django.contrib.auth.models import AbstractUser
 from django.db import models
@@ -17,9 +16,6 @@ class User(AbstractUser, AuditModel):
     """
     Represents a login account. Linked 1:1 to a Person (which is a Partner).
     """
-    id = models.UUIDField(
-        default=uuid.uuid4, editable=False, unique=True, db_index=True , primary_key=True
-    )
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='users', null=True, blank=True)
     partner = models.OneToOneField('relations.Partner', on_delete=models.CASCADE, related_name='user', null=True, blank=True)
     email = models.EmailField("email address", unique=True)

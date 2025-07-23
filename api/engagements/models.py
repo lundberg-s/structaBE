@@ -1,11 +1,7 @@
 import mimetypes
-import uuid
 
 from django.db import models
-from django.db.models import Q
 from django.contrib.auth import get_user_model
-from django.contrib.contenttypes.fields import GenericForeignKey
-from django.contrib.contenttypes.models import ContentType
 
 from core.models import Tenant, AuditModel
 from engagements.managers import WorkItemQuerySet
@@ -13,7 +9,6 @@ from engagements.choices import (
     WorkItemStatusTypes,
     WorkItemPriorityTypes,
     WorkItemCategoryTypes,
-    WorkItemPartnerRoleTypes,
     ActivityLogActivityTypes,
 )
 
@@ -24,7 +19,6 @@ class WorkItem(AuditModel):
     tenant = models.ForeignKey(
         Tenant, on_delete=models.CASCADE, related_name="work_items"
     )
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField(max_length=200)
     description = models.TextField()
     status = models.CharField(
@@ -39,9 +33,6 @@ class WorkItem(AuditModel):
         default=WorkItemPriorityTypes.MEDIUM,
     )
     deadline = models.DateTimeField(null=True, blank=True)
-    created_by = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="created_work_items"
-    )
     is_deleted = models.BooleanField(default=False)
 
     objects = WorkItemQuerySet.as_manager()
@@ -132,7 +123,6 @@ class Attachment(AuditModel):
     tenant = models.ForeignKey(
         Tenant, on_delete=models.CASCADE, related_name="attachments"
     )
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     work_item = models.ForeignKey(
         WorkItem, on_delete=models.CASCADE, related_name="attachments"
     )
@@ -167,7 +157,6 @@ class Comment(AuditModel):
     tenant = models.ForeignKey(
         Tenant, on_delete=models.CASCADE, related_name="comments"
     )
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     work_item = models.ForeignKey(
         WorkItem, on_delete=models.CASCADE, related_name="comments"
     )
@@ -193,7 +182,6 @@ class ActivityLog(AuditModel):
     tenant = models.ForeignKey(
         Tenant, on_delete=models.CASCADE, related_name="activity_logs"
     )
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     work_item = models.ForeignKey(
         WorkItem,
         on_delete=models.SET_NULL,
@@ -225,30 +213,26 @@ class ActivityLog(AuditModel):
 
 
 class Assignment(AuditModel):
+    tenant = models.ForeignKey(
+        Tenant, on_delete=models.CASCADE, related_name="assignments"
+    )
     work_item = models.ForeignKey(
         "WorkItem", on_delete=models.CASCADE, related_name="assignments"
     )
     user = models.ForeignKey(
         "users.User", on_delete=models.CASCADE, related_name="assignments"
     )
-    assigned_by = models.ForeignKey(
-        "users.User",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="assigned_assignments",
-    )
-    assigned_at = models.DateTimeField(auto_now_add=True)
+
 
     class Meta:
         unique_together = ("work_item", "user")
         indexes = [
             models.Index(fields=["work_item"]),
             models.Index(fields=["user"]),
-            models.Index(fields=["assigned_by"]),
-            models.Index(fields=["assigned_at"]),
-            models.Index(fields=["user", "assigned_at"]),
+            models.Index(fields=["created_by"]),
+            models.Index(fields=["created_at"]),
+            models.Index(fields=["user", "created_at"]),
         ]
 
     def __str__(self):
-        return f"{self.user} assigned to {self.work_item} by {self.assigned_by}"
+        return f"{self.user} assigned to {self.work_item} by {self.created_by}"

@@ -19,7 +19,7 @@
 - **Attachment Model**: Added indexes for `tenant`, `work_item`, `uploaded_by`, `filename`, `mime_type`
 - **Comment Model**: Added indexes for `tenant`, `work_item`, `author`, `created_at`
 - **ActivityLog Model**: Added indexes for `tenant`, `work_item`, `user`, `activity_type`, `created_at`
-- **Assignment Model**: Added indexes for `work_item`, `user`, `assigned_by`, `assigned_at`
+- **Assignment Model**: Added indexes for `work_item`, `user`, `created_by`, `created_at`
 
 ### 2. Query Optimization
 
