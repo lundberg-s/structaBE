@@ -1,5 +1,5 @@
 from django.contrib import admin
-from engagements.models import WorkItem, Ticket, Case, Job, Attachment, Comment, ActivityLog, WorkItemPartnerRole, Assignment
+from engagements.models import WorkItem, Ticket, Case, Job, Attachment, Comment, ActivityLog, Assignment
 
 @admin.register(WorkItem)
 class WorkItemAdmin(admin.ModelAdmin):
@@ -14,10 +14,6 @@ class AssignmentInline(admin.TabularInline):
     extra = 0
     readonly_fields = ['assigned_by', 'assigned_at']
 
-class WorkItemPartnerRoleInline(admin.TabularInline):
-    model = WorkItemPartnerRole
-    extra = 0
-
 @admin.register(Ticket)
 class TicketAdmin(admin.ModelAdmin):
     list_display = ['title', 'ticket_number', 'urgency', 'reported_by', 'status', 'tenant', 'created_at']
@@ -25,7 +21,7 @@ class TicketAdmin(admin.ModelAdmin):
     search_fields = ['title', 'ticket_number', 'reported_by']
     readonly_fields = ['id', 'created_at', 'updated_at']
     date_hierarchy = 'created_at'
-    inlines = [WorkItemPartnerRoleInline, AssignmentInline]
+    inlines = [AssignmentInline]
 
 @admin.register(Case)
 class CaseAdmin(admin.ModelAdmin):
@@ -71,10 +67,3 @@ class ActivityLogAdmin(admin.ModelAdmin):
     list_filter = ['activity_type', 'created_at', 'tenant']
     search_fields = ['description', 'work_item__title', 'user__username']
     readonly_fields = ['id', 'created_at']
-
-@admin.register(WorkItemPartnerRole)
-class WorkItemPartnerRoleAdmin(admin.ModelAdmin):
-    list_display = ['work_item', 'partner', 'role', 'tenant']
-    list_filter = ['role', 'tenant']
-    search_fields = ['work_item__title', 'role']
-    readonly_fields = ['id']

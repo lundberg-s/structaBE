@@ -5,7 +5,6 @@ from engagements.views.case_views import CaseListView, CaseDetailView
 from engagements.views.job_views import JobListView, JobDetailView
 
 from engagements.views.assignment_views import AssignmentCreateView
-from engagements.views.work_item_partner_role_views import WorkItemPartnerRoleListView, WorkItemPartnerRoleDetailView
 from engagements.views.attachments_views import AttachmentListView, AttachmentDetailView
 from engagements.views.comments_views import CommentListView, CommentDetailView
 from engagements.views.activity_logs_views import ActivityLogListView, ActivityLogDetailView
@@ -15,9 +14,6 @@ app_name = 'engagements'
 
 
 urlpatterns = [
-    path('work_item-partner-roles/', WorkItemPartnerRoleListView.as_view(), name='work_item-partner-role-list'),
-    path('work_item-partner-roles/<uuid:pk>/', WorkItemPartnerRoleDetailView.as_view(), name='work_item-partner-role-detail'),
-
     path('tickets/', TicketListView.as_view(), name='ticket-list'),
     path('tickets/<uuid:pk>/', TicketDetailView.as_view(), name='ticket-detail'),
 

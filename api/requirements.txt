@@ -10,3 +10,4 @@ coverage==7.9.2
 pytest-cov
 redis==5.0.1
 django-redis==5.4.0
+django-debug-toolbar==4.3.0

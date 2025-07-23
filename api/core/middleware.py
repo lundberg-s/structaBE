@@ -159,3 +159,24 @@ class CacheMiddleware(MiddlewareMixin):
             '/api/engagements/cases/',
             '/api/engagements/jobs/',
         ] 
+
+
+
+
+class PrefetchTenantMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        user = request.user
+        if user.is_authenticated:
+            # Reload user with tenant preloaded
+            user_with_tenant = (
+                user.__class__.objects
+                .select_related('tenant')
+                .filter(pk=user.pk)
+                .first()
+            )
+            if user_with_tenant:
+                request.user = user_with_tenant
+        return self.get_response(request)
