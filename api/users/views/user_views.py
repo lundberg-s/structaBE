@@ -14,7 +14,6 @@ from users.serializers.user_serializers import UserSerializer
 User = get_user_model()
 
 class UserMeView(RetrieveAPIView):
-    queryset = User.objects.none()
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
 
@@ -29,7 +28,11 @@ class UserMeView(RetrieveAPIView):
         except Exception as e:
             raise AuthenticationFailed(f'Invalid token: {str(e)}')
 
-        user = User.objects.filter(id=user_id).first()
+        # Use optimized queryset
+        user = UserSerializer.get_optimized_queryset(
+            User.objects.filter(id=user_id)
+        ).first()
+        
         if not user:
             raise AuthenticationFailed('User not found')
 
@@ -40,7 +43,8 @@ class UserListView(ListCreateAPIView):
     serializer_class = UserSerializer
 
     def get_queryset(self):
-        return User.objects.filter(tenant=self.request.user.tenant)
+        base_queryset = User.objects.filter(tenant=self.request.user.tenant)
+        return self.get_serializer_class().get_optimized_queryset(base_queryset)
 
     def perform_create(self, serializer):
         # Create a Person instance
@@ -67,4 +71,5 @@ class UserDetailView(RetrieveAPIView):
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        return User.objects.filter(tenant=self.request.user.tenant)
+        base_queryset = User.objects.filter(tenant=self.request.user.tenant)
+        return self.get_serializer_class().get_optimized_queryset(base_queryset)

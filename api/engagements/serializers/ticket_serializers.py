@@ -30,7 +30,7 @@ class TicketSerializer(WorkItemSerializer):
             "reported_by",
             "urgency",
         ]
-
+    
 
 class TicketCreateSerializer(WorkItemCreateSerializer):
     """Lightweight serializer for ticket creation - no related data loading"""

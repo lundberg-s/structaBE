@@ -9,22 +9,6 @@ class WorkItemQuerySet(models.QuerySet):
     def with_deleted(self):
         return self.all()
 
-    def prefetch_for_list(self):
-        # For list views: main related objects with select_related, minimal prefetches
-        return self.select_related(
-            "tenant",
-            "created_by",
-            "created_by__partner__person",
-        ).prefetch_related()
-
-    def prefetch_for_detail(self):
-        # For detailed view, prefetch everything heavy but efficient
-        return self.select_related(
-            "tenant",
-            "created_by",
-            "created_by__partner__person",
-        ).prefetch_related()
-
     def for_tenant(self, tenant):
         return self.filter(tenant=tenant)
 
@@ -43,7 +27,7 @@ class WorkItemQuerySet(models.QuerySet):
     def overdue(self):
         return self.filter(
             deadline__lt=timezone.now(), status__in=["open", "in-progress"]
-        ).prefetch_for_detail()
+        )
 
     def due_within(self, days=7):
         future_date = timezone.now() + timedelta(days=days)
@@ -51,4 +35,4 @@ class WorkItemQuerySet(models.QuerySet):
             deadline__lte=future_date,
             deadline__gt=timezone.now(),
             status__in=["open", "in-progress"],
-        ).prefetch_for_detail()
+        )

@@ -17,11 +17,8 @@ class ActivityLogListView(generics.ListCreateAPIView):
     search_fields = ["description"]
 
     def get_queryset(self):
-        return (
-            ActivityLog.objects.filter(tenant=self.request.user.tenant)
-            .select_related("user", "work_item")
-            .all()
-        )
+        base_queryset = ActivityLog.objects.filter(tenant=self.request.user.tenant)
+        return self.get_serializer_class().get_optimized_queryset(base_queryset)
 
     def filter_queryset(self, queryset):
         try:
@@ -35,7 +32,10 @@ class ActivityLogListView(generics.ListCreateAPIView):
 
 
 class ActivityLogDetailView(generics.RetrieveAPIView):
-    queryset = ActivityLog.objects.select_related("user", "work_item").all()
     serializer_class = ActivityLogSerializer
     permission_classes = [permissions.IsAuthenticated]
     lookup_field = "id"
+    
+    def get_queryset(self):
+        base_queryset = ActivityLog.objects.filter(tenant=self.request.user.tenant)
+        return self.get_serializer_class().get_optimized_queryset(base_queryset)

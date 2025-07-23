@@ -12,6 +12,17 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'email', 'tenant', 'person']
+    
+    @classmethod
+    def get_optimized_queryset(cls, queryset=None):
+        """Return queryset optimized for user serialization."""
+        if queryset is None:
+            queryset = User.objects.all()
+        
+        return queryset.select_related(
+            'tenant',
+            'partner__person'
+        )
 
 
 class UserWithPersonSerializer(serializers.ModelSerializer):
@@ -21,3 +32,13 @@ class UserWithPersonSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'username', 'email', 'first_name', 'last_name']
+    
+    @classmethod
+    def get_optimized_queryset(cls, queryset=None):
+        """Return queryset optimized for user with person serialization."""
+        if queryset is None:
+            queryset = User.objects.all()
+        
+        return queryset.select_related(
+            'partner__person'
+        )

@@ -42,11 +42,9 @@ class BaseWorkItemListView(BaseWorkItemView, ListCreateAPIView):
         if not self._check_tenant_type():
             return self.model.objects.none()
 
-        return (
-            self.model.objects.active()
-            .for_tenant(self._get_tenant())
-            .prefetch_for_list()
-        )
+        # Use the serializer's optimized queryset instead of managers.py
+        base_queryset = self.model.objects.active().for_tenant(self._get_tenant())
+        return self.get_serializer_class().get_optimized_queryset(base_queryset)
 
     def perform_create(self, serializer):
         if not self._check_tenant_type():
@@ -66,11 +64,9 @@ class BaseWorkItemDetailView(BaseWorkItemView, RetrieveUpdateDestroyAPIView):
         if not self._check_tenant_type():
             return self.model.objects.none()
 
-        return (
-            self.model.objects.active()
-            .for_tenant(self._get_tenant())
-            .prefetch_for_detail()
-        )
+        # Use the serializer's optimized queryset instead of managers.py
+        base_queryset = self.model.objects.active().for_tenant(self._get_tenant())
+        return self.get_serializer_class().get_optimized_queryset(base_queryset)
 
     def perform_update(self, serializer):
         if not self._check_tenant_type():
