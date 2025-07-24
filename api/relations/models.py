@@ -164,6 +164,15 @@ class RelationReference(
             return str(self.workitem)
         return str(self.id)
 
+    def get_object(self):
+        """Get the actual object referenced by this RelationReference."""
+        from relations.utilities.validation_helpers import get_real_instance
+        if self.partner:
+            return get_real_instance(self.partner)
+        if self.workitem:
+            return get_real_instance(self.workitem)
+        return None
+
 
 class Relation(AuditModel, TenantValidatorMixin):
     tenant = models.ForeignKey(

@@ -80,8 +80,8 @@ class RelationSerializer(serializers.ModelSerializer):
                 target = RelationReference.objects.get(id=target_id)
                 
                 # Get the actual objects to check tenant
-                source_obj = RelationReference.objects.get_object(source)
-                target_obj = RelationReference.objects.get_object(target)
+                source_obj = source.get_object()
+                target_obj = target.get_object()
                 
                 if source_obj and target_obj:
                     # Check if both objects have tenant and they match
