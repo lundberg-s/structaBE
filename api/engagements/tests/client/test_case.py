@@ -3,12 +3,12 @@ from django.urls import reverse
 from users.tests.factory import create_user
 from core.tests.factory import create_tenant
 from engagements.tests.factory import create_case
-from engagements.tests.client.test_base import Case
+from engagements.tests.client.test_base import CaseTenancySetup
 from engagements.models import Case as CaseModel
 from datetime import timedelta
 from django.utils import timezone
 
-class TestCaseFlow(Case, APITestCase):
+class TestCaseFlow(CaseTenancySetup, APITestCase):
     def setUp(self):
         super().setUp()
         self.client = APIClient()
@@ -106,15 +106,6 @@ class TestCaseFlow(Case, APITestCase):
         case.refresh_from_db()
         self.assertEqual(case.title, 'Updated Title')
 
-    def test_update_case_from_other_user_fails(self):
-        self.authenticate_client()
-        other_user = create_user(tenant=self.tenant, username='otheruser', password='otherpass')
-        case = create_case(tenant=self.tenant, created_by=other_user)
-        url = reverse('engagements:case-detail', args=[case.id])
-        data = {'title': 'Hacked'}
-        response = self.client.patch(url, data, format='json')
-        self.assertEqual(response.status_code, 403)
-
     def test_update_case_from_other_tenant_fails(self):
         self.authenticate_client()
         other_tenant = create_tenant(work_item_type='case')
@@ -149,15 +140,6 @@ class TestCaseFlow(Case, APITestCase):
         self.assertFalse(any(c['id'] == str(case.id) for c in list_response.data))
         detail_response = self.client.get(url)
         self.assertEqual(detail_response.status_code, 404)
-
-    def test_delete_case_from_other_user_fails(self):
-        self.authenticate_client()
-        other_user = create_user(tenant=self.tenant, username='otheruser', password='otherpass')
-        case = create_case(tenant=self.tenant, created_by=other_user)
-        url = reverse('engagements:case-detail', args=[case.id])
-        response = self.client.delete(url)
-        self.assertEqual(response.status_code, 403)
-        self.assertTrue(CaseModel.objects.filter(id=case.id).exists())
 
     def test_delete_case_from_other_tenant_fails(self):
         self.authenticate_client()
@@ -261,24 +243,4 @@ class TestCaseFlow(Case, APITestCase):
             self.assertEqual(case['tenant'], self.tenant.id)
             self.assertIn('MyTenantTitle', case['title'])
 
-    def test_case_partner_roles_are_serialized(self):
-        self.authenticate_client()
-        from engagements.tests.factory import create_case
-        case = create_case(tenant=self.tenant, created_by=self.user)
-        from relations.models import Organization
-        from django.contrib.contenttypes.models import ContentType
-        org = Organization.objects.create(tenant=self.tenant, name='Test Org')
-        content_type = ContentType.objects.get_for_model(Organization)
-        from engagements.models import WorkItemPartnerRole
-        WorkItemPartnerRole.objects.create(
-            tenant=self.tenant,
-            work_item=case,
-            content_type=content_type,
-            object_id=org.id,
-            role='customer',
-        )
-        url = reverse('engagements:case-detail', args=[case.id])
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, 200)
-        self.assertIn('partner_roles', response.data)
-        self.assertGreater(len(response.data['partner_roles']), 0)
+

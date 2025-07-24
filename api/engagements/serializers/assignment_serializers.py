@@ -22,5 +22,5 @@ class AssignmentSerializer(serializers.ModelSerializer):
 class AssignmentCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Assignment
-        fields = ['work_item', 'user']
-        fields = ['id', 'user', 'created_by', 'created_at'] 
+        fields = ['id', 'work_item', 'user', 'created_by', 'created_at']
+        read_only_fields = ['id', 'created_by', 'created_at'] 

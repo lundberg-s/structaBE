@@ -5,16 +5,37 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 
 User = get_user_model()
 
-def create_ticket(tenant, created_by):
-    return Ticket.objects.create(
+# Global counter for generating unique ticket numbers in tests
+_ticket_counter = 0
+
+def create_ticket(tenant, created_by, **kwargs):
+    global _ticket_counter
+    _ticket_counter += 1
+    
+    # Create ticket with a unique test-specific ticket number
+    # This avoids conflicts with the model's auto-generation
+    test_ticket_number = f"TEST{_ticket_counter:06d}"
+    
+    # Default values
+    defaults = {
+        'title': 'Test Ticket',
+        'description': 'This is a test ticket',
+        'status': 'open',
+        'category': 'ticket',
+        'priority': 'medium',
+        'ticket_number': test_ticket_number,  # Set the ticket number directly
+    }
+    
+    # Update defaults with any provided kwargs
+    defaults.update(kwargs)
+    
+    ticket = Ticket.objects.create(
         tenant=tenant,
-        title='Test Ticket',
-        description='This is a test ticket',
-        status='open',
-        category='ticket',
-        priority='medium',
         created_by=created_by,
+        **defaults
     )
+    
+    return ticket
 
 def create_case(tenant, created_by, case_reference=None, **kwargs):
     if case_reference is None:
@@ -33,7 +54,7 @@ def create_case(tenant, created_by, case_reference=None, **kwargs):
         **kwargs
     )
 
-def create_job(tenant, created_by, job_code=None, assigned_team='Team A', estimated_hours=10.5):
+def create_job(tenant, created_by, job_code=None, estimated_hours=10.5):
     if job_code is None:
         job_code = f'J-{uuid.uuid4().hex[:8]}'
     return Job.objects.create(
@@ -45,7 +66,6 @@ def create_job(tenant, created_by, job_code=None, assigned_team='Team A', estima
         priority='medium',
         created_by=created_by,
         job_code=job_code,
-        assigned_team=assigned_team,
         estimated_hours=estimated_hours,
     )
 
@@ -53,8 +73,8 @@ def create_comment(work_item, author, content='Test comment'):
     return Comment.objects.create(
         tenant=work_item.tenant,
         work_item=work_item,
-        author=author,
-        content=content
+        content=content,
+        created_by=author
     )
 
 def create_attachment(work_item, uploaded_by, filename='test.txt', content=b'test content'):
@@ -65,7 +85,7 @@ def create_attachment(work_item, uploaded_by, filename='test.txt', content=b'tes
         file=file,
         filename=filename,
         file_size=len(content),
-        uploaded_by=uploaded_by
+        created_by=uploaded_by
     )
 
 def create_assignment(work_item, user, created_by=None):

@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from datetime import timedelta
 from pathlib import Path
+import sys
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -104,7 +105,7 @@ MIDDLEWARE = [
 ]
 
 # Django Debug Toolbar for query monitoring
-if DEBUG:
+if DEBUG and not any('test' in arg for arg in sys.argv):
     INSTALLED_APPS += [
         'debug_toolbar',
     ]
@@ -123,6 +124,7 @@ if DEBUG:
         'SHOW_TOOLBAR_CALLBACK': lambda request: DEBUG,
         'SHOW_COLLAPSED': True,
         'SHOW_TEMPLATE_CONTEXT': True,
+        'IS_RUNNING_TESTS': False,
     }
 
 ROOT_URLCONF = 'core.urls'

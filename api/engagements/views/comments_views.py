@@ -12,9 +12,10 @@ from engagements.serializers.comment_serializers import (
     CommentSerializer,
     CommentListSerializer,
 )
+from core.views.base_views import BaseView
 
 
-class CommentListView(ListCreateAPIView):
+class CommentListView(BaseView, ListCreateAPIView):
     queryset = Comment.objects.select_related("created_by", "work_item").all()
     serializer_class = CommentListSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -23,61 +24,49 @@ class CommentListView(ListCreateAPIView):
     search_fields = ["content"]
 
     def get_queryset(self):
-        base_queryset = Comment.objects.filter(tenant=self.request.user.tenant)
+        base_queryset = self.get_tenant_queryset(Comment)
         return self.serializer_class.get_optimized_queryset(base_queryset)
 
     def perform_create(self, serializer):
         # Only allow work_item from user's tenant
         work_item = serializer.validated_data.get("work_item")
-        if work_item.tenant != self.request.user.tenant:
+        if work_item.tenant != self.get_tenant():
             raise PermissionDenied("Invalid work item for this tenant.")
         instance = serializer.save(
-            tenant=self.request.user.tenant, created_by=self.request.user
+            tenant=self.get_tenant(), created_by=self.get_user()
         )
-        ActivityLog.objects.create(
-            tenant=self.request.user.tenant,
-            work_item=work_item,
-            created_by=self.request.user,
-            activity_type="commented",
-            description=f'Comment added to "{work_item.title}".',
+        self.log_activity(
+            instance, 
+            "commented", 
+            "commented on", 
+            work_item=work_item
         )
 
 
-class CommentDetailView(RetrieveUpdateDestroyAPIView):
+class CommentDetailView(BaseView, RetrieveUpdateDestroyAPIView):
     serializer_class = CommentSerializer
     permission_classes = [permissions.IsAuthenticated]
     lookup_field = "id"
 
     def get_queryset(self):
         # Only allow access to comments from user's tenant
-        base_queryset = Comment.objects.filter(tenant=self.request.user.tenant)
+        base_queryset = self.get_tenant_queryset(Comment)
         return self.serializer_class.get_optimized_queryset(base_queryset)
-
-    def check_object_permissions(self, request, obj):
-        super().check_object_permissions(request, obj)
-        # Only author can update/delete
-        if (
-            request.method in ["PUT", "PATCH", "DELETE"]
-            and obj.created_by != request.user
-        ):
-            raise PermissionDenied("You do not have permission to modify this comment.")
 
     def perform_update(self, serializer):
         instance = serializer.save()
-        ActivityLog.objects.create(
-            tenant=self.request.user.tenant,
-            work_item=instance.work_item,
-            created_by=self.request.user,
-            activity_type="updated",
-            description=f'Comment updated on "{instance.work_item.title}".',
+        self.log_activity(
+            instance, 
+            "updated", 
+            "updated comment on", 
+            work_item=instance.work_item
         )
 
     def perform_destroy(self, instance):
-        ActivityLog.objects.create(
-            tenant=self.request.user.tenant,
-            work_item=instance.work_item,
-            created_by=self.request.user,
-            activity_type="deleted",
-            description=f'Comment deleted from "{instance.work_item.title}".',
+        self.log_activity(
+            instance, 
+            "deleted", 
+            "deleted comment from", 
+            work_item=instance.work_item
         )
         instance.delete()

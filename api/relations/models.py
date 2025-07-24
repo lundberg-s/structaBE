@@ -75,10 +75,9 @@ class Partner(AuditModel):
         return str(self.id)
 
     def get_roles(self):
-        """Get all roles for this partner through RelationReference."""
-        from relations.models import RelationReference, Role
-        refs = RelationReference.objects.filter(partner=self)
-        return Role.objects.filter(target__in=refs)
+        """Get all roles for this partner."""
+        from relations.models import Role
+        return Role.objects.filter(target=self)
 
 
 class Person(Partner):
@@ -205,7 +204,7 @@ class Relation(AuditModel, TenantValidatorMixin):
 # Role to assign multiple roles to one Partner if needed
 class Role(AuditModel):
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name="roles")
-    target = models.ForeignKey(RelationReference, on_delete=models.CASCADE)
+    target = models.ForeignKey(Partner, on_delete=models.CASCADE)
 
     system_role = models.CharField(
         max_length=50, choices=SystemRole.choices, null=True, blank=True

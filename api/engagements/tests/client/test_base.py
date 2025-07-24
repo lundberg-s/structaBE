@@ -2,6 +2,8 @@ from django.test import TestCase, Client
 from django.urls import reverse
 from users.tests.factory import create_user
 from engagements.tests.factory import create_ticket
+from relations.tests.factory import create_person, create_role
+from relations.choices import SystemRole
 from core.models import Tenant
 
 class AuthMixin:
@@ -25,6 +27,12 @@ class FullySetupTest(AuthMixin, TestCase):
             password=cls.password,
             email='testuser@example.com'
         )
+
+        # Create a person for the user and assign tenant_employee role
+        person = create_person(tenant=cls.tenant, first_name='Test', last_name='User')
+        cls.user.partner = person
+        cls.user.save()
+        create_role(tenant=cls.tenant, target=person, system_role=SystemRole.TENANT_EMPLOYEE)
 
         cls.client = Client()
         login_url = reverse('login')
@@ -52,6 +60,12 @@ class TicketTenancySetup(AuthMixin, TestCase):
             password=cls.password,
             email='testuser@example.com'
         )
+
+        # Create a person for the user and assign tenant_employee role
+        person = create_person(tenant=cls.tenant, first_name='Test', last_name='User')
+        cls.user.partner = person
+        cls.user.save()
+        create_role(tenant=cls.tenant, target=person, system_role=SystemRole.TENANT_EMPLOYEE)
 
         cls.client = Client()
         login_url = reverse('login')
@@ -81,6 +95,12 @@ class JobTenancySetup(AuthMixin, TestCase):
             email='testuser@example.com'
         )
 
+        # Create a person for the user and assign tenant_employee role
+        person = create_person(tenant=cls.tenant, first_name='Test', last_name='User')
+        cls.user.partner = person
+        cls.user.save()
+        create_role(tenant=cls.tenant, target=person, system_role=SystemRole.TENANT_EMPLOYEE)
+
         cls.client = Client()
         login_url = reverse('login')
         login_response = cls.client.post(
@@ -95,7 +115,7 @@ class JobTenancySetup(AuthMixin, TestCase):
         cls.ticket = create_ticket(tenant=cls.tenant, created_by=cls.user)
 
 
-class Case(AuthMixin, TestCase):
+class CaseTenancySetup(AuthMixin, TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.tenant = Tenant.objects.create(work_item_type='case')
@@ -107,6 +127,12 @@ class Case(AuthMixin, TestCase):
             password=cls.password,
             email='testuser@example.com'
         )
+
+        # Create a person for the user and assign tenant_employee role
+        person = create_person(tenant=cls.tenant, first_name='Test', last_name='User')
+        cls.user.partner = person
+        cls.user.save()
+        create_role(tenant=cls.tenant, target=person, system_role=SystemRole.TENANT_EMPLOYEE)
 
         cls.client = Client()
         login_url = reverse('login')

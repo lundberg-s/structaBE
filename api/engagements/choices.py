@@ -17,11 +17,7 @@ class WorkItemCategoryTypes(models.TextChoices):
     CASE = 'case', 'Case'
     JOB = 'job', 'Job'
 
-class WorkItemPartnerRoleTypes(models.TextChoices):
-    CUSTOMER = 'customer', 'Customer'
-    VENDOR = 'vendor', 'Vendor'
-    PLAINTIFF = 'plaintiff', 'Plaintiff'
-    DEFENDANT = 'defendant', 'Defendant'
+
 
 class ActivityLogActivityTypes(models.TextChoices):
     CREATED = 'created', 'Created'

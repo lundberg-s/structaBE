@@ -7,9 +7,10 @@ from django_filters import rest_framework as filters
 
 from engagements.models import ActivityLog
 from engagements.serializers.activity_log_serializers import ActivityLogSerializer
+from core.views.base_views import BaseView
 
 
-class ActivityLogListView(generics.ListCreateAPIView):
+class ActivityLogListView(BaseView, generics.ListCreateAPIView):
     serializer_class = ActivityLogSerializer
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter]
@@ -17,7 +18,7 @@ class ActivityLogListView(generics.ListCreateAPIView):
     search_fields = ["description"]
 
     def get_queryset(self):
-        base_queryset = ActivityLog.objects.filter(tenant=self.request.user.tenant)
+        base_queryset = self.get_tenant_queryset(ActivityLog)
         return self.get_serializer_class().get_optimized_queryset(base_queryset)
 
     def filter_queryset(self, queryset):
@@ -28,14 +29,14 @@ class ActivityLogListView(generics.ListCreateAPIView):
             return queryset.none()
 
     def perform_create(self, serializer):
-        serializer.save(tenant=self.request.user.tenant, user=self.request.user)
+        serializer.save(tenant=self.get_tenant(), user=self.get_user())
 
 
-class ActivityLogDetailView(generics.RetrieveAPIView):
+class ActivityLogDetailView(BaseView, generics.RetrieveAPIView):
     serializer_class = ActivityLogSerializer
     permission_classes = [permissions.IsAuthenticated]
     lookup_field = "id"
     
     def get_queryset(self):
-        base_queryset = ActivityLog.objects.filter(tenant=self.request.user.tenant)
+        base_queryset = self.get_tenant_queryset(ActivityLog)
         return self.get_serializer_class().get_optimized_queryset(base_queryset)

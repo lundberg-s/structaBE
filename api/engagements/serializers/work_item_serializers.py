@@ -91,15 +91,29 @@ class WorkItemSerializer(serializers.ModelSerializer):
 class WorkItemCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = WorkItem
-        fields = ["title", "description", "status", "category", "priority", "deadline"]
+        fields = ["id", "title", "description", "status", "category", "priority", "deadline"]
         read_only_fields = ["id", "created_by", "created_at", "updated_at", "tenant"]
+
+    @classmethod
+    def get_optimized_queryset(cls, queryset=None):
+        """Return queryset optimized for work item creation."""
+        if queryset is None:
+            queryset = WorkItem.objects.all()
+        return queryset
 
 
 class WorkItemUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = WorkItem
-        fields = ["title", "description", "status", "category", "priority", "deadline"]
+        fields = ["id", "title", "description", "status", "category", "priority", "deadline"]
         read_only_fields = ["id", "created_by", "created_at", "updated_at", "tenant"]
+
+    @classmethod
+    def get_optimized_queryset(cls, queryset=None):
+        """Return queryset optimized for work item updates."""
+        if queryset is None:
+            queryset = WorkItem.objects.all()
+        return queryset
 
 
 class WorkItemDeleteSerializer(serializers.ModelSerializer):
