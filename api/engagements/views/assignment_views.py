@@ -24,19 +24,17 @@ class AssignmentCreateView(CreateAPIView):
         request_tenant = self.request.user.tenant
         if work_item.tenant != request_tenant or user.tenant != request_tenant:
             raise serializers.ValidationError('Work item and user must belong to your tenant.')
-        instance = serializer.save(created_by=self.request.user)
+        
+        # Save with tenant and created_by
+        instance = serializer.save(
+            tenant=request_tenant,
+            created_by=self.request.user
+        )
+        
         ActivityLog.objects.create(
             tenant=request_tenant,
             work_item=work_item,
-            user=self.request.user,
+            created_by=self.request.user,
             activity_type='assigned',
             description=f'User {user.username} assigned to "{work_item.title}".'
         )
-
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        output_serializer = AssignmentSerializer(serializer.instance)
-        headers = self.get_success_headers(output_serializer.data)
-        return Response(output_serializer.data, status=201, headers=headers)

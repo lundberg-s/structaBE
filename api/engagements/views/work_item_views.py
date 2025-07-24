@@ -27,7 +27,7 @@ class BaseWorkItemView:
         ActivityLog.objects.create(
             tenant=self._get_tenant(),
             work_item=instance,
-            user=self.get_user(),
+            created_by=self.get_user(),
             activity_type=activity_type,
             description=f'{self.model.__name__} "{instance.title}" was {action_text}.',
         )

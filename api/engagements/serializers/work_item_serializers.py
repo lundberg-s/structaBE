@@ -5,11 +5,12 @@ from users.serializers.user_serializers import UserWithPersonSerializer
 from engagements.serializers.attachment_serializers import AttachmentSerializer
 from engagements.serializers.comment_serializers import CommentSerializer
 from engagements.serializers.activity_log_serializers import ActivityLogSerializer
-
+from engagements.serializers.assignment_serializers import AssignmentNameOnlySerializer
 
 class WorkItemListSerializer(serializers.ModelSerializer):
     tenant = serializers.PrimaryKeyRelatedField(read_only=True)
     created_by = UserWithPersonSerializer(read_only=True)
+    assigned_to = AssignmentNameOnlySerializer(many=True, read_only=True)
 
     class Meta:
         model = WorkItem
@@ -23,8 +24,9 @@ class WorkItemListSerializer(serializers.ModelSerializer):
             "tenant",
             "created_at",
             "created_by",
+            "assigned_to",
         ]
-        read_only_fields = ["id", "tenant", "created_at", "created_by"]
+        read_only_fields = ["id", "tenant", "created_at", "created_by", "assigned_to"]
 
     @classmethod
     def get_optimized_queryset(cls, queryset=None):
@@ -34,7 +36,9 @@ class WorkItemListSerializer(serializers.ModelSerializer):
         
         return queryset.select_related(
             'created_by__partner__person',
-            'tenant'
+            'tenant',
+        ).prefetch_related(
+            'assigned_to__user__partner__person',
         )
 
 
@@ -45,6 +49,7 @@ class WorkItemSerializer(serializers.ModelSerializer):
     comments = CommentSerializer(many=True, read_only=True)
     # activity_log = ActivityLogSerializer(many=True, read_only=True)
     tenant = serializers.PrimaryKeyRelatedField(read_only=True)
+    assigned_to = AssignmentNameOnlySerializer(many=True, read_only=True)
 
     class Meta:
         model = WorkItem
@@ -57,6 +62,7 @@ class WorkItemSerializer(serializers.ModelSerializer):
             "priority",
             "deadline",
             "created_by",
+            "assigned_to",
             # "attachments",
             "comments",
             # "activity_log",
@@ -76,7 +82,8 @@ class WorkItemSerializer(serializers.ModelSerializer):
             'created_by__partner__person',
             'tenant'
         ).prefetch_related(
-            'comments__author__partner__person',
+            'comments__created_by__partner__person',
+            'assigned_to__user__partner__person',
             # 'attachments__uploaded_by__partner__person',
             # 'activity_log__user__partner__person',
         )

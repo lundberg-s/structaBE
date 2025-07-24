@@ -226,6 +226,9 @@ class Role(AuditModel):
         )
         return f"{self.target} as {role}"
 
+    def get_role_type_display(self):
+        return self.get_system_role_display() if self.system_role else self.custom_role.label
+    
     class Meta:
         indexes = [
             models.Index(fields=["tenant"]),

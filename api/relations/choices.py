@@ -11,6 +11,7 @@ class SystemRole(models.TextChoices):
     ADMIN = 'admin', 'Admin'
     USER = 'user', 'User'
     READ_ONLY = 'readonly', 'Read Only'
+    TENANT = 'tenant', 'Tenant'
     TENANT_OWNER = 'tenant_owner', 'Tenant Owner'
     TENANT_EMPLOYEE = 'tenant_employee', 'Tenant Employee'
     TENANT_ADMIN = 'tenant_admin', 'Tenant Admin'
@@ -32,7 +33,6 @@ class RelationType(models.TextChoices):
     
     # Partner to WorkItem relationships
     ASSIGNED_TO = 'assigned_to', 'Assigned To'
-    REPORTED_BY = 'reported_by', 'Reported By'
     APPROVED_BY = 'approved_by', 'Approved By'
     REVIEWED_BY = 'reviewed_by', 'Reviewed By'
     CONTACT_FOR = 'contact_for', 'Contact For'

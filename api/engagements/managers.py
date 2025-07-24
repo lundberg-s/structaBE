@@ -21,9 +21,6 @@ class WorkItemQuerySet(models.QuerySet):
     def for_priority(self, priority):
         return self.filter(priority=priority)
 
-    def for_author(self, author):
-        return self.filter(created_by=author)
-
     def overdue(self):
         return self.filter(
             deadline__lt=timezone.now(), status__in=["open", "in-progress"]

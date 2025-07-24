@@ -28,8 +28,7 @@ class TestActivityLogFlow(FullySetupTest, APITestCase):
             'category': 'ticket',
             'priority': 'medium',
             'deadline': None,
-            'ticket_number': 'T-LOG',
-            'reported_by': 'Reporter',
+            'ticket_number': 'T-LOG',   
             'urgency': 'medium',
         }
         response = self.client.post(url, data, format='json')

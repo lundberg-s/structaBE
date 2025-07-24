@@ -348,7 +348,7 @@ class RelationAdminForm(forms.ModelForm):
 @admin.register(Relation)
 class RelationAdmin(admin.ModelAdmin):
     form = RelationAdminForm
-    list_display = ('id', 'source_display', 'target_display', 'relation_type', 'tenant', 'created_at')
+    list_display = ('id', 'source_display', 'relation_type', 'target_display', 'tenant', 'created_at')
     list_filter = ('relation_type', 'created_at', 'updated_at', 'tenant')
     search_fields = (
         'source__partner__person__first_name', 

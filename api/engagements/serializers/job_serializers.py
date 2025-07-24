@@ -12,12 +12,10 @@ class JobListSerializer(WorkItemListSerializer):
         model = Job
         fields = WorkItemListSerializer.Meta.fields + [
             "job_code",
-            "assigned_team",
             "estimated_hours",
         ]
         read_only_fields = WorkItemListSerializer.Meta.read_only_fields + [
-            "job_code",
-            "assigned_team",
+            "job_code", 
             "estimated_hours",
         ]
 
@@ -27,7 +25,6 @@ class JobSerializer(WorkItemSerializer):
         model = Job
         fields = WorkItemSerializer.Meta.fields + [
             "job_code",
-            "assigned_team",
             "estimated_hours",
         ]
 
@@ -37,12 +34,10 @@ class JobCreateSerializer(WorkItemCreateSerializer):
         model = Job
         fields = WorkItemCreateSerializer.Meta.fields + [
             "job_code",
-            "assigned_team",
             "estimated_hours",
         ]
         read_only_fields = WorkItemCreateSerializer.Meta.read_only_fields + [
             "job_code",
-            "assigned_team",
             "estimated_hours",
         ]
 
@@ -52,11 +47,9 @@ class JobUpdateSerializer(WorkItemUpdateSerializer):
         model = Job
         fields = WorkItemUpdateSerializer.Meta.fields + [
             "job_code",
-            "assigned_team",
             "estimated_hours",
         ]
         read_only_fields = WorkItemUpdateSerializer.Meta.read_only_fields + [
-            "job_code",
-            "assigned_team",
+            "job_code", 
             "estimated_hours",
         ]

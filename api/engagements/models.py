@@ -11,6 +11,7 @@ from engagements.choices import (
     WorkItemCategoryTypes,
     ActivityLogActivityTypes,
 )
+from engagements.utilities.ticket_utilities import generate_ticket_number
 
 User = get_user_model()
 
@@ -92,15 +93,25 @@ class WorkItem(AuditModel):
 
 
 class Ticket(WorkItem):
-    ticket_number = models.CharField(max_length=50, null=True, blank=True)
-    reported_by = models.CharField(max_length=255, null=True, blank=True)
+    # Auto-generated 7-digit unique ticket number
+    ticket_number = models.CharField(max_length=50, null=True, blank=True, unique=True, editable=False)
     urgency = models.CharField(
         max_length=20,
         choices=WorkItemPriorityTypes.choices,
         default=WorkItemPriorityTypes.MEDIUM,
     )
     # entity: typically the customer or reporter
-    pass
+    
+    def save(self, *args, **kwargs):
+        # Auto-generate ticket number if not provided
+        if not self.ticket_number:
+            self.ticket_number = generate_ticket_number(self.tenant)
+        super().save(*args, **kwargs)
+    
+    class Meta:
+        indexes = [
+            models.Index(fields=["ticket_number"]),
+        ]
 
 
 class Case(WorkItem):
@@ -113,7 +124,6 @@ class Case(WorkItem):
 
 class Job(WorkItem):
     job_code = models.CharField(max_length=50, unique=True)
-    assigned_team = models.CharField(max_length=100)
     estimated_hours = models.DecimalField(max_digits=5, decimal_places=2)
     # entity: typically the customer or client for whom the job is performed
     pass
@@ -130,7 +140,6 @@ class Attachment(AuditModel):
     filename = models.CharField(max_length=255)
     file_size = models.IntegerField()
     mime_type = models.CharField(max_length=100, blank=True, null=True)
-    uploaded_by = models.ForeignKey(User, on_delete=models.CASCADE)
 
     def save(self, *args, **kwargs):
         if self.file and self.file.name and not self.mime_type:
@@ -145,11 +154,9 @@ class Attachment(AuditModel):
         indexes = [
             models.Index(fields=["tenant"]),
             models.Index(fields=["work_item"]),
-            models.Index(fields=["uploaded_by"]),
             models.Index(fields=["filename"]),
             models.Index(fields=["mime_type"]),
             models.Index(fields=["tenant", "work_item"]),
-            models.Index(fields=["uploaded_by", "created_at"]),
         ]
 
 
@@ -160,7 +167,6 @@ class Comment(AuditModel):
     work_item = models.ForeignKey(
         WorkItem, on_delete=models.CASCADE, related_name="comments"
     )
-    author = models.ForeignKey(User, on_delete=models.CASCADE)
     content = models.TextField()
 
     class Meta:
@@ -168,14 +174,12 @@ class Comment(AuditModel):
         indexes = [
             models.Index(fields=["tenant"]),
             models.Index(fields=["work_item"]),
-            models.Index(fields=["author"]),
             models.Index(fields=["created_at"]),
             models.Index(fields=["tenant", "work_item"]),
-            models.Index(fields=["author", "created_at"]),
         ]
 
     def __str__(self):
-        return f"Comment by {str(self.author)} on {str(self.work_item)}"
+        return f"Comment by {str(self.created_by)} on {str(self.work_item)}"
 
 
 class ActivityLog(AuditModel):
@@ -189,7 +193,6 @@ class ActivityLog(AuditModel):
         blank=True,
         related_name="activity_log",
     )
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
     activity_type = models.CharField(
         max_length=20, choices=ActivityLogActivityTypes.choices
     )
@@ -200,16 +203,14 @@ class ActivityLog(AuditModel):
         indexes = [
             models.Index(fields=["tenant"]),
             models.Index(fields=["work_item"]),
-            models.Index(fields=["user"]),
             models.Index(fields=["activity_type"]),
             models.Index(fields=["created_at"]),
             models.Index(fields=["tenant", "work_item"]),
-            models.Index(fields=["user", "activity_type"]),
             models.Index(fields=["work_item", "created_at"]),
         ]
 
     def __str__(self):
-        return f"{self.activity_type} by {str(self.user)} on {str(self.work_item)}"
+        return f"{self.activity_type} by {str(self.created_by)} on {str(self.work_item)}"
 
 
 class Assignment(AuditModel):
@@ -217,7 +218,7 @@ class Assignment(AuditModel):
         Tenant, on_delete=models.CASCADE, related_name="assignments"
     )
     work_item = models.ForeignKey(
-        "WorkItem", on_delete=models.CASCADE, related_name="assignments"
+        "WorkItem", on_delete=models.CASCADE, related_name="assigned_to"
     )
     user = models.ForeignKey(
         "users.User", on_delete=models.CASCADE, related_name="assignments"

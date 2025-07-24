@@ -12,12 +12,10 @@ class TicketListSerializer(WorkItemListSerializer):
         model = Ticket
         fields = WorkItemListSerializer.Meta.fields + [
             "ticket_number",
-            "reported_by",
             "urgency",
         ]
         read_only_fields = WorkItemListSerializer.Meta.read_only_fields + [
             "ticket_number",
-            "reported_by",
             "urgency",
         ]
 
@@ -27,8 +25,10 @@ class TicketSerializer(WorkItemSerializer):
         model = Ticket
         fields = WorkItemSerializer.Meta.fields + [
             "ticket_number",
-            "reported_by",
             "urgency",
+        ]
+        read_only_fields = WorkItemSerializer.Meta.read_only_fields + [
+            "ticket_number",
         ]
     
 
@@ -39,12 +39,10 @@ class TicketCreateSerializer(WorkItemCreateSerializer):
         model = Ticket
         fields = WorkItemCreateSerializer.Meta.fields + [
             "ticket_number",
-            "reported_by",
             "urgency",
         ]
         read_only_fields = WorkItemCreateSerializer.Meta.read_only_fields + [
             "ticket_number",
-            "reported_by",
             "urgency",
         ]
 
@@ -54,11 +52,9 @@ class TicketUpdateSerializer(WorkItemUpdateSerializer):
         model = Ticket
         fields = WorkItemUpdateSerializer.Meta.fields + [
             "ticket_number",
-            "reported_by",
             "urgency",
         ]
         read_only_fields = WorkItemUpdateSerializer.Meta.read_only_fields + [
             "ticket_number",
-            "reported_by",
             "urgency",
         ]
