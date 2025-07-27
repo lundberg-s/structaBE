@@ -1,5 +1,5 @@
 from django.contrib import admin
-from engagements.models import WorkItem, Ticket, Case, Job, Attachment, Comment, Assignment
+from engagements.models import WorkItem, Ticket, Case, Job, Attachment, Comment
 from core.admin_mixins import AdminAuditMixin
 
 
@@ -50,10 +50,3 @@ class CommentAdmin(AdminAuditMixin, admin.ModelAdmin):
     search_fields = ['content', 'work_item__title']
     readonly_fields = ['id', 'created_at']
 
-
-@admin.register(Assignment)
-class AssignmentAdmin(AdminAuditMixin, admin.ModelAdmin):
-    list_display = ['work_item', 'user', 'tenant', 'created_at']
-    list_filter = ['tenant', 'created_at']
-    search_fields = ['work_item__title', 'user__username']
-    readonly_fields = ['id', 'created_at']

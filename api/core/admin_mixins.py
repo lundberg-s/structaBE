@@ -16,15 +16,17 @@ class AdminAuditMixin:
     
     def save_model(self, request, obj, form, change):
         """Override to add audit logging for admin operations."""
-        is_new = obj.pk is None
         super().save_model(request, obj, form, change)
         
         # Create audit log
-        activity_type = 'created' if is_new else 'updated'
+        activity_type = 'created' if not change else 'updated'
         description = self.get_audit_description(obj, activity_type)
         
+        # Handle special cases for tenant field
+        tenant = self.get_audit_tenant(obj, request)
+        
         AuditLog.objects.create(
-            tenant=getattr(obj, 'tenant', None),
+            tenant=tenant,
             entity_type=self.get_entity_type(obj),
             entity_id=obj.id,
             entity_name=self.get_entity_name(obj),
@@ -43,22 +45,34 @@ class AdminAuditMixin:
     def delete_model(self, request, obj):
         """Override to add audit logging for deletion."""
         # Create audit log before deletion
-        AuditLog.objects.create(
-            tenant=getattr(obj, 'tenant', None),
-            entity_type=self.get_entity_type(obj),
-            entity_id=obj.id,
-            entity_name=self.get_entity_name(obj),
-            created_by=request.user,
-            activity_type='deleted',
-            description=self.get_audit_description(obj, 'deleted'),
-            risk_level=self.get_risk_level(obj, 'deleted'),
-            compliance_category=self.get_compliance_category(obj, 'deleted'),
-            business_process=self.get_business_process(obj),
-            transaction_id=str(uuid.uuid4()),
-            session_id=getattr(request.session, 'session_key', None),
-            ip_address=self.get_client_ip(request),
-            user_agent=request.META.get('HTTP_USER_AGENT', ''),
-        )
+        # Handle special cases for tenant field
+        tenant = self.get_audit_tenant(obj, request)
+        
+        # Store entity info before deletion
+        entity_id = obj.id
+        entity_name = self.get_entity_name(obj)
+        
+        try:
+            AuditLog.objects.create(
+                tenant=tenant,
+                entity_type=self.get_entity_type(obj),
+                entity_id=entity_id,
+                entity_name=entity_name,
+                created_by=request.user,
+                activity_type='deleted',
+                description=self.get_audit_description(obj, 'deleted'),
+                risk_level=self.get_risk_level(obj, 'deleted'),
+                compliance_category=self.get_compliance_category(obj, 'deleted'),
+                business_process=self.get_business_process(obj),
+                transaction_id=str(uuid.uuid4()),
+                session_id=getattr(request.session, 'session_key', None),
+                ip_address=self.get_client_ip(request),
+                user_agent=request.META.get('HTTP_USER_AGENT', ''),
+            )
+        except Exception as e:
+            # Log the error but don't prevent deletion
+            print(f"Error creating audit log for deletion: {e}")
+        
         super().delete_model(request, obj)
     
     def get_entity_type(self, obj):
@@ -93,6 +107,9 @@ class AdminAuditMixin:
             return obj.name
         elif hasattr(obj, 'first_name') and hasattr(obj, 'last_name'):
             return f"{obj.first_name} {obj.last_name}"
+        elif hasattr(obj, 'label') and hasattr(obj, 'key'):
+            # For roles, prefer label over key for better readability
+            return obj.label
         elif hasattr(obj, 'key'):
             return obj.key
         else:
@@ -144,6 +161,36 @@ class AdminAuditMixin:
         }
         
         return process_mapping.get(model_name, 'General')
+    
+    def get_audit_tenant(self, obj, request):
+        """Get the appropriate tenant for audit logging. Handle special cases."""
+        # If the object is a Tenant itself, use the first tenant in the system
+        if obj._meta.model_name == 'tenant':
+            from core.models import Tenant
+            # Get the first tenant or create a default one for system-level operations
+            tenant, created = Tenant.objects.get_or_create(
+                subscription_plan='system',
+                subscription_status='active',
+                defaults={'billing_email': 'system@example.com'}
+            )
+            return tenant
+        
+        # If the object has a tenant field, use it
+        if hasattr(obj, 'tenant') and obj.tenant is not None:
+            return obj.tenant
+        
+        # For system roles or other objects without tenant, use the user's tenant
+        if hasattr(request.user, 'tenant') and request.user.tenant is not None:
+            return request.user.tenant
+        
+        # Fallback: get the first tenant in the system
+        from core.models import Tenant
+        tenant, created = Tenant.objects.get_or_create(
+            subscription_plan='system',
+            subscription_status='active',
+            defaults={'billing_email': 'system@example.com'}
+        )
+        return tenant
     
     def get_client_ip(self, request):
         """Get client IP address."""

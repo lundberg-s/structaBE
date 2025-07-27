@@ -79,17 +79,26 @@ class WorkItem(AuditModel):
     @property
     def assigned_to(self):
         """Get all users assigned to this work item"""
-        # Use prefetched data if available
-        if (
-            hasattr(self, "_prefetched_objects_cache")
-            and "assignments" in self._prefetched_objects_cache
-        ):
-            return [
-                assignment.user
-                for assignment in self._prefetched_objects_cache["assignments"]
-            ]
-        # Fallback to database query
-        return [assignment.user for assignment in self.assignments.all()]
+        from relations.models import Relation
+        from relations.choices import RelationType
+        
+        # Find relations where this work item is the target and the role is "assigned_to"
+        relations = Relation.objects.filter(
+            target_workitem=self,
+            target_type='workitem',
+            role__key=RelationType.ASSIGNED_TO
+        )
+        
+        # Get the source partners (users) from these relations
+        users = []
+        for relation in relations:
+            if relation.source_partner and hasattr(relation.source_partner, 'person'):
+                # If the source is a Person, get the associated User
+                person = relation.source_partner.person
+                if hasattr(person, 'user'):
+                    users.append(person.user)
+        
+        return users
 
 
 class Ticket(WorkItem):
@@ -209,40 +218,3 @@ class Comment(AuditModel, TenantValidatorMixin):
     def __str__(self):
         return f"Comment by {self.created_by.username} on {self.work_item.title}"
 
-
-class Assignment(AuditModel, TenantValidatorMixin):
-    tenant = models.ForeignKey(
-        Tenant, on_delete=models.CASCADE, related_name="assignments"
-    )
-    work_item = models.ForeignKey(
-        "WorkItem", on_delete=models.CASCADE, related_name="assigned_to"
-    )
-    user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="assignments"
-    )
-
-    class Meta:
-        unique_together = ("work_item", "user")
-        indexes = [
-            models.Index(fields=["tenant"]),
-            models.Index(fields=["work_item"]),
-            models.Index(fields=["user"]),
-            models.Index(fields=["created_at"]),
-            models.Index(fields=["tenant", "work_item"]),
-            models.Index(fields=["tenant", "user"]),
-        ]
-
-    def clean(self):
-        """Validate the assignment using the validation helpers."""
-        super().clean()
-        
-        # Validate tenant consistency
-        self.validate_tenant_consistency(self.tenant, self.work_item, self.user)
-
-    def save(self, *args, **kwargs):
-        """Override save to run validation."""
-        self.clean()
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        return f"{self.user.username} assigned to {self.work_item.title}"

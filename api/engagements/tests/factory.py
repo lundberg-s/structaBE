@@ -1,6 +1,6 @@
 import uuid
 from django.contrib.auth import get_user_model
-from engagements.models import Ticket, Case, Job, Comment, Attachment, Assignment
+from engagements.models import Ticket, Case, Job, Comment, Attachment
 from django.core.files.uploadedfile import SimpleUploadedFile
 
 User = get_user_model()
@@ -88,11 +88,3 @@ def create_attachment(work_item, uploaded_by, filename='test.txt', content=b'tes
         created_by=uploaded_by
     )
 
-def create_assignment(work_item, user, created_by=None):
-    if created_by is None:
-        created_by = user
-    return Assignment.objects.create(
-        work_item=work_item,
-        user=user,
-        created_by=created_by
-    )

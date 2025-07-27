@@ -1,6 +1,5 @@
 from django.contrib import admin
-from relations.models import Partner, Person, Organization, Relation
-from core.models import Role
+from relations.models import Partner, Person, Organization, Relation, Assignment
 from core.admin_mixins import AdminAuditMixin
 
 
@@ -55,7 +54,7 @@ class OrganizationAdmin(AdminAuditMixin, admin.ModelAdmin):
 
 @admin.register(Relation)
 class RelationAdmin(AdminAuditMixin, admin.ModelAdmin):
-    list_display = ('id', 'source_display', 'role', 'target_display', 'tenant', 'created_at')
+    list_display = ('id', 'relationship_description', 'tenant', 'created_at')
     list_filter = ('role', 'created_at', 'updated_at', 'tenant')
     search_fields = (
         'source_partner__person__first_name', 
@@ -68,19 +67,24 @@ class RelationAdmin(AdminAuditMixin, admin.ModelAdmin):
         'target_workitem__title',
         'role__label'
     )
-    readonly_fields = ('id', 'created_at', 'updated_at')
+    readonly_fields = ('id', 'created_at', 'updated_at', 'relationship_description')
     ordering = ('-created_at',)
     
     fieldsets = (
-        ('Relation Information', {
-            'fields': ('source_partner', 'source_workitem', 'source_type', 'target_partner', 'target_workitem', 'target_type', 'role', 'tenant'),
-            'description': 'Create relationships between partners and work items using direct FKs.'
+        ('Relationship Information', {
+            'fields': ('relationship_description', 'source_partner', 'source_workitem', 'source_type', 'target_partner', 'target_workitem', 'target_type', 'role', 'tenant'),
+            'description': 'Source → Role → Target: The role reflects the SOURCE\'s perspective. Source is the entity that "owns" the relationship, Target is who the relationship is "to".'
         }),
         ('Metadata', {
             'fields': ('id', 'created_at', 'updated_at'),
             'classes': ('collapse',)
         }),
     )
+    
+    def relationship_description(self, obj):
+        """Show the relationship in Source → Role → Target format"""
+        return obj.get_relationship_description()
+    relationship_description.short_description = 'Relationship'
     
     def source_display(self, obj):
         """Show the source in a readable format"""
@@ -105,3 +109,12 @@ class RelationAdmin(AdminAuditMixin, admin.ModelAdmin):
             return f"📋 {obj.target_workitem.title}"
         return 'Unknown'
     target_display.short_description = 'Target'
+
+
+@admin.register(Assignment)
+class AssignmentAdmin(AdminAuditMixin, admin.ModelAdmin):
+    list_display = ('id', 'relation', 'tenant', 'created_at')
+    list_filter = ('created_at', 'updated_at', 'tenant')
+    search_fields = ('relation__source_partner__person__first_name', 'relation__source_partner__person__last_name', 'relation__source_workitem__title', 'relation__target_partner__person__first_name', 'relation__target_partner__person__last_name', 'relation__target_workitem__title')
+    readonly_fields = ('id', 'created_at', 'updated_at')
+    ordering = ('-created_at',)

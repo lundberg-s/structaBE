@@ -24,7 +24,7 @@ class AuditLog(AuditModel):
     Professional SAP-style audit trail for compliance and forensic purposes.
     Immutable, tamper-proof audit records that survive data deletion.
     """
-    tenant = models.ForeignKey("Tenant", on_delete=models.CASCADE, related_name="audit_logs")
+    tenant = models.ForeignKey("Tenant", on_delete=models.SET_NULL, related_name="audit_logs", null=True, blank=True)
     
     # Entity identification (survives deletion)
     entity_type = models.CharField(max_length=50, choices=[

@@ -82,8 +82,8 @@ class AuditLogAdminTestCase(TestCase):
         url = reverse('admin:core_auditlog_add')
         response = self.client.get(url)
         
-        # Should redirect to list view since add is not allowed
-        self.assertEqual(response.status_code, 302)
+        # Should return 403 Forbidden since add is not allowed
+        self.assertEqual(response.status_code, 403)
 
     def test_audit_log_admin_no_change_permission(self):
         """Test that audit logs cannot be changed through admin."""
@@ -93,8 +93,8 @@ class AuditLogAdminTestCase(TestCase):
             'description': 'Modified description'
         })
         
-        # Should not allow changes
-        self.assertEqual(response.status_code, 200)
+        # Should return 403 Forbidden since change is not allowed
+        self.assertEqual(response.status_code, 403)
 
     def test_audit_log_admin_no_delete_permission(self):
         """Test that audit logs cannot be deleted through admin."""
@@ -102,8 +102,8 @@ class AuditLogAdminTestCase(TestCase):
         url = reverse('admin:core_auditlog_delete', args=[self.audit_log1.id])
         response = self.client.get(url)
         
-        # Should redirect to list view since delete is not allowed
-        self.assertEqual(response.status_code, 302)
+        # Should return 403 Forbidden since delete is not allowed
+        self.assertEqual(response.status_code, 403)
 
     def test_audit_log_admin_export_action(self):
         """Test the export audit logs action."""

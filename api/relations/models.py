@@ -110,21 +110,37 @@ class Organization(Partner):
 class Relation(AuditModel, TenantValidatorMixin):
     """
     Represents a relationship between two partners or workitems.
+    
+    Design Convention: Always Source → Role → Target
+    - The role reflects the SOURCE's perspective
+    - Source is the entity that "owns" or "initiates" the relationship
+    - Target is the entity that the relationship is "to"
+    
+    Examples:
+    - Person - "assigned to" - WorkItem (Person's perspective: "I am assigned to this work item")
+    - Person → "Employee Of" → Organization (Person's perspective: "I am an employee of this org")
+    - Person → "Contact For" → Organization (Person's perspective: "I am a contact for this org")
+    - Person → "Assigned To" → WorkItem (Person's perspective: "I am assigned to this work item")
+    - WorkItem → "Depends On" → WorkItem (WorkItem's perspective: "I depend on this other work item")
+    - Organization → "Parent Of" → Organization (Organization's perspective: "I am the parent of this org")
+    
+    This eliminates ambiguity by anchoring on who initiates/owns the role.
     """
     tenant = models.ForeignKey(
         Tenant, on_delete=models.CASCADE, related_name="relations"
     )
 
-    # Source fields
+    # Source fields (the entity that "owns" the relationship)
     source_type = models.CharField(max_length=20, choices=RelationObjectType.choices)
     source_partner = models.ForeignKey(Partner, null=True, blank=True, on_delete=models.CASCADE, related_name='source_relations')
     source_workitem = models.ForeignKey(WorkItem, null=True, blank=True, on_delete=models.CASCADE, related_name='source_relations')
     
-    # Target fields
+    # Target fields (the entity the relationship is "to")
     target_type = models.CharField(max_length=20, choices=RelationObjectType.choices)
     target_partner = models.ForeignKey(Partner, null=True, blank=True, on_delete=models.CASCADE, related_name='target_relations')
     target_workitem = models.ForeignKey(WorkItem, null=True, blank=True, on_delete=models.CASCADE, related_name='target_relations')
     
+    # Role (describes the relationship FROM source's perspective TO target)
     role = models.ForeignKey(Role, on_delete=models.CASCADE)
 
     objects = RelationQuerySet.as_manager()
@@ -141,14 +157,45 @@ class Relation(AuditModel, TenantValidatorMixin):
         self.clean()
         super().save(*args, **kwargs)
 
+    def get_source(self):
+        """Get the source entity (the one that 'owns' the relationship)."""
+        if self.source_type == 'partner':
+            return self.source_partner
+        elif self.source_type == 'workitem':
+            return self.source_workitem
+        return None
+    
+    def get_target(self):
+        """Get the target entity (the one the relationship is 'to')."""
+        if self.target_type == 'partner':
+            return self.target_partner
+        elif self.target_type == 'workitem':
+            return self.target_workitem
+        return None
+    
+    def get_relationship_description(self):
+        """
+        Get a human-readable description of the relationship from source's perspective.
+        
+        Examples:
+        - "Sandi Lundberg is Employee Of My Company"
+        - "Bug #123 Depends On Feature #456"
+        """
+        source = self.get_source()
+        target = self.get_target()
+        if source and target:
+            return f"{source} is {self.role.label} {target}"
+        return f"{source} → {self.role.label} → {target}"
+
     def __str__(self):
-        source_str = str(self.source_partner) if self.source_partner else str(self.source_workitem)
-        target_str = str(self.target_partner) if self.target_partner else str(self.target_workitem)
-        return f"{source_str} → {target_str} ({self.role.label})"
+        """String representation following Source → Role → Target convention."""
+        source = self.get_source()
+        target = self.get_target()
+        return f"{source} → {self.role.label} → {target}"
 
     class Meta:
         constraints = [
-            # Source constraints
+            # existing check constraints
             models.CheckConstraint(
                 check=(
                     models.Q(source_partner__isnull=False, source_workitem__isnull=True) |
@@ -156,7 +203,6 @@ class Relation(AuditModel, TenantValidatorMixin):
                 ),
                 name="exactly_one_source_reference",
             ),
-            # Target constraints
             models.CheckConstraint(
                 check=(
                     models.Q(target_partner__isnull=False, target_workitem__isnull=True) |
@@ -164,4 +210,58 @@ class Relation(AuditModel, TenantValidatorMixin):
                 ),
                 name="exactly_one_target_reference",
             ),
+            # Unique constraint to avoid duplicate relations
+            models.UniqueConstraint(
+                fields=[
+                    'tenant',
+                    'source_type',
+                    'source_partner',
+                    'source_workitem',
+                    'target_type',
+                    'target_partner',
+                    'target_workitem',
+                    'role',
+                ],
+                name='unique_relation_per_source_target_role'
+            ),
         ]
+
+        indexes = [
+            # Indexes on FKs for faster lookups
+            models.Index(fields=['tenant', 'source_partner']),
+            models.Index(fields=['tenant', 'source_workitem']),
+            models.Index(fields=['tenant', 'target_partner']),
+            models.Index(fields=['tenant', 'target_workitem']),
+        ]
+
+
+
+class Assignment(AuditModel, TenantValidatorMixin):
+    tenant = models.ForeignKey(
+        Tenant, on_delete=models.CASCADE, related_name="assignments"
+    )
+    relation = models.ForeignKey(Relation, on_delete=models.CASCADE, related_name="assignments")
+
+    class Meta:
+        unique_together = ("relation",)
+        indexes = [
+            models.Index(fields=["tenant"]),
+            models.Index(fields=["relation"]),
+            models.Index(fields=["created_at"]),
+            models.Index(fields=["tenant", "relation"]),
+        ]
+
+    def clean(self):
+        """Validate the assignment using the validation helpers."""
+        super().clean()
+        
+        # Validate tenant consistency
+        self.validate_tenant_consistency(self.tenant, self.relation)
+
+    def save(self, *args, **kwargs):
+        """Override save to run validation."""
+        self.clean()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Assignment: {self.relation}"

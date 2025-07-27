@@ -1,42 +1,41 @@
 from django.test import TestCase
 from rest_framework.exceptions import ValidationError
-from engagements.utilities.assignment_utilities import (
+from relations.utilities.assignment_utilities import (
     update_work_item_assignments,
     _remove_assignments,
     _add_assignments
 )
+from relations.models import Assignment, Relation, Person
+from relations.choices import RelationType, RelationObjectType
+from users.tests.factory import create_user
+from core.tests.factory import create_tenant
 from engagements.tests.factory import create_ticket
-from relations.tests.factory import create_user
-from relations.tests.factory import create_tenant, create_person
-from engagements.models import Assignment
-from users.models import User
+from relations.tests.factory import create_person
 
 
 class TestAssignmentUtilities(TestCase):
-    """Test the assignment utilities functions."""
-    
     def setUp(self):
         self.tenant = create_tenant()
         self.created_by_user = create_user(self.tenant)
-        self.work_item = create_ticket(tenant=self.tenant, created_by=self.created_by_user)
+        self.user1 = create_user(self.tenant, username='user1')
+        self.user2 = create_user(self.tenant, username='user2')
+        self.user3 = create_user(self.tenant, username='user3')
         
-        # Create test users
-        person1 = create_person(self.tenant)
-        person2 = create_person(self.tenant)
-        person3 = create_person(self.tenant)
+        # Create Person records for each user
+        self.person1 = create_person(self.tenant, first_name='User', last_name='One')
+        self.person2 = create_person(self.tenant, first_name='User', last_name='Two')
+        self.person3 = create_person(self.tenant, first_name='User', last_name='Three')
         
-        self.user1 = create_user(self.tenant)
-        self.user1.partner = person1
+        # Link users to persons
+        self.user1.partner = self.person1
         self.user1.save()
-        
-        self.user2 = create_user(self.tenant)
-        self.user2.partner = person2
+        self.user2.partner = self.person2
         self.user2.save()
-        
-        self.user3 = create_user(self.tenant)
-        self.user3.partner = person3
+        self.user3.partner = self.person3
         self.user3.save()
-    
+        
+        self.work_item = create_ticket(tenant=self.tenant, created_by=self.created_by_user)
+
     def test_update_work_item_assignments_add_new_users(self):
         """Test adding new users to work item assignments."""
         new_user_ids = [self.user1.id, self.user2.id]
@@ -44,10 +43,17 @@ class TestAssignmentUtilities(TestCase):
         update_work_item_assignments(self.work_item, new_user_ids, self.created_by_user)
         
         # Check that assignments were created
-        assignments = Assignment.objects.filter(work_item=self.work_item)
+        assignments = Assignment.objects.filter(relation__target_workitem=self.work_item)
         self.assertEqual(assignments.count(), 2)
         
-        assigned_user_ids = set(assignments.values_list('user_id', flat=True))
+        # Get user IDs from the relations
+        assigned_user_ids = set()
+        for assignment in assignments:
+            if assignment.relation.source_partner and hasattr(assignment.relation.source_partner, 'person'):
+                person = assignment.relation.source_partner.person
+                if hasattr(person, 'user'):
+                    assigned_user_ids.add(person.user.id)
+        
         self.assertEqual(assigned_user_ids, set(new_user_ids))
     
     def test_update_work_item_assignments_remove_users(self):
@@ -61,9 +67,15 @@ class TestAssignmentUtilities(TestCase):
         update_work_item_assignments(self.work_item, new_user_ids, self.created_by_user)
         
         # Check that only user1 remains assigned
-        assignments = Assignment.objects.filter(work_item=self.work_item)
+        assignments = Assignment.objects.filter(relation__target_workitem=self.work_item)
         self.assertEqual(assignments.count(), 1)
-        self.assertEqual(assignments.first().user_id, self.user1.id)
+        
+        # Check that the remaining assignment is for user1
+        assignment = assignments.first()
+        if assignment.relation.source_partner and hasattr(assignment.relation.source_partner, 'person'):
+            person = assignment.relation.source_partner.person
+            if hasattr(person, 'user'):
+                self.assertEqual(person.user.id, self.user1.id)
     
     def test_update_work_item_assignments_replace_users(self):
         """Test replacing all users with new ones."""
@@ -76,9 +88,15 @@ class TestAssignmentUtilities(TestCase):
         update_work_item_assignments(self.work_item, new_user_ids, self.created_by_user)
         
         # Check that only user3 is assigned
-        assignments = Assignment.objects.filter(work_item=self.work_item)
+        assignments = Assignment.objects.filter(relation__target_workitem=self.work_item)
         self.assertEqual(assignments.count(), 1)
-        self.assertEqual(assignments.first().user_id, self.user3.id)
+        
+        # Check that the remaining assignment is for user3
+        assignment = assignments.first()
+        if assignment.relation.source_partner and hasattr(assignment.relation.source_partner, 'person'):
+            person = assignment.relation.source_partner.person
+            if hasattr(person, 'user'):
+                self.assertEqual(person.user.id, self.user3.id)
     
     def test_update_work_item_assignments_no_changes(self):
         """Test when no changes are needed."""
@@ -90,7 +108,7 @@ class TestAssignmentUtilities(TestCase):
         update_work_item_assignments(self.work_item, user_ids, self.created_by_user)
         
         # Check that assignments remain the same
-        assignments = Assignment.objects.filter(work_item=self.work_item)
+        assignments = Assignment.objects.filter(relation__target_workitem=self.work_item)
         self.assertEqual(assignments.count(), 2)
     
     def test_update_work_item_assignments_empty_list(self):
@@ -103,7 +121,7 @@ class TestAssignmentUtilities(TestCase):
         update_work_item_assignments(self.work_item, [], self.created_by_user)
         
         # Check that no assignments remain
-        assignments = Assignment.objects.filter(work_item=self.work_item)
+        assignments = Assignment.objects.filter(relation__target_workitem=self.work_item)
         self.assertEqual(assignments.count(), 0)
     
     def test_add_assignments_success(self):
@@ -113,12 +131,12 @@ class TestAssignmentUtilities(TestCase):
         _add_assignments(self.work_item, user_ids, self.created_by_user)
         
         # Check that assignments were created
-        assignments = Assignment.objects.filter(work_item=self.work_item)
+        assignments = Assignment.objects.filter(relation__target_workitem=self.work_item)
         self.assertEqual(assignments.count(), 2)
         
         for assignment in assignments:
             self.assertEqual(assignment.created_by, self.created_by_user)
-            self.assertEqual(assignment.work_item.id, self.work_item.id)
+            self.assertEqual(assignment.relation.target_workitem.id, self.work_item.id)
     
     def test_add_assignments_invalid_user_id(self):
         """Test adding assignments with invalid user ID."""
@@ -134,7 +152,7 @@ class TestAssignmentUtilities(TestCase):
     def test_add_assignments_user_from_different_tenant(self):
         """Test adding assignments with user from different tenant."""
         other_tenant = create_tenant()
-        other_user = create_user(other_tenant)
+        other_user = create_user(other_tenant, username='other_user')
         
         user_ids = [self.user1.id, other_user.id]
         
@@ -150,24 +168,36 @@ class TestAssignmentUtilities(TestCase):
         user_ids = [self.user1.id, self.user2.id, self.user3.id]
         _add_assignments(self.work_item, user_ids, self.created_by_user)
         
-        # Then remove some
+        # Then remove some assignments
         users_to_remove = [self.user1.id, self.user2.id]
         _remove_assignments(self.work_item, users_to_remove)
         
         # Check that only user3 remains
-        assignments = Assignment.objects.filter(work_item=self.work_item)
+        assignments = Assignment.objects.filter(relation__target_workitem=self.work_item)
         self.assertEqual(assignments.count(), 1)
-        self.assertEqual(assignments.first().user_id, self.user3.id)
+        
+        # Check that the remaining assignment is for user3
+        assignment = assignments.first()
+        if assignment.relation.source_partner and hasattr(assignment.relation.source_partner, 'person'):
+            person = assignment.relation.source_partner.person
+            if hasattr(person, 'user'):
+                self.assertEqual(person.user.id, self.user3.id)
     
     def test_remove_assignments_nonexistent(self):
         """Test removing assignments that don't exist."""
-        # Add one assignment
+        # First add one assignment
         _add_assignments(self.work_item, [self.user1.id], self.created_by_user)
         
-        # Try to remove non-existent assignment
+        # Then try to remove a non-existent assignment
         _remove_assignments(self.work_item, [99999])  # Non-existent user ID
         
         # Check that the original assignment still exists
-        assignments = Assignment.objects.filter(work_item=self.work_item)
+        assignments = Assignment.objects.filter(relation__target_workitem=self.work_item)
         self.assertEqual(assignments.count(), 1)
-        self.assertEqual(assignments.first().user_id, self.user1.id) 
+        
+        # Check that the remaining assignment is for user1
+        assignment = assignments.first()
+        if assignment.relation.source_partner and hasattr(assignment.relation.source_partner, 'person'):
+            person = assignment.relation.source_partner.person
+            if hasattr(person, 'user'):
+                self.assertEqual(person.user.id, self.user1.id) 

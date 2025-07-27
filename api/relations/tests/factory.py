@@ -1,9 +1,10 @@
 import uuid
-from relations.models import Person, Organization, Relation
+from relations.models import Person, Organization, Relation, Assignment
 from core.models import Role
 from relations.choices import RelationObjectType, SystemRole
 from core.models import Tenant
 from django.contrib.auth import get_user_model
+from engagements.models import Ticket
 
 User = get_user_model()
 
@@ -58,4 +59,17 @@ def create_relation(tenant, source_partner, target_partner, role):
         source_type=RelationObjectType.PERSON if isinstance(source_partner, Person) else RelationObjectType.ORGANIZATION,
         target_type=RelationObjectType.PERSON if isinstance(target_partner, Person) else RelationObjectType.ORGANIZATION,
         role=role
+    )
+
+def create_ticket(tenant, created_by, **kwargs):
+    """Create a ticket for testing purposes"""
+    from engagements.tests.factory import create_ticket as create_ticket_engagement
+    return create_ticket_engagement(tenant, created_by, **kwargs)
+
+def create_assignment(relation, created_by=None):
+    """Create an assignment for testing purposes"""
+    return Assignment.objects.create(
+        relation=relation,
+        tenant=relation.tenant,
+        created_by=created_by
     ) 

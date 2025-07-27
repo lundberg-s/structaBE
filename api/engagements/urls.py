@@ -4,7 +4,6 @@ from engagements.views.ticket_views import TicketListView, TicketDetailView
 from engagements.views.case_views import CaseListView, CaseDetailView
 from engagements.views.job_views import JobListView, JobDetailView
 
-from engagements.views.assignment_views import AssignmentCreateView
 from engagements.views.attachments_views import AttachmentListView, AttachmentDetailView
 from engagements.views.comments_views import CommentListView, CommentDetailView
 from engagements.views.statistics_views import WorkItemStatisticsView
@@ -30,7 +29,6 @@ urlpatterns = [
     path('comments/<uuid:id>/', CommentDetailView.as_view(), name='comment-detail'),
     
     path('statistics/', WorkItemStatisticsView.as_view(), name='work_item-statistics'),
-    path('assignments/', AssignmentCreateView.as_view(), name='assignment-create'),
     
     # Audit logs for work items
     path('audit-logs/', WorkItemAuditViewSet.as_view({'get': 'list'}), name='workitem-audit-list'),

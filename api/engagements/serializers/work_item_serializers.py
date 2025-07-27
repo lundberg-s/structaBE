@@ -4,12 +4,18 @@ from users.serializers.user_serializers import UserWithPersonSerializer
 
 from engagements.serializers.attachment_serializers import AttachmentSerializer
 from engagements.serializers.comment_serializers import CommentSerializer
-from engagements.serializers.assignment_serializers import AssignmentNameOnlySerializer
+
+class AssignedUserSerializer(serializers.Serializer):
+    """Custom serializer for users assigned to work items via relations"""
+    id = serializers.IntegerField()
+    first_name = serializers.CharField()
+    last_name = serializers.CharField()
+
 
 class WorkItemListSerializer(serializers.ModelSerializer):
     tenant = serializers.PrimaryKeyRelatedField(read_only=True)
     created_by = UserWithPersonSerializer(read_only=True)
-    assigned_to = AssignmentNameOnlySerializer(many=True, read_only=True)
+    assigned_to = AssignedUserSerializer(many=True, read_only=True)
 
     class Meta:
         model = WorkItem
@@ -47,7 +53,7 @@ class WorkItemSerializer(serializers.ModelSerializer):
     # attachments = AttachmentSerializer(many=True, read_only=True)
     comments = CommentSerializer(many=True, read_only=True)
     tenant = serializers.PrimaryKeyRelatedField(read_only=True)
-    assigned_to = AssignmentNameOnlySerializer(many=True, read_only=True)
+    assigned_to = AssignedUserSerializer(many=True, read_only=True)
 
     class Meta:
         model = WorkItem
