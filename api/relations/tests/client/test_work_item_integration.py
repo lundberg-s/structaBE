@@ -35,7 +35,7 @@ class TestWorkItemIntegration(TestCase):
             title="Customer Support Request",
             description="Need help with our account",
             status=WorkItemStatusTypes.OPEN,
-            category=WorkItemCategoryTypes.TICKET,
+            category=WorkItemCategoryTypes.SUPPORT,
             priority=WorkItemPriorityTypes.MEDIUM,
             created_by=self.user,
             ticket_number="TICK-001"
@@ -132,7 +132,7 @@ class TestWorkItemIntegration(TestCase):
             title="Other Ticket",
             description="Other ticket description",
             status=WorkItemStatusTypes.OPEN,
-            category=WorkItemCategoryTypes.TICKET,
+            category=WorkItemCategoryTypes.SUPPORT,
             priority=WorkItemPriorityTypes.MEDIUM,
             created_by=other_user,
             ticket_number="TICK-002"
@@ -184,7 +184,7 @@ class TestWorkItemIntegration(TestCase):
             title="Technical Support",
             description="Need technical assistance",
             status=WorkItemStatusTypes.OPEN,
-            category=WorkItemCategoryTypes.TICKET,
+            category=WorkItemCategoryTypes.SUPPORT,
             priority=WorkItemPriorityTypes.HIGH,
             created_by=self.user,
             ticket_number="TICK-003"
@@ -195,7 +195,7 @@ class TestWorkItemIntegration(TestCase):
             title="Purchase Order",
             description="New equipment purchase",
             status=WorkItemStatusTypes.OPEN,
-            category=WorkItemCategoryTypes.TICKET,
+            category=WorkItemCategoryTypes.TASK,
             priority=WorkItemPriorityTypes.MEDIUM,
             created_by=self.user,
             ticket_number="TICK-004"

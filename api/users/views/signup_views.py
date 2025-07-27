@@ -55,6 +55,7 @@ class SignupView(CreateAPIView):
         # Create or get admin role
         admin_role, created = Role.objects.get_or_create(
             tenant=tenant,
+            key="tenant_owner",
             label="Tenant Owner",
             defaults={'is_system': False}
         )

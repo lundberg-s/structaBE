@@ -7,7 +7,7 @@ from rest_framework.exceptions import PermissionDenied
 
 from django_filters.rest_framework import DjangoFilterBackend
 
-from engagements.models import Comment, ActivityLog
+from engagements.models import Comment
 from engagements.serializers.comment_serializers import (
     CommentSerializer,
     CommentListSerializer,
@@ -35,12 +35,7 @@ class CommentListView(BaseView, ListCreateAPIView):
         instance = serializer.save(
             tenant=self.get_tenant(), created_by=self.get_user()
         )
-        self.log_activity(
-            instance, 
-            "commented", 
-            "commented on", 
-            work_item=work_item
-        )
+        self.log_activity(instance, "created", "created")
 
 
 class CommentDetailView(BaseView, RetrieveUpdateDestroyAPIView):
@@ -55,18 +50,8 @@ class CommentDetailView(BaseView, RetrieveUpdateDestroyAPIView):
 
     def perform_update(self, serializer):
         instance = serializer.save()
-        self.log_activity(
-            instance, 
-            "updated", 
-            "updated comment on", 
-            work_item=instance.work_item
-        )
+        self.log_activity(instance, "updated", "updated")
 
     def perform_destroy(self, instance):
-        self.log_activity(
-            instance, 
-            "deleted", 
-            "deleted comment from", 
-            work_item=instance.work_item
-        )
+        self.log_activity(instance, "deleted", "deleted")
         instance.delete()

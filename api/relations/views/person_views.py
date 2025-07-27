@@ -12,7 +12,7 @@ class PersonListView(PartnerListView):
     def get_queryset(self):
         return Person.objects.filter(tenant=self.request.user.tenant)
 
-class PersonDetailView(RetrieveUpdateDestroyAPIView):
+class PersonDetailView(PartnerDetailView):
     model = Person
     serializer_class = PersonSerializer
     

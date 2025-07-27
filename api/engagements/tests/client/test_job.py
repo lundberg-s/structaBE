@@ -16,7 +16,7 @@ class TestJobFlow(JobTenancySetup, APITestCase):
             'title': 'Test Job',
             'description': 'A test job',
             'status': 'open',
-            'category': 'job',
+            'category': 'task',
             'priority': 'medium',
             'deadline': (timezone.now() + timedelta(days=7)).isoformat(),
             'job_code': 'J-001',

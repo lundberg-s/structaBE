@@ -3,7 +3,7 @@ from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIV
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django_filters.rest_framework import DjangoFilterBackend
 
-from engagements.models import ActivityLog, WorkItem
+from engagements.models import WorkItem
 from core.views.base_views import BaseView
 
 
@@ -20,7 +20,7 @@ class BaseWorkItemView(BaseView):
 
     def _log_activity(self, instance, activity_type, action_text):
         """Log activity for work items."""
-        self.log_activity(instance, activity_type, action_text, work_item=instance)
+        self.log_activity(instance, activity_type, action_text)
 
 
 class BaseWorkItemListView(BaseWorkItemView, ListCreateAPIView):

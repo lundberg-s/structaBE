@@ -9,7 +9,6 @@ from engagements.choices import (
     WorkItemStatusTypes,
     WorkItemPriorityTypes,
     WorkItemCategoryTypes,
-    ActivityLogActivityTypes,
 )
 from engagements.utilities.ticket_utilities import generate_ticket_number
 from relations.utilities.validation_helpers import TenantValidatorMixin, validate_tenant_consistency
@@ -209,53 +208,6 @@ class Comment(AuditModel, TenantValidatorMixin):
 
     def __str__(self):
         return f"Comment by {self.created_by.username} on {self.work_item.title}"
-
-
-class ActivityLog(AuditModel, TenantValidatorMixin):
-    tenant = models.ForeignKey(
-        Tenant, on_delete=models.CASCADE, related_name="activity_logs"
-    )
-    work_item = models.ForeignKey(
-        WorkItem,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="activity_log",
-    )
-    activity_type = models.CharField(
-        max_length=20, choices=ActivityLogActivityTypes.choices
-    )
-    description = models.TextField()
-
-    class Meta:
-        ordering = ["-created_at"]
-        indexes = [
-            models.Index(fields=["tenant"]),
-            models.Index(fields=["work_item"]),
-            models.Index(fields=["activity_type"]),
-            models.Index(fields=["created_by"]),
-            models.Index(fields=["created_at"]),
-            models.Index(fields=["tenant", "work_item"]),
-            models.Index(fields=["tenant", "activity_type"]),
-            models.Index(fields=["tenant", "created_by"]),
-        ]
-
-    def clean(self):
-        """Validate the activity log using the validation helpers."""
-        super().clean()
-        
-        # Validate tenant consistency (work_item can be None)
-        if self.work_item:
-            self.validate_tenant_consistency(self.tenant, self.work_item)
-
-    def save(self, *args, **kwargs):
-        """Override save to run validation."""
-        self.clean()
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        work_item_str = f" on {self.work_item.title}" if self.work_item else ""
-        return f"{self.activity_type}{work_item_str} by {self.created_by.username}"
 
 
 class Assignment(AuditModel, TenantValidatorMixin):

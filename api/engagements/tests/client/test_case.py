@@ -16,7 +16,7 @@ class TestCaseFlow(CaseTenancySetup, APITestCase):
             'title': 'Test Case',
             'description': 'A test case',
             'status': 'open',
-            'category': 'case',
+            'category': 'support',
             'priority': 'medium',
             'deadline': (timezone.now() + timedelta(days=7)).isoformat(),
             'case_reference': f'C-001',

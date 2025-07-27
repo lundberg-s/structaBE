@@ -12,7 +12,7 @@ class OrganizationListView(PartnerListView):
     def get_queryset(self):
         return Organization.objects.filter(tenant=self.request.user.tenant)
 
-class OrganizationDetailView(RetrieveUpdateDestroyAPIView):
+class OrganizationDetailView(PartnerDetailView):
     model = Organization
     serializer_class = OrganizationSerializer
     

@@ -5,7 +5,6 @@ from rest_framework.response import Response
 
 from engagements.models import Assignment
 from engagements.serializers.assignment_serializers import AssignmentSerializer, AssignmentCreateSerializer
-from engagements.models import ActivityLog
 from core.views.base_views import BaseView
 
 
@@ -32,9 +31,4 @@ class AssignmentCreateView(BaseView, CreateAPIView):
             created_by=self.get_user()
         )
         
-        self.log_activity(
-            instance, 
-            'assigned', 
-            f'assigned user {user.username} to', 
-            work_item=work_item
-        )
+        self.log_activity(instance, 'assigned', 'assigned')

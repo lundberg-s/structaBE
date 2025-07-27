@@ -73,8 +73,6 @@ class RelationQuerySet(models.QuerySet):
         return self.filter(
             models.Q(source_workitem=work_item) | models.Q(target_workitem=work_item)
         )
-
-
 class RoleQuerySet(models.QuerySet):
     def by_tenant(self, tenant):
         """Get roles for a specific tenant."""
@@ -110,3 +108,5 @@ class RoleQuerySet(models.QuerySet):
             if relation.target_partner:
                 partner_ids.append(relation.target_partner.id)
         return self.filter(target_id__in=partner_ids)
+
+

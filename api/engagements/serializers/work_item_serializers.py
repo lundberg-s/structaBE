@@ -4,7 +4,6 @@ from users.serializers.user_serializers import UserWithPersonSerializer
 
 from engagements.serializers.attachment_serializers import AttachmentSerializer
 from engagements.serializers.comment_serializers import CommentSerializer
-from engagements.serializers.activity_log_serializers import ActivityLogSerializer
 from engagements.serializers.assignment_serializers import AssignmentNameOnlySerializer
 
 class WorkItemListSerializer(serializers.ModelSerializer):
@@ -47,7 +46,6 @@ class WorkItemSerializer(serializers.ModelSerializer):
     created_by = UserWithPersonSerializer(read_only=True)
     # attachments = AttachmentSerializer(many=True, read_only=True)
     comments = CommentSerializer(many=True, read_only=True)
-    # activity_log = ActivityLogSerializer(many=True, read_only=True)
     tenant = serializers.PrimaryKeyRelatedField(read_only=True)
     assigned_to = AssignmentNameOnlySerializer(many=True, read_only=True)
 
@@ -65,7 +63,6 @@ class WorkItemSerializer(serializers.ModelSerializer):
             "assigned_to",
             # "attachments",
             "comments",
-            # "activity_log",
             "created_at",
             "updated_at",
             "tenant",
@@ -85,7 +82,6 @@ class WorkItemSerializer(serializers.ModelSerializer):
             'comments__created_by__partner__person',
             'assigned_to__user__partner__person',
             # 'attachments__uploaded_by__partner__person',
-            # 'activity_log__user__partner__person',
         )
 
 class WorkItemCreateSerializer(serializers.ModelSerializer):

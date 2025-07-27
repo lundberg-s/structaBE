@@ -16,7 +16,7 @@ class TestTicketFlow(TicketTenancySetup, APITestCase):
             'title': 'Test Ticket',
             'description': 'This is a test ticket',
             'status': 'open',
-            'category': 'ticket',
+            'category': 'support',
             'priority': 'medium',
         }
 
