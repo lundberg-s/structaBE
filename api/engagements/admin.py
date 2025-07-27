@@ -1,9 +1,10 @@
 from django.contrib import admin
 from engagements.models import WorkItem, Ticket, Case, Job, Attachment, Comment, Assignment
+from core.admin_mixins import AdminAuditMixin
 
 
 @admin.register(WorkItem)
-class WorkItemAdmin(admin.ModelAdmin):
+class WorkItemAdmin(AdminAuditMixin, admin.ModelAdmin):
     list_display = ['title', 'status', 'priority', 'category', 'tenant', 'created_at']
     list_filter = ['status', 'priority', 'category', 'tenant', 'created_at']
     search_fields = ['title', 'description']
@@ -11,7 +12,7 @@ class WorkItemAdmin(admin.ModelAdmin):
 
 
 @admin.register(Ticket)
-class TicketAdmin(admin.ModelAdmin):
+class TicketAdmin(AdminAuditMixin, admin.ModelAdmin):
     list_display = ['title', 'ticket_number', 'urgency', 'status', 'tenant', 'created_at']
     list_filter = ['urgency', 'status', 'tenant', 'created_at']
     search_fields = ['title', 'ticket_number', 'description']
@@ -19,7 +20,7 @@ class TicketAdmin(admin.ModelAdmin):
 
 
 @admin.register(Case)
-class CaseAdmin(admin.ModelAdmin):
+class CaseAdmin(AdminAuditMixin, admin.ModelAdmin):
     list_display = ['title', 'case_reference', 'legal_area', 'status', 'tenant', 'created_at']
     list_filter = ['legal_area', 'status', 'tenant', 'created_at']
     search_fields = ['title', 'case_reference', 'description']
@@ -27,7 +28,7 @@ class CaseAdmin(admin.ModelAdmin):
 
 
 @admin.register(Job)
-class JobAdmin(admin.ModelAdmin):
+class JobAdmin(AdminAuditMixin, admin.ModelAdmin):
     list_display = ['title', 'job_code', 'estimated_hours', 'status', 'tenant', 'created_at']
     list_filter = ['status', 'tenant', 'created_at']
     search_fields = ['title', 'job_code', 'description']
@@ -35,7 +36,7 @@ class JobAdmin(admin.ModelAdmin):
 
 
 @admin.register(Attachment)
-class AttachmentAdmin(admin.ModelAdmin):
+class AttachmentAdmin(AdminAuditMixin, admin.ModelAdmin):
     list_display = ['filename', 'work_item', 'file_size', 'mime_type', 'tenant', 'created_at']
     list_filter = ['mime_type', 'tenant', 'created_at']
     search_fields = ['filename', 'work_item__title']
@@ -43,7 +44,7 @@ class AttachmentAdmin(admin.ModelAdmin):
 
 
 @admin.register(Comment)
-class CommentAdmin(admin.ModelAdmin):
+class CommentAdmin(AdminAuditMixin, admin.ModelAdmin):
     list_display = ['work_item', 'created_by', 'tenant', 'created_at']
     list_filter = ['tenant', 'created_at']
     search_fields = ['content', 'work_item__title']
@@ -51,7 +52,7 @@ class CommentAdmin(admin.ModelAdmin):
 
 
 @admin.register(Assignment)
-class AssignmentAdmin(admin.ModelAdmin):
+class AssignmentAdmin(AdminAuditMixin, admin.ModelAdmin):
     list_display = ['work_item', 'user', 'tenant', 'created_at']
     list_filter = ['tenant', 'created_at']
     search_fields = ['work_item__title', 'user__username']

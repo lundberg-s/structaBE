@@ -39,6 +39,8 @@ class AuditLog(AuditModel):
         ('attachment', 'Attachment'),
         ('assignment', 'Assignment'),
         ('role', 'Role'),
+        ('user', 'User'),
+        ('tenant', 'Tenant'),
     ])
     entity_id = models.UUIDField()
     entity_name = models.CharField(max_length=255)  # Snapshot of entity name
@@ -98,7 +100,8 @@ class AuditLog(AuditModel):
             models.CheckConstraint(
                 check=models.Q(entity_type__in=[
                     'workitem', 'ticket', 'case', 'job', 'person', 'organization', 
-                    'relation', 'comment', 'attachment', 'assignment', 'role'
+                    'relation', 'comment', 'attachment', 'assignment', 'role',
+                    'user', 'tenant'
                 ]),
                 name='valid_entity_type'
             )

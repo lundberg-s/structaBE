@@ -1,6 +1,7 @@
 from django.contrib import admin
 from relations.models import Partner, Person, Organization, Relation
 from core.models import Role
+from core.admin_mixins import AdminAuditMixin
 
 
 @admin.register(Partner)
@@ -31,7 +32,7 @@ class PartnerAdmin(admin.ModelAdmin):
 
 
 @admin.register(Person)
-class PersonAdmin(admin.ModelAdmin):
+class PersonAdmin(AdminAuditMixin, admin.ModelAdmin):
     list_display = ('id', 'full_name', 'email', 'phone', 'role', 'tenant', 'created_at')
     list_filter = ('created_at', 'updated_at', 'tenant')
     search_fields = ('first_name', 'last_name', 'email', 'phone')
@@ -44,7 +45,7 @@ class PersonAdmin(admin.ModelAdmin):
 
 
 @admin.register(Organization)
-class OrganizationAdmin(admin.ModelAdmin):
+class OrganizationAdmin(AdminAuditMixin, admin.ModelAdmin):
     list_display = ('id', 'name', 'organization_number', 'role', 'tenant', 'created_at')
     list_filter = ('created_at', 'updated_at', 'tenant')
     search_fields = ('name', 'organization_number')
@@ -52,11 +53,8 @@ class OrganizationAdmin(admin.ModelAdmin):
     ordering = ('name',)
 
 
-
-
-
 @admin.register(Relation)
-class RelationAdmin(admin.ModelAdmin):
+class RelationAdmin(AdminAuditMixin, admin.ModelAdmin):
     list_display = ('id', 'source_display', 'role', 'target_display', 'tenant', 'created_at')
     list_filter = ('role', 'created_at', 'updated_at', 'tenant')
     search_fields = (
