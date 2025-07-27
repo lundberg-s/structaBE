@@ -2,7 +2,9 @@ from django.urls import path
 
 from relations.views.person_views import PersonListView, PersonDetailView
 from relations.views.organization_views import OrganizationListView, OrganizationDetailView
-from relations.views.role_views import RoleListCreateView, RoleDetailView
+from relations.views.relation_views import RelationListCreateView, RelationDetailView
+from relations.views.audit_views import PartnerAuditViewSet, RelationAuditViewSet
+from relations.views.assignment_views import AssignmentCreateView
 
 app_name = "relations"
 
@@ -13,6 +15,16 @@ urlpatterns = [
     path("organizations/", OrganizationListView.as_view(), name="organization-list"),
     path("organizations/<uuid:pk>/", OrganizationDetailView.as_view(), name="organization-detail"),
 
-    path("roles/", RoleListCreateView.as_view(), name="role-list"),
-    path("roles/<uuid:pk>/", RoleDetailView.as_view(), name="role-detail"),
+    path("relations/", RelationListCreateView.as_view(), name="relation-list"),
+    path("relations/<uuid:pk>/", RelationDetailView.as_view(), name="relation-detail"),
+
+    path('assignments/', AssignmentCreateView.as_view(), name='assignment-create'),
+    
+    # Audit logs for partners
+    path("audit-logs/partners/", PartnerAuditViewSet.as_view({'get': 'list'}), name="partner-audit-list"),
+    path("audit-logs/partners/<uuid:pk>/", PartnerAuditViewSet.as_view({'get': 'retrieve'}), name="partner-audit-detail"),
+    
+    # Audit logs for relations
+    path("audit-logs/relations/", RelationAuditViewSet.as_view({'get': 'list'}), name="relation-audit-list"),
+    path("audit-logs/relations/<uuid:pk>/", RelationAuditViewSet.as_view({'get': 'retrieve'}), name="relation-audit-detail"),
 ]

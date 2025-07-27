@@ -1,24 +1,40 @@
-from collections import defaultdict
+from django.utils import timezone
+from core.models import AuditLog
 
-def get_avg_time_in_status(qs, ActivityLog, now):
-    status_times = defaultdict(list)
+def get_avg_time_in_status(qs, AuditLog, now):
+    """Calculate average time items spend in each status."""
+    total_time = 0
+    count = 0
+    
     for item in qs:
-        logs = list(ActivityLog.objects.filter(work_item=item, activity_type='status_changed').order_by('created_at'))
-        prev_time = item.created_at
-        prev_status = item.status
+        logs = list(AuditLog.objects.filter(
+            content_type__model='workitem',
+            object_id=item.id, 
+            activity_type='status_changed'
+        ).order_by('created_at'))
+        
+        if len(logs) >= 2:
+            for i in range(len(logs) - 1):
+                time_diff = logs[i + 1].created_at - logs[i].created_at
+                total_time += time_diff.total_seconds() / 3600  # Convert to hours
+                count += 1
+    
+    return total_time / count if count > 0 else 0
+
+def get_reopened_count(qs, AuditLog):
+    """Count how many times items were reopened (status changed back to open)."""
+    reopened_count = 0
+    
+    for item in qs:
+        logs = AuditLog.objects.filter(
+            content_type__model='workitem',
+            object_id=item.id, 
+            activity_type='status_changed'
+        ).order_by('created_at')
+        
+        # Count transitions back to 'open' status
         for log in logs:
-            status_times[prev_status].append((log.created_at - prev_time).total_seconds())
-            prev_time = log.created_at
-            prev_status = log.description.split(' to ')[-1].replace('"', '')
-        end_time = item.updated_at if getattr(item, 'status', None) in ['resolved', 'closed'] else now
-        status_times[prev_status].append((end_time - prev_time).total_seconds())
-    return {status: round(sum(times)/len(times)/3600, 2) for status, times in status_times.items() if times}
-
-def get_reopened_count(qs, ActivityLog):
-    reopened = 0
-    for item in qs:
-        logs = ActivityLog.objects.filter(work_item=item, activity_type='status_changed').order_by('created_at')
-        statuses = [log.description.split(' to ')[-1].replace('"', '') for log in logs]
-        if statuses.count('resolved') > 1 or statuses.count('closed') > 1:
-            reopened += 1
-    return reopened 
+            if 'open' in log.description.lower():
+                reopened_count += 1
+    
+    return reopened_count 

@@ -11,7 +11,6 @@ class OrganizationSerializer(PartnerSerializer):
             'id',
             'name',
             'organization_number',
-            'role',
             'content_type',
         ]
 

@@ -1,88 +1,125 @@
 from rest_framework import serializers
 from engagements.models import WorkItem
-from django.contrib.auth import get_user_model
 from users.serializers.user_serializers import UserWithPersonSerializer
 
 from engagements.serializers.attachment_serializers import AttachmentSerializer
 from engagements.serializers.comment_serializers import CommentSerializer
-from engagements.serializers.activity_log_serializers import ActivityLogSerializer
-from engagements.serializers.partner_role_serializers import FlatPartnerWithRoleSerializer
-from engagements.utilities.assignment_utilities import update_work_item_assignments
 
-User = get_user_model()
+class AssignedUserSerializer(serializers.Serializer):
+    """Custom serializer for users assigned to work items via relations"""
+    id = serializers.IntegerField()
+    first_name = serializers.CharField()
+    last_name = serializers.CharField()
 
-class WorkItemSerializer(serializers.ModelSerializer):
-    assigned_to = serializers.SerializerMethodField()
-    created_by = UserWithPersonSerializer(read_only=True)
-    attachments = AttachmentSerializer(many=True, read_only=True)
-    comments = CommentSerializer(many=True, read_only=True)
-    activity_log = ActivityLogSerializer(many=True, read_only=True)
+
+class WorkItemListSerializer(serializers.ModelSerializer):
     tenant = serializers.PrimaryKeyRelatedField(read_only=True)
-    partner_roles = FlatPartnerWithRoleSerializer(many=True, read_only=True)
+    created_by = UserWithPersonSerializer(read_only=True)
+    assigned_to = AssignedUserSerializer(many=True, read_only=True)
+
     class Meta:
         model = WorkItem
         fields = [
-            'id', 'title', 'description', 'status', 'category', 'priority',
-            'deadline', 'assigned_to', 'created_by', 'attachments',
-            'comments', 'activity_log', 'partner_roles', 'created_at', 'updated_at', 'tenant'
+            "id",
+            "title",
+            "status",
+            "category",
+            "priority",
+            "deadline",
+            "tenant",
+            "created_at",
+            "created_by",
+            "assigned_to",
         ]
-        read_only_fields = ['id', 'created_by', 'created_at', 'updated_at', 'tenant']
+        read_only_fields = ["id", "tenant", "created_at", "created_by", "assigned_to"]
 
-    def get_assigned_to(self, obj):
-        return [UserWithPersonSerializer(a.user).data for a in obj.assignments.all()]
+    @classmethod
+    def get_optimized_queryset(cls, queryset=None):
+        """Return queryset optimized for ticket list serialization."""
+        if queryset is None:
+            queryset = WorkItem.objects.all()
+        
+        return queryset.select_related(
+            'created_by__partner__person',
+            'tenant',
+        ).prefetch_related(
+            'assigned_to__user__partner__person',
+        )
+
+
+class WorkItemSerializer(serializers.ModelSerializer):
+    # REMOVED: assigned_to = UserWithPersonSerializer(many=True, read_only=True)
+    created_by = UserWithPersonSerializer(read_only=True)
+    # attachments = AttachmentSerializer(many=True, read_only=True)
+    comments = CommentSerializer(many=True, read_only=True)
+    tenant = serializers.PrimaryKeyRelatedField(read_only=True)
+    assigned_to = AssignedUserSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = WorkItem
+        fields = [
+            "id",
+            "title",
+            "description",
+            "status",
+            "category",
+            "priority",
+            "deadline",
+            "created_by",
+            "assigned_to",
+            # "attachments",
+            "comments",
+            "created_at",
+            "updated_at",
+            "tenant",
+        ]
+        read_only_fields = ["id", "created_by", "created_at", "updated_at", "tenant"]
+        
+    @classmethod
+    def get_optimized_queryset(cls, queryset=None):
+        """Return queryset optimized for ticket detail serialization."""
+        if queryset is None:
+            queryset = WorkItem.objects.all()
+        
+        return queryset.select_related(
+            'created_by__partner__person',
+            'tenant'
+        ).prefetch_related(
+            'comments__created_by__partner__person',
+            'assigned_to__user__partner__person',
+            # 'attachments__uploaded_by__partner__person',
+        )
 
 class WorkItemCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = WorkItem
-        fields = [
-            'title', 'description', 'status', 'category', 'priority',
-            'deadline'
-        ]
+        fields = ["id", "title", "description", "status", "category", "priority", "deadline"]
+        read_only_fields = ["id", "created_by", "created_at", "updated_at", "tenant"]
+
+    @classmethod
+    def get_optimized_queryset(cls, queryset=None):
+        """Return queryset optimized for work item creation."""
+        if queryset is None:
+            queryset = WorkItem.objects.all()
+        return queryset
+
 
 class WorkItemUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = WorkItem
-        fields = [
-            'title', 'description', 'status', 'category', 'priority',
-            'deadline'
-        ]
+        fields = ["id", "title", "description", "status", "category", "priority", "deadline"]
+        read_only_fields = ["id", "created_by", "created_at", "updated_at", "tenant"]
 
-class WorkItemWritableSerializer(serializers.ModelSerializer):
-    assigned_to = serializers.ListField(
-        child=serializers.UUIDField(),
-        required=False,
-        allow_empty=True
-    )
+    @classmethod
+    def get_optimized_queryset(cls, queryset=None):
+        """Return queryset optimized for work item updates."""
+        if queryset is None:
+            queryset = WorkItem.objects.all()
+        return queryset
 
+
+class WorkItemDeleteSerializer(serializers.ModelSerializer):
     class Meta:
         model = WorkItem
-        fields = [
-            'title', 'description', 'status', 'category', 'priority',
-            'deadline', 'assigned_to'
-        ]
-
-    def update(self, instance, validated_data):
-        assigned_to_ids = validated_data.pop('assigned_to', None)
-
-        # Standard update
-        instance = super().update(instance, validated_data)
-
-        if assigned_to_ids is not None:
-            update_work_item_assignments(
-                work_item=instance,
-                new_user_ids=assigned_to_ids,
-                assigned_by_user=self.context['request'].user
-            )
-
-        return instance
-
-class WorkItemListSerializer(serializers.ModelSerializer):
-    assigned_to = UserWithPersonSerializer(read_only=True)
-    tenant = serializers.PrimaryKeyRelatedField(read_only=True)
-    class Meta:
-        model = WorkItem
-        fields = [
-            'id', 'title', 'status', 'category', 'priority',
-            'deadline', 'assigned_to', 'tenant',
-        ]
-        read_only_fields = ['id', 'tenant'] 
+        fields = ["id"]
+        read_only_fields = ["id"]

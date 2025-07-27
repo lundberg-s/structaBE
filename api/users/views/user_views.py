@@ -10,11 +10,11 @@ from users.models import User
 from users.permissions import CanManageUsersAndRoles, CanViewContentOnly
 from relations.models import Person
 from users.serializers.user_serializers import UserSerializer
+from core.views.base_views import BaseView
 
 User = get_user_model()
 
-class UserMeView(RetrieveAPIView):
-    queryset = User.objects.none()
+class UserMeView(BaseView, RetrieveAPIView):
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
 
@@ -29,18 +29,23 @@ class UserMeView(RetrieveAPIView):
         except Exception as e:
             raise AuthenticationFailed(f'Invalid token: {str(e)}')
 
-        user = User.objects.filter(id=user_id).first()
+        # Use optimized queryset
+        user = UserSerializer.get_optimized_queryset(
+            User.objects.filter(id=user_id)
+        ).first()
+        
         if not user:
             raise AuthenticationFailed('User not found')
 
         return user
 
-class UserListView(ListCreateAPIView):
+class UserListView(BaseView, ListCreateAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = UserSerializer
 
     def get_queryset(self):
-        return User.objects.filter(tenant=self.request.user.tenant)
+        base_queryset = self.get_tenant_queryset(User)
+        return self.get_serializer_class().get_optimized_queryset(base_queryset)
 
     def perform_create(self, serializer):
         # Create a Person instance
@@ -49,22 +54,23 @@ class UserListView(ListCreateAPIView):
             last_name=serializer.validated_data.get('last_name', ''),
             email=serializer.validated_data.get('email', ''),
             phone=serializer.validated_data.get('phone', ''),
-            tenant=self.request.user.tenant
+            tenant=self.get_tenant()
         )
         # Create a User instance and associate with the Person
         user = User.objects.create_user(
             email=person.email,
             password=serializer.validated_data.get('password', ''),
-            tenant=self.request.user.tenant,
+            tenant=self.get_tenant(),
             partner=person
         )
         serializer.instance = user
 
         return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
 
-class UserDetailView(RetrieveAPIView):
+class UserDetailView(BaseView, RetrieveAPIView):
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        return User.objects.filter(tenant=self.request.user.tenant)
+        base_queryset = self.get_tenant_queryset(User)
+        return self.get_serializer_class().get_optimized_queryset(base_queryset)

@@ -1,63 +1,75 @@
 from django.utils import timezone
-from .work_item_stats import *
-from .user_stats import *
-from .comment_stats import *
-from .status_time_stats import *
-from .sla_stats import *
+from engagements.models import WorkItem, Ticket, Case, Job
+from core.models import AuditLog
+from django.db import models
 
-def get_work_item_statistics(model, tenant, Comment, ActivityLog):
-    stats = {}
+def get_work_item_statistics(model, tenant, Comment, AuditLog):
+    """Get statistics for a specific work item type."""
     now = timezone.now()
-    qs = model.objects.filter(tenant=tenant)
-
-    stats['total'] = get_total(qs)
-    for field in ['status', 'priority', 'category']:
-        if hasattr(model, field):
-            stats[f'by_{field}'] = get_by_field(qs, field)
-
-    if hasattr(model, 'created_at'):
-        stats['created_per_month'] = get_created_per_period(qs, 'month')
-        stats['created_per_week'] = get_created_per_period(qs, 'week')
-
-    if hasattr(model, 'status') and hasattr(model, 'updated_at'):
-        resolved_qs = qs.filter(status='resolved')
-        stats['resolved_per_month'] = get_created_per_period(resolved_qs, 'month')
-        stats['resolved_per_week'] = get_created_per_period(resolved_qs, 'week')
-
-    if hasattr(model, 'created_at') and hasattr(model, 'status'):
-        months = list(stats.get('created_per_month', {}).keys())[-12:]
-        stats['open_at_month_end'] = get_open_at_month_end(qs, months)
-
-    if hasattr(model, 'assigned_user'):
-        stats['avg_per_user'] = get_avg_per_user(qs)
-        stats['by_assigned_user'] = get_by_assigned_user(qs)
-        stats['unassigned'] = get_unassigned(qs)
-
-    if hasattr(model, 'created_by'):
-        stats['by_created_user'] = get_by_created_user(qs)
-
-    if hasattr(model, 'comments'):
-        stats['avg_time_to_first_response_hours'] = get_avg_time_to_first_response(qs, Comment)
-
-    if hasattr(model, 'activity_log'):
-        stats['avg_time_in_status_hours'] = get_avg_time_in_status(qs, ActivityLog, now)
-        stats['reopened'] = get_reopened_count(qs, ActivityLog)
-
-    if hasattr(model, 'deadline') and hasattr(model, 'status'):
-        stats['overdue'] = get_overdue(qs, now)
-
-    if hasattr(model, 'status') and hasattr(model, 'created_at'):
-        stats['longest_open'] = get_longest_open(qs)
-
-    if hasattr(model, 'status') and hasattr(model, 'created_at') and hasattr(model, 'updated_at'):
-        stats['sla_compliance_percent'] = get_sla_compliance(qs)
-        stats['average_resolution_time_days'] = get_avg_resolution_time(qs)
-
+    qs = model.objects.filter(tenant=tenant, is_deleted=False)
+    
+    stats = {
+        'total': qs.count(),
+        'open': qs.filter(status='open').count(),
+        'in_progress': qs.filter(status='in_progress').count(),
+        'on_hold': qs.filter(status='on_hold').count(),
+        'resolved': qs.filter(status='resolved').count(),
+        'closed': qs.filter(status='closed').count(),
+        'high_priority': qs.filter(priority='high').count(),
+        'urgent_priority': qs.filter(priority='urgent').count(),
+        'avg_time_in_status_hours': get_avg_time_in_status(qs, AuditLog, now),
+        'reopened': get_reopened_count(qs, AuditLog),
+    }
+    
+    # Add model-specific stats
+    if model == Ticket:
+        stats['avg_resolution_time_hours'] = get_avg_resolution_time(qs, now)
+        stats['tickets_by_urgency'] = {
+            'low': qs.filter(urgency='low').count(),
+            'medium': qs.filter(urgency='medium').count(),
+            'high': qs.filter(urgency='high').count(),
+        }
+    elif model == Case:
+        stats['cases_by_legal_area'] = {}
+        for case in qs.values('legal_area').distinct():
+            area = case['legal_area']
+            stats['cases_by_legal_area'][area] = qs.filter(legal_area=area).count()
+    elif model == Job:
+        stats['total_estimated_hours'] = sum(qs.values_list('estimated_hours', flat=True))
+        stats['avg_estimated_hours'] = qs.aggregate(avg=models.Avg('estimated_hours'))['avg'] or 0
+    
     return stats
 
-def get_all_work_item_statistics(tenant, Comment, ActivityLog, WorkItem):
-    subclasses = WorkItem.__subclasses__()
+def get_avg_resolution_time(qs, now):
+    """Calculate average resolution time for resolved items."""
+    resolved_items = qs.filter(status__in=['resolved', 'closed'])
+    if not resolved_items.exists():
+        return 0
+    
+    total_time = 0
+    count = 0
+    
+    for item in resolved_items:
+        # Find the first status change to 'resolved' or 'closed'
+        resolution_log = AuditLog.objects.filter(
+            content_type__model='workitem',
+            object_id=item.id,
+            activity_type='status_changed',
+            description__icontains='resolved'
+        ).first()
+        
+        if resolution_log:
+            time_diff = resolution_log.created_at - item.created_at
+            total_time += time_diff.total_seconds() / 3600  # Convert to hours
+            count += 1
+    
+    return total_time / count if count > 0 else 0
+
+def get_all_work_item_statistics(tenant, Comment, AuditLog, WorkItem):
+    """Get statistics for all work item types."""
     stats = {}
-    for subclass in subclasses:
-        stats[subclass.__name__.lower()] = get_work_item_statistics(subclass, tenant, Comment, ActivityLog)
+    
+    for subclass in [Ticket, Case, Job]:
+        stats[subclass.__name__.lower()] = get_work_item_statistics(subclass, tenant, Comment, AuditLog)
+    
     return stats 

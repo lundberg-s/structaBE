@@ -14,8 +14,8 @@ class PersonSerializer(PartnerSerializer):
             'email',
             'phone',
             'role',
-            'content_type',
         ]
+        read_only_fields = ['id']
 
 class FlatPersonSerializer(ModelSerializer):
     class Meta:
