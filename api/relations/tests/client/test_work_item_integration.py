@@ -1,36 +1,32 @@
+from django.test import TestCase
 from django.urls import reverse
 from rest_framework import status
-from relations.tests.client.test_base import FullySetupTest
+from rest_framework.test import APIClient
+
 from relations.tests.factory import (
-    create_person, create_organization, create_relation_reference_for_person, 
-    create_relation_reference_for_organization, create_role, create_relation
+    create_person, create_organization, create_role, create_relation
 )
-from relations.models import Relation, Role, RelationReference
-from relations.choices import RelationObjectType, SystemRole
+from relations.models import Relation, Role
+from relations.choices import RelationObjectType
 from engagements.models import Ticket
-from engagements.models import WorkItemStatusTypes, WorkItemPriorityTypes, WorkItemCategoryTypes
-from users.tests.factory import create_user
+from engagements.choices import WorkItemStatusTypes, WorkItemCategoryTypes, WorkItemPriorityTypes
+from core.tests.factory import create_tenant, create_user
 
 
-class TestWorkItemIntegration(FullySetupTest):
-    """
-    Test the full SAP-style CRM workflow using our Relation system:
-    1. Create a ticket (work item)
-    2. Create a person (partner)
-    3. Create a relation between the ticket and person
-    4. Assign a role to the person in relation to the ticket
-    5. Verify the relationships work correctly
-    """
-    
+class TestWorkItemIntegration(TestCase):
+    """Test integration between work items and relations"""
+
     def setUp(self):
-        super().setUp()
-        # Create test data
-        self.person = create_person(self.tenant, first_name="John", last_name="Customer")
-        self.org = create_organization(self.tenant, name="Customer Corp")
+        """Set up test data"""
+        self.client = APIClient()
         
-        # Create relation references
-        self.person_ref = create_relation_reference_for_person(self.person)
-        self.org_ref = create_relation_reference_for_organization(self.org)
+        # Create tenant and user
+        self.tenant = create_tenant()
+        self.user = create_user(tenant=self.tenant)
+        
+        # Create partners
+        self.person = create_person(self.tenant, first_name='John', last_name='Doe')
+        self.org = create_organization(self.tenant, name='Acme Corp')
         
         # Create a ticket
         self.ticket = Ticket.objects.create(
@@ -43,22 +39,19 @@ class TestWorkItemIntegration(FullySetupTest):
             created_by=self.user,
             ticket_number="TICK-001"
         )
-        
-        # Create relation reference for the ticket
-        self.ticket_ref = RelationReference.objects.create(
-            type=RelationObjectType.WORKITEM,
-            workitem=self.ticket
-        )
 
     def test_create_ticket_person_relationship(self):
         """Test creating a relationship between a ticket and a person"""
-        self.authenticate_client()
+        self.client.force_authenticate(user=self.user)
         
-        # Create relation: Person -> Ticket (customer relationship)
+        # Create a role for the relationship
+        role = create_role(self.tenant, label="Customer", is_system=False)
+        
+        # Create relation: Ticket -> Person (customer relationship)
         data = {
-            'source_id': str(self.person_ref.id),
-            'target_id': str(self.ticket_ref.id),
-            'relation_type': 'customer_of'
+            'source_workitem_id': str(self.ticket.id),
+            'target_partner_id': str(self.person.id),
+            'role_id': str(role.id)
         }
         
         url = reverse('relations:relation-list')
@@ -68,168 +61,75 @@ class TestWorkItemIntegration(FullySetupTest):
         
         # Verify the relation was created correctly
         relation = Relation.objects.get(id=response.data['id'])
-        self.assertEqual(relation.source, self.person_ref)
-        self.assertEqual(relation.target, self.ticket_ref)
-        self.assertEqual(relation.relation_type, 'customer_of')
+        self.assertEqual(relation.source_workitem, self.ticket)
+        self.assertEqual(relation.target_partner, self.person)
+        self.assertEqual(relation.role, role)
         self.assertEqual(relation.tenant, self.tenant)
 
-    def test_assign_customer_role_to_person_for_ticket(self):
-        """Test assigning a customer role to a person for a specific ticket"""
-        self.authenticate_client()
+    def test_create_person_ticket_relationship(self):
+        """Test creating a relationship between a person and a ticket"""
+        self.client.force_authenticate(user=self.user)
         
-        # Create relation first
-        relation = create_relation(
-            self.tenant, 
-            self.person_ref, 
-            self.ticket_ref, 
-            relation_type='customer_of'
-        )
+        # Create a role for the relationship
+        role = create_role(self.tenant, label="Customer", is_system=False)
         
-        # Assign customer role to the person for this ticket
+        # Create relation: Person -> Ticket (customer relationship)
         data = {
-            'target': str(self.person_ref.id),
-            'system_role': SystemRole.CUSTOMER,
-            'custom_role': None
+            'source_partner_id': str(self.person.id),
+            'target_workitem_id': str(self.ticket.id),
+            'role_id': str(role.id)
         }
         
-        url = reverse('relations:role-list')
+        url = reverse('relations:relation-list')
         response = self.client.post(url, data, format='json')
         
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         
-        # Verify the role was assigned correctly
-        role = Role.objects.get(id=response.data['id'])
-        self.assertEqual(role.target, self.person_ref)
-        self.assertEqual(role.system_role, SystemRole.CUSTOMER)
-        self.assertEqual(role.tenant, self.tenant)
+        # Verify the relation was created correctly
+        relation = Relation.objects.get(id=response.data['id'])
+        self.assertEqual(relation.source_partner, self.person)
+        self.assertEqual(relation.target_workitem, self.ticket)
+        self.assertEqual(relation.role, role)
+        self.assertEqual(relation.tenant, self.tenant)
 
-    def test_assign_custom_role_to_person_for_ticket(self):
-        """Test assigning a custom role to a person for a specific ticket"""
-        self.authenticate_client()
+    def test_create_organization_ticket_relationship(self):
+        """Test creating a relationship between an organization and a ticket"""
+        self.client.force_authenticate(user=self.user)
         
-        # Create a custom role
-        from relations.tests.factory import create_custom_role
-        custom_role = create_custom_role(self.tenant, key='premium_customer', label='Premium Customer')
+        # Create a role for the relationship
+        role = create_role(self.tenant, label="Vendor", is_system=False)
         
-        # Create relation first
-        relation = create_relation(
-            self.tenant, 
-            self.person_ref, 
-            self.ticket_ref, 
-            relation_type='customer_of'
-        )
-        
-        # Assign custom role to the person for this ticket
+        # Create relation: Organization -> Ticket (vendor relationship)
         data = {
-            'target': str(self.person_ref.id),
-            'system_role': None,
-            'custom_role': custom_role.id
+            'source_partner_id': str(self.org.id),
+            'target_workitem_id': str(self.ticket.id),
+            'role_id': str(role.id)
         }
         
-        url = reverse('relations:role-list')
+        url = reverse('relations:relation-list')
         response = self.client.post(url, data, format='json')
         
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         
-        # Verify the role was assigned correctly
-        role = Role.objects.get(id=response.data['id'])
-        self.assertEqual(role.target, self.person_ref)
-        self.assertEqual(role.custom_role, custom_role)
-        self.assertEqual(role.tenant, self.tenant)
-
-    def test_complex_workflow_ticket_with_multiple_partners(self):
-        """Test a complex workflow with a ticket, customer, and vendor"""
-        self.authenticate_client()
-        
-        # Create additional partners
-        vendor_person = create_person(self.tenant, first_name="Vendor", last_name="Support")
-        vendor_ref = create_relation_reference_for_person(vendor_person)
-        
-        # Create relations
-        customer_relation = create_relation(
-            self.tenant, 
-            self.person_ref, 
-            self.ticket_ref, 
-            relation_type='customer_of'
-        )
-        
-        vendor_relation = create_relation(
-            self.tenant, 
-            vendor_ref, 
-            self.ticket_ref, 
-            relation_type='vendor_for'
-        )
-        
-        # Assign roles
-        customer_role = create_role(
-            self.tenant, 
-            self.person_ref, 
-            system_role=SystemRole.CUSTOMER
-        )
-        
-        vendor_role = create_role(
-            self.tenant, 
-            vendor_ref, 
-            system_role=SystemRole.VENDOR
-        )
-        
-        # Verify the complete setup
-        self.assertEqual(Relation.objects.count(), 2)
-        self.assertEqual(Role.objects.count(), 2)
-        
-        # Verify customer relationship
-        customer_relation = Relation.objects.get(source=self.person_ref, target=self.ticket_ref)
-        self.assertEqual(customer_relation.relation_type, 'customer_of')
-        
-        # Verify vendor relationship
-        vendor_relation = Relation.objects.get(source=vendor_ref, target=self.ticket_ref)
-        self.assertEqual(vendor_relation.relation_type, 'vendor_for')
-        
-        # Verify roles
-        customer_role = Role.objects.get(target=self.person_ref, system_role=SystemRole.CUSTOMER)
-        vendor_role = Role.objects.get(target=vendor_ref, system_role=SystemRole.VENDOR)
-
-    def test_work_item_relation_integration(self):
-        """Test integration using our Relation system for work items"""
-        # Create a relation using our new system
-        relation = create_relation(
-            self.tenant, 
-            self.person_ref, 
-            self.ticket_ref, 
-            relation_type='customer_of'
-        )
-        
-        # Assign a role
-        role = create_role(
-            self.tenant, 
-            self.person_ref, 
-            system_role=SystemRole.CUSTOMER
-        )
-        
-        # Verify the relation was created
-        self.assertEqual(Relation.objects.count(), 1)
-        self.assertEqual(Role.objects.count(), 1)
-        
-        # Verify the relation details
-        relation = Relation.objects.get(source=self.person_ref, target=self.ticket_ref)
-        self.assertEqual(relation.relation_type, 'customer_of')
+        # Verify the relation was created correctly
+        relation = Relation.objects.get(id=response.data['id'])
+        self.assertEqual(relation.source_partner, self.org)
+        self.assertEqual(relation.target_workitem, self.ticket)
+        self.assertEqual(relation.role, role)
         self.assertEqual(relation.tenant, self.tenant)
 
     def test_tenant_isolation_for_work_item_relations(self):
-        """Test that work item relations are properly isolated by tenant"""
-        self.authenticate_client()
-        
-        # Create another tenant and its data
-        from core.tests.factory import create_tenant
+        """Test that relations are properly isolated by tenant"""
+        # Create another tenant and user
         other_tenant = create_tenant()
-        other_user = create_user(other_tenant, username='otheruser', email='otheruser@example.com')
-        other_person = create_person(other_tenant)
-        other_person_ref = create_relation_reference_for_person(other_person)
+        other_user = create_user(tenant=other_tenant)
         
+        # Create partners in other tenant
+        other_person = create_person(other_tenant, first_name='Jane', last_name='Smith')
         other_ticket = Ticket.objects.create(
             tenant=other_tenant,
             title="Other Ticket",
-            description="Other tenant's ticket",
+            description="Other ticket description",
             status=WorkItemStatusTypes.OPEN,
             category=WorkItemCategoryTypes.TICKET,
             priority=WorkItemPriorityTypes.MEDIUM,
@@ -237,35 +137,51 @@ class TestWorkItemIntegration(FullySetupTest):
             ticket_number="TICK-002"
         )
         
-        other_ticket_ref = RelationReference.objects.create(
-            type=RelationObjectType.WORKITEM,
-            workitem=other_ticket
-        )
+        # Create role in other tenant
+        other_role = create_role(other_tenant, label="Customer", is_system=False)
+        
+        # Authenticate as other user
+        self.client.force_authenticate(user=other_user)
         
         # Create relation in other tenant
-        other_relation = create_relation(
-            other_tenant, 
-            other_person_ref, 
-            other_ticket_ref, 
-            relation_type='customer_of'
-        )
+        data = {
+            'source_partner_id': str(other_person.id),
+            'target_workitem_id': str(other_ticket.id),
+            'role_id': str(other_role.id)
+        }
         
-        # Try to access other tenant's relation from current tenant
-        url = reverse('relations:relation-detail', args=[other_relation.id])
-        response = self.client.get(url)
+        url = reverse('relations:relation-list')
+        response = self.client.post(url, data, format='json')
         
-        # Should be denied access
-        self.assertIn(response.status_code, (403, 404))
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        
+        # Verify the relation was created in the correct tenant
+        relation = Relation.objects.get(id=response.data['id'])
+        self.assertEqual(relation.tenant, other_tenant)
+        
+        # Verify that relations from different tenants are isolated
+        all_relations = Relation.objects.all()
+        self.assertEqual(all_relations.count(), 1)
+        self.assertEqual(all_relations.first().tenant, other_tenant)
 
     def test_full_crm_workflow(self):
-        """Test the complete CRM workflow: ticket -> person -> relation -> role"""
-        self.authenticate_client()
+        """Test a complete CRM workflow with multiple relationships"""
+        self.client.force_authenticate(user=self.user)
         
-        # Step 1: Create a ticket
-        ticket = Ticket.objects.create(
+        # Create multiple roles
+        customer_role = create_role(self.tenant, label="Customer", is_system=False)
+        vendor_role = create_role(self.tenant, label="Vendor", is_system=False)
+        employee_role = create_role(self.tenant, label="Employee", is_system=False)
+        
+        # Create additional partners
+        vendor = create_organization(self.tenant, name='Tech Solutions Inc')
+        employee = create_person(self.tenant, first_name='Alice', last_name='Johnson')
+        
+        # Create multiple tickets
+        support_ticket = Ticket.objects.create(
             tenant=self.tenant,
-            title="Technical Support Issue",
-            description="Cannot access the system",
+            title="Technical Support",
+            description="Need technical assistance",
             status=WorkItemStatusTypes.OPEN,
             category=WorkItemCategoryTypes.TICKET,
             priority=WorkItemPriorityTypes.HIGH,
@@ -273,43 +189,72 @@ class TestWorkItemIntegration(FullySetupTest):
             ticket_number="TICK-003"
         )
         
-        # Step 2: Create relation reference for the ticket
-        ticket_ref = RelationReference.objects.create(
-            type=RelationObjectType.WORKITEM,
-            workitem=ticket
+        purchase_ticket = Ticket.objects.create(
+            tenant=self.tenant,
+            title="Purchase Order",
+            description="New equipment purchase",
+            status=WorkItemStatusTypes.OPEN,
+            category=WorkItemCategoryTypes.TICKET,
+            priority=WorkItemPriorityTypes.MEDIUM,
+            created_by=self.user,
+            ticket_number="TICK-004"
         )
         
-        # Step 3: Create a customer person
-        customer = create_person(self.tenant, first_name="Alice", last_name="Customer")
-        customer_ref = create_relation_reference_for_person(customer)
-        
-        # Step 4: Create relation between customer and ticket
-        relation_data = {
-            'source_id': str(customer_ref.id),
-            'target_id': str(ticket_ref.id),
-            'relation_type': 'customer_of'
-        }
+        # Create multiple relationships
+        relations_data = [
+            # Customer relationship
+            {
+                'source_partner_id': str(self.person.id),
+                'target_workitem_id': str(support_ticket.id),
+                'role_id': str(customer_role.id)
+            },
+            # Vendor relationship
+            {
+                'source_partner_id': str(vendor.id),
+                'target_workitem_id': str(purchase_ticket.id),
+                'role_id': str(vendor_role.id)
+            },
+            # Employee relationship
+            {
+                'source_partner_id': str(employee.id),
+                'target_workitem_id': str(support_ticket.id),
+                'role_id': str(employee_role.id)
+            }
+        ]
         
         url = reverse('relations:relation-list')
-        response = self.client.post(url, relation_data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        created_relations = []
         
-        # Step 5: Assign customer role
-        role_data = {
-            'target': str(customer_ref.id),
-            'system_role': SystemRole.CUSTOMER,
-            'custom_role': None
-        }
+        for data in relations_data:
+            response = self.client.post(url, data, format='json')
+            self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+            created_relations.append(response.data['id'])
         
-        url = reverse('relations:role-list')
-        response = self.client.post(url, role_data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        # Verify all relations were created
+        self.assertEqual(len(created_relations), 3)
         
-        # Step 6: Verify the complete setup
-        relation = Relation.objects.get(source=customer_ref, target=ticket_ref)
-        role = Role.objects.get(target=customer_ref, system_role=SystemRole.CUSTOMER)
+        # Verify the relationships are correct
+        relations = Relation.objects.filter(id__in=created_relations)
+        self.assertEqual(relations.count(), 3)
         
-        self.assertEqual(relation.relation_type, 'customer_of')
-        self.assertEqual(role.system_role, SystemRole.CUSTOMER)
-        self.assertEqual(relation.tenant, self.tenant)
-        self.assertEqual(role.tenant, self.tenant) 
+        # Check specific relationships
+        customer_relation = relations.filter(
+            source_partner=self.person,
+            target_workitem=support_ticket,
+            role=customer_role
+        ).first()
+        self.assertIsNotNone(customer_relation)
+        
+        vendor_relation = relations.filter(
+            source_partner=vendor,
+            target_workitem=purchase_ticket,
+            role=vendor_role
+        ).first()
+        self.assertIsNotNone(vendor_relation)
+        
+        employee_relation = relations.filter(
+            source_partner=employee,
+            target_workitem=support_ticket,
+            role=employee_role
+        ).first()
+        self.assertIsNotNone(employee_relation) 

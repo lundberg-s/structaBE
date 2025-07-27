@@ -16,7 +16,6 @@ from relations.managers import (
     PartnerQuerySet,
     PersonQuerySet,
     OrganizationQuerySet,
-    RelationReferenceQuerySet,
     RelationQuerySet,
     RoleQuerySet,
 )
@@ -43,6 +42,32 @@ class CustomRole(AuditModel):
         return self.label
 
 
+class Role(AuditModel):
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, null=True, blank=True)  # Null for system roles
+    label = models.CharField(max_length=100)  # "Super User", "Admin", "Premium Customer", etc.
+    is_system = models.BooleanField(default=False)  # True for system roles
+    
+    objects = RoleQuerySet.as_manager()
+
+    def __str__(self):
+        return self.label
+    
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("label",),
+                condition=models.Q(is_system=True),
+                name="unique_system_role_label",
+            ),
+            models.UniqueConstraint(
+                fields=("tenant", "label"),
+                condition=models.Q(is_system=False),
+                name="unique_tenant_role_label",
+            ),
+        ]
+
+
+
 # Base Partner model - can be person or organization
 class Partner(AuditModel):
     """
@@ -53,6 +78,7 @@ class Partner(AuditModel):
     tenant = models.ForeignKey(
         Tenant, on_delete=models.CASCADE, related_name="partners"
     )
+    role = models.ForeignKey(Role, on_delete=models.CASCADE, null=True, blank=True)
 
     objects = PartnerQuerySet.as_manager()
 
@@ -74,10 +100,7 @@ class Partner(AuditModel):
             return str(self.organization)
         return str(self.id)
 
-    def get_roles(self):
-        """Get all roles for this partner."""
-        from relations.models import Role
-        return Role.objects.filter(target=self)
+
 
 
 class Person(Partner):
@@ -125,136 +148,52 @@ class Organization(Partner):
         return self.name
 
 
-class RelationReference(
-    AuditModel, SingleReferenceValidatorMixin, TypeInstanceValidatorMixin
-):
-    type = models.CharField(max_length=20, choices=RelationObjectType.choices)
 
-    partner = models.ForeignKey(
-        Partner, null=True, blank=True, on_delete=models.CASCADE
-    )
-    workitem = models.ForeignKey(
-        WorkItem, null=True, blank=True, on_delete=models.CASCADE
-    )
-
-    objects = RelationReferenceQuerySet.as_manager()
-
-    class Meta:
-        indexes = [
-            models.Index(fields=["type"]),
-            models.Index(fields=["partner"]),
-            models.Index(fields=["workitem"]),
-            models.Index(fields=["type", "partner"]),
-            models.Index(fields=["type", "workitem"]),
-        ]
-        constraints = [
-            models.CheckConstraint(
-                check=(
-                    models.Q(partner__isnull=False, workitem__isnull=True)
-                    | models.Q(partner__isnull=True, workitem__isnull=False)
-                ),
-                name="exactly_one_reference",
-            )
-        ]
-
-    def __str__(self):
-        if self.partner:
-            return str(self.partner)
-        if self.workitem:
-            return str(self.workitem)
-        return str(self.id)
-
-    def get_object(self):
-        """Get the actual object referenced by this RelationReference."""
-        from relations.utilities.validation_helpers import get_real_instance
-        if self.partner:
-            return get_real_instance(self.partner)
-        if self.workitem:
-            return get_real_instance(self.workitem)
-        return None
 
 
 class Relation(AuditModel, TenantValidatorMixin):
+    """
+    Represents a relationship between two partners or workitems.
+    """
     tenant = models.ForeignKey(
         Tenant, on_delete=models.CASCADE, related_name="relations"
     )
 
-    source = models.ForeignKey(
-        "RelationReference", on_delete=models.CASCADE, related_name="relation_sources"
-    )
-    target = models.ForeignKey(
-        "RelationReference", on_delete=models.CASCADE, related_name="relation_targets"
-    )
-
-    relation_type = models.CharField(
-        max_length=50, choices=RelationType.choices, null=True, blank=True
-    )
+    # Source fields
+    source_type = models.CharField(max_length=20, choices=RelationObjectType.choices)
+    source_partner = models.ForeignKey(Partner, null=True, blank=True, on_delete=models.CASCADE, related_name='source_relations')
+    source_workitem = models.ForeignKey(WorkItem, null=True, blank=True, on_delete=models.CASCADE, related_name='source_relations')
+    
+    # Target fields
+    target_type = models.CharField(max_length=20, choices=RelationObjectType.choices)
+    target_partner = models.ForeignKey(Partner, null=True, blank=True, on_delete=models.CASCADE, related_name='target_relations')
+    target_workitem = models.ForeignKey(WorkItem, null=True, blank=True, on_delete=models.CASCADE, related_name='target_relations')
+    
+    role = models.ForeignKey(Role, on_delete=models.CASCADE)
 
     objects = RelationQuerySet.as_manager()
 
-
-
     def __str__(self):
-        return f"{self.source} → {self.target} ({self.relation_type})"
+        source_str = str(self.source_partner) if self.source_partner else str(self.source_workitem)
+        target_str = str(self.target_partner) if self.target_partner else str(self.target_workitem)
+        return f"{source_str} → {target_str} ({self.role.label})"
 
     class Meta:
-        indexes = [
-            models.Index(fields=["tenant"]),
-            models.Index(fields=["relation_type"]),
-            models.Index(fields=["source"]),
-            models.Index(fields=["target"]),
-            models.Index(fields=["tenant", "relation_type"]),
-            models.Index(fields=["source", "target"]),
-            models.Index(fields=["tenant", "source"]),
-            models.Index(fields=["tenant", "target"]),
-        ]
-
-
-# Role to assign multiple roles to one Partner if needed
-class Role(AuditModel):
-    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name="roles")
-    target = models.ForeignKey(Partner, on_delete=models.CASCADE)
-
-    system_role = models.CharField(
-        max_length=50, choices=SystemRole.choices, null=True, blank=True
-    )
-    custom_role = models.ForeignKey(
-        CustomRole, null=True, blank=True, on_delete=models.PROTECT
-    )
-
-    objects = RoleQuerySet.as_manager()
-
-
-
-    def __str__(self):
-        role = (
-            self.get_system_role_display()
-            if self.system_role
-            else self.custom_role.label
-        )
-        return f"{self.target} as {role}"
-
-    def get_role_type_display(self):
-        return self.get_system_role_display() if self.system_role else self.custom_role.label
-    
-    class Meta:
-        indexes = [
-            models.Index(fields=["tenant"]),
-            models.Index(fields=["target"]),
-            models.Index(fields=["system_role"]),
-            models.Index(fields=["custom_role"]),
-            models.Index(fields=["tenant", "system_role"]),
-            models.Index(fields=["tenant", "custom_role"]),
-        ]
         constraints = [
-            models.UniqueConstraint(
-                fields=["tenant", "target", "system_role"],
-                condition=models.Q(system_role__isnull=False),
-                name="unique_system_role_per_target",
+            # Source constraints
+            models.CheckConstraint(
+                check=(
+                    models.Q(source_partner__isnull=False, source_workitem__isnull=True) |
+                    models.Q(source_partner__isnull=True, source_workitem__isnull=False)
+                ),
+                name="exactly_one_source_reference",
             ),
-            models.UniqueConstraint(
-                fields=["tenant", "target", "custom_role"],
-                condition=models.Q(custom_role__isnull=False),
-                name="unique_custom_role_per_target",
+            # Target constraints
+            models.CheckConstraint(
+                check=(
+                    models.Q(target_partner__isnull=False, target_workitem__isnull=True) |
+                    models.Q(target_partner__isnull=True, target_workitem__isnull=False)
+                ),
+                name="exactly_one_target_reference",
             ),
         ]

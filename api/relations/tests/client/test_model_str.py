@@ -17,12 +17,5 @@ class TestModelStrCoverage(FullySetupTest):
 
     def test_role_str(self):
         person = Person.objects.create(tenant=self.tenant, first_name='John', last_name='Doe')
-        # Create a RelationReference for the person
-        from relations.models import RelationReference
-        person_ref = RelationReference.objects.create(
-            type='partner',
-            partner=person
-        )
-        role = Role.objects.create(tenant=self.tenant, target=person_ref, system_role=SystemRole.ADMIN)
-        self.assertIn('John Doe', str(role))
+        role = Role.objects.create(tenant=self.tenant, label="Admin", is_system=False)
         self.assertIn('Admin', str(role)) 

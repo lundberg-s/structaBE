@@ -6,7 +6,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 
 from relations.models import Partner, Role
 from relations.choices import SystemRole
-from relations.tests.factory import create_relation_reference_for_person, create_relation_reference_for_organization
+
 from core.views.base_views import BaseView
 
 class PartnerListView(BaseView, ListCreateAPIView):
@@ -18,20 +18,7 @@ class PartnerListView(BaseView, ListCreateAPIView):
 
     def perform_create(self, serializer):
         partner = serializer.save(tenant=self.get_tenant())
-        # Create RelationReference for the partner
-        if hasattr(partner, 'person'):
-            ref = create_relation_reference_for_person(partner)
-        elif hasattr(partner, 'organization'):
-            ref = create_relation_reference_for_organization(partner)
-        else:
-            return  # Should not happen
-        
-        # Create a role for the partner
-        Role.objects.create(
-            tenant=self.get_tenant(),
-            target=ref,
-            system_role=SystemRole.CONTACT_INFO
-        )
+        # Note: Role assignment is now handled directly on the Partner model
 
 
 class PartnerDetailView(BaseView, RetrieveAPIView):
