@@ -1,5 +1,6 @@
 from django.contrib import admin
-from relations.models import Partner, Person, Organization, Role, Relation
+from relations.models import Partner, Person, Organization, Relation
+from core.models import Role
 
 
 @admin.register(Partner)
@@ -51,24 +52,7 @@ class OrganizationAdmin(admin.ModelAdmin):
     ordering = ('name',)
 
 
-@admin.register(Role)
-class RoleAdmin(admin.ModelAdmin):
-    list_display = ('id', 'label', 'is_system', 'tenant', 'created_at')
-    list_filter = ('is_system', 'created_at', 'updated_at', 'tenant')
-    search_fields = ('label',)
-    readonly_fields = ('id', 'created_at', 'updated_at')
-    ordering = ('-created_at',)
-    
-    fieldsets = (
-        ('Role Information', {
-            'fields': ('label', 'is_system', 'tenant'),
-            'description': 'Create roles for the system. System roles are available to all tenants.'
-        }),
-        ('Metadata', {
-            'fields': ('id', 'created_at', 'updated_at'),
-            'classes': ('collapse',)
-        }),
-    )
+
 
 
 @admin.register(Relation)

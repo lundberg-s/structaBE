@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.core.exceptions import ValidationError
-from relations.models import Relation, Partner, WorkItem
+from relations.models import Relation, Partner, Person, WorkItem
 from relations.choices import RelationObjectType
 
 
@@ -10,6 +10,8 @@ class RelationSerializer(serializers.ModelSerializer):
     target_partner_id = serializers.UUIDField(write_only=True, required=False, allow_null=True)
     target_workitem_id = serializers.UUIDField(write_only=True, required=False, allow_null=True)
     role_id = serializers.UUIDField(write_only=True)
+    source_type = serializers.CharField(read_only=True)
+    target_type = serializers.CharField(read_only=True)
 
     class Meta:
         model = Relation
@@ -101,7 +103,8 @@ class RelationSerializer(serializers.ModelSerializer):
         # Set source fields
         if source_partner_id:
             validated_data['source_partner_id'] = source_partner_id
-            validated_data['source_type'] = RelationObjectType.PERSON if hasattr(Partner.objects.get(id=source_partner_id), 'person') else RelationObjectType.ORGANIZATION
+            source_partner = Partner.objects.get(id=source_partner_id)
+            validated_data['source_type'] = RelationObjectType.PERSON if isinstance(source_partner, Person) else RelationObjectType.ORGANIZATION
         else:
             validated_data['source_workitem_id'] = source_workitem_id
             validated_data['source_type'] = RelationObjectType.WORKITEM
@@ -109,13 +112,15 @@ class RelationSerializer(serializers.ModelSerializer):
         # Set target fields
         if target_partner_id:
             validated_data['target_partner_id'] = target_partner_id
-            validated_data['target_type'] = RelationObjectType.PERSON if hasattr(Partner.objects.get(id=target_partner_id), 'person') else RelationObjectType.ORGANIZATION
+            target_partner = Partner.objects.get(id=target_partner_id)
+            validated_data['target_type'] = RelationObjectType.PERSON if isinstance(target_partner, Person) else RelationObjectType.ORGANIZATION
         else:
             validated_data['target_workitem_id'] = target_workitem_id
             validated_data['target_type'] = RelationObjectType.WORKITEM
         
         # Set role
-        validated_data['role_id'] = role_id
+        from core.models import Role
+        validated_data['role'] = Role.objects.get(id=role_id)
         
         # Set tenant
         request = self.context.get('request')

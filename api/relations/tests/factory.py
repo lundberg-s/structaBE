@@ -1,10 +1,27 @@
 import uuid
-from relations.models import Person, Organization, Role, Relation
+from relations.models import Person, Organization, Relation
+from core.models import Role
 from relations.choices import RelationObjectType, SystemRole
 from core.models import Tenant
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
+
+def create_tenant(work_item_type='ticket'):
+    return Tenant.objects.create(work_item_type=work_item_type)
+
+def create_user(tenant, username=None, password='testpass', email=None, **kwargs):
+    if username is None:
+        username = f'testuser_{uuid.uuid4().hex[:8]}'
+    if email is None:
+        email = f'{username}_{uuid.uuid4().hex[:8]}@example.com'
+    return User.objects.create_user(
+        username=username,
+        password=password,
+        email=email,
+        tenant=tenant,
+        **kwargs
+    )
 
 def create_person(tenant, first_name='John', last_name='Doe', **kwargs):
     return Person.objects.create(tenant=tenant, first_name=first_name, last_name=last_name, **kwargs)
@@ -21,9 +38,14 @@ def create_custom_role(tenant, key=None, label=None):
         label = f'Custom Role {uuid.uuid4().hex[:4]}'
     return CustomRole.objects.create(tenant=tenant, key=key, label=label)
 
-def create_role(tenant, label, is_system=False):
+def create_role(tenant, key=None, label=None, is_system=False):
+    if key is None:
+        key = f'role_{uuid.uuid4().hex[:6]}'
+    if label is None:
+        label = f'Role {uuid.uuid4().hex[:4]}'
     return Role.objects.create(
-        tenant=tenant,
+        tenant=None if is_system else tenant,
+        key=key,
         label=label,
         is_system=is_system
     )
@@ -33,7 +55,7 @@ def create_relation(tenant, source_partner, target_partner, role):
         tenant=tenant,
         source_partner=source_partner,
         target_partner=target_partner,
-        source_type='person' if hasattr(source_partner, 'person') else 'organization',
-        target_type='person' if hasattr(target_partner, 'person') else 'organization',
+        source_type=RelationObjectType.PERSON if isinstance(source_partner, Person) else RelationObjectType.ORGANIZATION,
+        target_type=RelationObjectType.PERSON if isinstance(target_partner, Person) else RelationObjectType.ORGANIZATION,
         role=role
     ) 

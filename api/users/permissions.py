@@ -1,22 +1,23 @@
 from rest_framework.permissions import BasePermission
-from relations.choices import SystemRole
+from core.enums.system_role_enums import SystemRole
 
 # Helper function to check if a user has any of the allowed roles
 def user_has_role(user, roles):
     partner = getattr(user, 'partner', None)
-    if not partner:
+    if not partner or not partner.role:
         return False
-    # Check if partner has any roles with the specified system roles
-    return partner.get_roles().filter(system_role__in=roles).exists()
+    # Check if partner's role key matches any of the specified system roles
+    return partner.role.key in [role.value for role in roles]
 
 # Generic base permission class
 class HasAnyRole(BasePermission):
     allowed_roles = []
     def has_permission(self, request, view):
         partner = getattr(request.user, 'partner', None)
-        if not partner:
+        if not partner or not partner.role:
             return False
-        return partner.get_roles().filter(system_role__in=self.allowed_roles).exists()
+        # Check if partner's role key matches any of the allowed roles
+        return partner.role.key in [role.value for role in self.allowed_roles]
 
 # --- Tenant Role Permission Classes (Matrix-aligned) ---
 

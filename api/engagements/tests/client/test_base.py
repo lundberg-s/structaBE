@@ -30,9 +30,11 @@ class FullySetupTest(AuthMixin, TestCase):
 
         # Create a person for the user and assign tenant_employee role
         person = create_person(tenant=cls.tenant, first_name='Test', last_name='User')
+        role = create_role(tenant=cls.tenant, key=SystemRole.TENANT_EMPLOYEE.value, label=SystemRole.TENANT_EMPLOYEE.label, is_system=True)
+        person.role = role
+        person.save()
         cls.user.partner = person
         cls.user.save()
-        create_role(tenant=cls.tenant, target=person, system_role=SystemRole.TENANT_EMPLOYEE)
 
         cls.client = Client()
         login_url = reverse('login')
@@ -63,9 +65,11 @@ class TicketTenancySetup(AuthMixin, TestCase):
 
         # Create a person for the user and assign tenant_employee role
         person = create_person(tenant=cls.tenant, first_name='Test', last_name='User')
+        role = create_role(tenant=cls.tenant, key=SystemRole.TENANT_EMPLOYEE.value, label=SystemRole.TENANT_EMPLOYEE.label, is_system=True)
+        person.role = role
+        person.save()
         cls.user.partner = person
         cls.user.save()
-        create_role(tenant=cls.tenant, target=person, system_role=SystemRole.TENANT_EMPLOYEE)
 
         cls.client = Client()
         login_url = reverse('login')
@@ -97,9 +101,11 @@ class JobTenancySetup(AuthMixin, TestCase):
 
         # Create a person for the user and assign tenant_employee role
         person = create_person(tenant=cls.tenant, first_name='Test', last_name='User')
+        role = create_role(tenant=cls.tenant, key=SystemRole.TENANT_EMPLOYEE.value, label=SystemRole.TENANT_EMPLOYEE.label, is_system=True)
+        person.role = role
+        person.save()
         cls.user.partner = person
         cls.user.save()
-        create_role(tenant=cls.tenant, target=person, system_role=SystemRole.TENANT_EMPLOYEE)
 
         cls.client = Client()
         login_url = reverse('login')
@@ -130,9 +136,11 @@ class CaseTenancySetup(AuthMixin, TestCase):
 
         # Create a person for the user and assign tenant_employee role
         person = create_person(tenant=cls.tenant, first_name='Test', last_name='User')
+        role = create_role(tenant=cls.tenant, key=SystemRole.TENANT_EMPLOYEE.value, label=SystemRole.TENANT_EMPLOYEE.label, is_system=True)
+        person.role = role
+        person.save()
         cls.user.partner = person
         cls.user.save()
-        create_role(tenant=cls.tenant, target=person, system_role=SystemRole.TENANT_EMPLOYEE)
 
         cls.client = Client()
         login_url = reverse('login')

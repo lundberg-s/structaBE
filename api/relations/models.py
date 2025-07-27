@@ -3,14 +3,11 @@ from django.forms import ValidationError
 
 from relations.choices import RelationObjectType, SystemRole, RelationType
 from relations.utilities.validation_helpers import (
-    SingleReferenceValidatorMixin,
-    TypeInstanceValidatorMixin,
     TenantValidatorMixin,
     validate_tenant_consistency,
-    get_real_instance,
 )
 from engagements.models import WorkItem
-from core.models import AuditModel, Tenant
+from core.models import AuditModel, Tenant, Role
 from relations.managers import (
     CustomRoleQuerySet,
     PartnerQuerySet,
@@ -24,47 +21,6 @@ from relations.managers import (
 # Partner Pattern: Unifies people and organizations as 'actors' in the system.
 # Allows roles, relationships, and references to be generic and flexible.
 # ---
-
-
-class CustomRole(AuditModel):
-    tenant = models.ForeignKey(
-        Tenant, on_delete=models.CASCADE, related_name="custom_roles"
-    )
-    key = models.CharField(max_length=50)
-    label = models.CharField(max_length=100)
-
-    objects = CustomRoleQuerySet.as_manager()
-
-    class Meta:
-        unique_together = ("tenant", "key")
-
-    def __str__(self):
-        return self.label
-
-
-class Role(AuditModel):
-    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, null=True, blank=True)  # Null for system roles
-    label = models.CharField(max_length=100)  # "Super User", "Admin", "Premium Customer", etc.
-    is_system = models.BooleanField(default=False)  # True for system roles
-    
-    objects = RoleQuerySet.as_manager()
-
-    def __str__(self):
-        return self.label
-    
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=("label",),
-                condition=models.Q(is_system=True),
-                name="unique_system_role_label",
-            ),
-            models.UniqueConstraint(
-                fields=("tenant", "label"),
-                condition=models.Q(is_system=False),
-                name="unique_tenant_role_label",
-            ),
-        ]
 
 
 
@@ -172,6 +128,18 @@ class Relation(AuditModel, TenantValidatorMixin):
     role = models.ForeignKey(Role, on_delete=models.CASCADE)
 
     objects = RelationQuerySet.as_manager()
+
+    def clean(self):
+        """Validate the relation using the validation helpers."""
+        super().clean()
+        
+        # Validate tenant consistency
+        self.validate_tenant_consistency(self.tenant, self.source_partner, self.target_partner, self.source_workitem, self.target_workitem, self.role)
+
+    def save(self, *args, **kwargs):
+        """Override save to run validation."""
+        self.clean()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         source_str = str(self.source_partner) if self.source_partner else str(self.source_workitem)

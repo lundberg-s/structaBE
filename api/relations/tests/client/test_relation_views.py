@@ -12,8 +12,8 @@ class TestRelationViews(FullySetupTest):
         super().setUp()
         self.person = create_person(self.tenant)
         self.org = create_organization(self.tenant)
-        self.member_role = create_role(self.tenant, label="Member", is_system=False)
-        self.customer_role = create_role(self.tenant, label="Customer", is_system=False)
+        self.member_role = create_role(self.tenant, key="member", label="Member", is_system=False)
+        self.customer_role = create_role(self.tenant, key="customer", label="Customer", is_system=False)
 
     def test_create_relation_person_to_org(self):
         self.authenticate_client()
@@ -26,8 +26,8 @@ class TestRelationViews(FullySetupTest):
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         relation = Relation.objects.get(id=response.data['id'])
-        self.assertEqual(relation.source_partner, self.person)
-        self.assertEqual(relation.target_partner, self.org)
+        self.assertEqual(relation.source_partner.id, self.person.id)
+        self.assertEqual(relation.target_partner.id, self.org.id)
         self.assertEqual(relation.role, self.member_role)
         self.assertEqual(relation.tenant, self.tenant)
 
@@ -42,8 +42,8 @@ class TestRelationViews(FullySetupTest):
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         relation = Relation.objects.get(id=response.data['id'])
-        self.assertEqual(relation.source_partner, self.org)
-        self.assertEqual(relation.target_partner, self.person)
+        self.assertEqual(relation.source_partner.id, self.org.id)
+        self.assertEqual(relation.target_partner.id, self.person.id)
         self.assertEqual(relation.role, self.customer_role)
         self.assertEqual(relation.tenant, self.tenant)
 
@@ -63,12 +63,18 @@ class TestRelationViews(FullySetupTest):
         from core.tests.factory import create_tenant
         other_tenant = create_tenant()
         other_person = create_person(other_tenant)
-        other_role = create_role(other_tenant, label="Member", is_system=False)
+        other_role = create_role(other_tenant, key="member", label="Member", is_system=False)
         
-        # Create relation in other tenant
-        relation = create_relation(other_tenant, other_person, self.org, other_role)
+        # Try to create a relation between objects from different tenants
+        # This should fail due to tenant validation
+        with self.assertRaises(Exception):  # ValidationError or similar
+            create_relation(other_tenant, other_person, self.org, other_role)
         
-        # Try to access other tenant's relation
+        # Create a valid relation within the other tenant
+        other_org = create_organization(other_tenant)
+        relation = create_relation(other_tenant, other_person, other_org, other_role)
+        
+        # Try to access other tenant's relation from current tenant
         url = reverse('relations:relation-detail', args=[relation.id])
         response = self.client.get(url)
         self.assertIn(response.status_code, (403, 404))

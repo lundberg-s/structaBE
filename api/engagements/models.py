@@ -12,6 +12,7 @@ from engagements.choices import (
     ActivityLogActivityTypes,
 )
 from engagements.utilities.ticket_utilities import generate_ticket_number
+from relations.utilities.validation_helpers import TenantValidatorMixin, validate_tenant_consistency
 
 User = get_user_model()
 
@@ -129,7 +130,7 @@ class Job(WorkItem):
     pass
 
 
-class Attachment(AuditModel):
+class Attachment(AuditModel, TenantValidatorMixin):
     tenant = models.ForeignKey(
         Tenant, on_delete=models.CASCADE, related_name="attachments"
     )
@@ -141,26 +142,40 @@ class Attachment(AuditModel):
     file_size = models.IntegerField()
     mime_type = models.CharField(max_length=100, blank=True, null=True)
 
-    def save(self, *args, **kwargs):
-        if self.file and self.file.name and not self.mime_type:
-            mime, _ = mimetypes.guess_type(self.file.name)
-            self.mime_type = mime or ""
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        return f"{self.filename} - {self.work_item.title}"
-
     class Meta:
         indexes = [
             models.Index(fields=["tenant"]),
             models.Index(fields=["work_item"]),
             models.Index(fields=["filename"]),
-            models.Index(fields=["mime_type"]),
+            models.Index(fields=["created_by"]),
+            models.Index(fields=["created_at"]),
             models.Index(fields=["tenant", "work_item"]),
+            models.Index(fields=["tenant", "created_by"]),
         ]
 
+    def clean(self):
+        """Validate the attachment using the validation helpers."""
+        super().clean()
+        
+        # Validate tenant consistency
+        self.validate_tenant_consistency(self.tenant, self.work_item)
 
-class Comment(AuditModel):
+    def save(self, *args, **kwargs):
+        """Override save to run validation and handle mime type detection."""
+        self.clean()
+        
+        # Handle mime type detection
+        if self.file and self.file.name and not self.mime_type:
+            mime, _ = mimetypes.guess_type(self.file.name)
+            self.mime_type = mime or ""
+            
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.filename} attached to {self.work_item.title}"
+
+
+class Comment(AuditModel, TenantValidatorMixin):
     tenant = models.ForeignKey(
         Tenant, on_delete=models.CASCADE, related_name="comments"
     )
@@ -174,15 +189,29 @@ class Comment(AuditModel):
         indexes = [
             models.Index(fields=["tenant"]),
             models.Index(fields=["work_item"]),
+            models.Index(fields=["created_by"]),
             models.Index(fields=["created_at"]),
             models.Index(fields=["tenant", "work_item"]),
+            models.Index(fields=["tenant", "created_by"]),
         ]
 
+    def clean(self):
+        """Validate the comment using the validation helpers."""
+        super().clean()
+        
+        # Validate tenant consistency
+        self.validate_tenant_consistency(self.tenant, self.work_item)
+
+    def save(self, *args, **kwargs):
+        """Override save to run validation."""
+        self.clean()
+        super().save(*args, **kwargs)
+
     def __str__(self):
-        return f"Comment by {str(self.created_by)} on {str(self.work_item)}"
+        return f"Comment by {self.created_by.username} on {self.work_item.title}"
 
 
-class ActivityLog(AuditModel):
+class ActivityLog(AuditModel, TenantValidatorMixin):
     tenant = models.ForeignKey(
         Tenant, on_delete=models.CASCADE, related_name="activity_logs"
     )
@@ -204,16 +233,32 @@ class ActivityLog(AuditModel):
             models.Index(fields=["tenant"]),
             models.Index(fields=["work_item"]),
             models.Index(fields=["activity_type"]),
+            models.Index(fields=["created_by"]),
             models.Index(fields=["created_at"]),
             models.Index(fields=["tenant", "work_item"]),
-            models.Index(fields=["work_item", "created_at"]),
+            models.Index(fields=["tenant", "activity_type"]),
+            models.Index(fields=["tenant", "created_by"]),
         ]
 
+    def clean(self):
+        """Validate the activity log using the validation helpers."""
+        super().clean()
+        
+        # Validate tenant consistency (work_item can be None)
+        if self.work_item:
+            self.validate_tenant_consistency(self.tenant, self.work_item)
+
+    def save(self, *args, **kwargs):
+        """Override save to run validation."""
+        self.clean()
+        super().save(*args, **kwargs)
+
     def __str__(self):
-        return f"{self.activity_type} by {str(self.created_by)} on {str(self.work_item)}"
+        work_item_str = f" on {self.work_item.title}" if self.work_item else ""
+        return f"{self.activity_type}{work_item_str} by {self.created_by.username}"
 
 
-class Assignment(AuditModel):
+class Assignment(AuditModel, TenantValidatorMixin):
     tenant = models.ForeignKey(
         Tenant, on_delete=models.CASCADE, related_name="assignments"
     )
@@ -221,19 +266,31 @@ class Assignment(AuditModel):
         "WorkItem", on_delete=models.CASCADE, related_name="assigned_to"
     )
     user = models.ForeignKey(
-        "users.User", on_delete=models.CASCADE, related_name="assignments"
+        User, on_delete=models.CASCADE, related_name="assignments"
     )
-
 
     class Meta:
         unique_together = ("work_item", "user")
         indexes = [
+            models.Index(fields=["tenant"]),
             models.Index(fields=["work_item"]),
             models.Index(fields=["user"]),
-            models.Index(fields=["created_by"]),
             models.Index(fields=["created_at"]),
-            models.Index(fields=["user", "created_at"]),
+            models.Index(fields=["tenant", "work_item"]),
+            models.Index(fields=["tenant", "user"]),
         ]
 
+    def clean(self):
+        """Validate the assignment using the validation helpers."""
+        super().clean()
+        
+        # Validate tenant consistency
+        self.validate_tenant_consistency(self.tenant, self.work_item, self.user)
+
+    def save(self, *args, **kwargs):
+        """Override save to run validation."""
+        self.clean()
+        super().save(*args, **kwargs)
+
     def __str__(self):
-        return f"{self.user} assigned to {self.work_item} by {self.created_by}"
+        return f"{self.user.username} assigned to {self.work_item.title}"

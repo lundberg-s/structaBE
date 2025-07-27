@@ -5,7 +5,7 @@ from users.models import User
 
 def update_work_item_assignments(work_item, new_user_ids, created_by_user):
     current_user_ids = set(
-        work_item.assignments.values_list('user_id', flat=True)
+        work_item.assigned_to.values_list('user_id', flat=True)
     )
     new_user_ids = set(new_user_ids)
 
@@ -26,13 +26,13 @@ def _add_assignments(work_item, user_ids, created_by_user):
 
     valid_users = User.objects.filter(id__in=user_ids, tenant=tenant)
     found_user_ids = set(user.id for user in valid_users)
-    missing_ids = user_ids - found_user_ids
+    missing_ids = set(user_ids) - found_user_ids
 
     if missing_ids:
         raise ValidationError(f"User(s) with ID(s) {missing_ids} not found or not in the same tenant.")
 
     assignments = [
-        Assignment(work_item=work_item, user=user, created_by=created_by_user)
+        Assignment(work_item=work_item, user=user, created_by=created_by_user, tenant=tenant)
         for user in valid_users
     ]
     Assignment.objects.bulk_create(assignments)

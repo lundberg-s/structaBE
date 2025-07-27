@@ -6,11 +6,12 @@ from rest_framework.test import APIClient
 from relations.tests.factory import (
     create_person, create_organization, create_role, create_relation
 )
-from relations.models import Relation, Role
+from relations.models import Relation
+from core.models import Role
 from relations.choices import RelationObjectType
 from engagements.models import Ticket
 from engagements.choices import WorkItemStatusTypes, WorkItemCategoryTypes, WorkItemPriorityTypes
-from core.tests.factory import create_tenant, create_user
+from relations.tests.factory import create_tenant, create_user
 
 
 class TestWorkItemIntegration(TestCase):
@@ -45,7 +46,7 @@ class TestWorkItemIntegration(TestCase):
         self.client.force_authenticate(user=self.user)
         
         # Create a role for the relationship
-        role = create_role(self.tenant, label="Customer", is_system=False)
+        role = create_role(self.tenant, key="customer", label="Customer", is_system=False)
         
         # Create relation: Ticket -> Person (customer relationship)
         data = {
@@ -61,8 +62,8 @@ class TestWorkItemIntegration(TestCase):
         
         # Verify the relation was created correctly
         relation = Relation.objects.get(id=response.data['id'])
-        self.assertEqual(relation.source_workitem, self.ticket)
-        self.assertEqual(relation.target_partner, self.person)
+        self.assertEqual(relation.source_workitem.id, self.ticket.id)
+        self.assertEqual(relation.target_partner.id, self.person.id)
         self.assertEqual(relation.role, role)
         self.assertEqual(relation.tenant, self.tenant)
 
@@ -71,7 +72,7 @@ class TestWorkItemIntegration(TestCase):
         self.client.force_authenticate(user=self.user)
         
         # Create a role for the relationship
-        role = create_role(self.tenant, label="Customer", is_system=False)
+        role = create_role(self.tenant, key="customer", label="Customer", is_system=False)
         
         # Create relation: Person -> Ticket (customer relationship)
         data = {
@@ -87,8 +88,8 @@ class TestWorkItemIntegration(TestCase):
         
         # Verify the relation was created correctly
         relation = Relation.objects.get(id=response.data['id'])
-        self.assertEqual(relation.source_partner, self.person)
-        self.assertEqual(relation.target_workitem, self.ticket)
+        self.assertEqual(relation.source_partner.id, self.person.id)
+        self.assertEqual(relation.target_workitem.id, self.ticket.id)
         self.assertEqual(relation.role, role)
         self.assertEqual(relation.tenant, self.tenant)
 
@@ -97,7 +98,7 @@ class TestWorkItemIntegration(TestCase):
         self.client.force_authenticate(user=self.user)
         
         # Create a role for the relationship
-        role = create_role(self.tenant, label="Vendor", is_system=False)
+        role = create_role(self.tenant, key="vendor", label="Vendor", is_system=False)
         
         # Create relation: Organization -> Ticket (vendor relationship)
         data = {
@@ -113,8 +114,8 @@ class TestWorkItemIntegration(TestCase):
         
         # Verify the relation was created correctly
         relation = Relation.objects.get(id=response.data['id'])
-        self.assertEqual(relation.source_partner, self.org)
-        self.assertEqual(relation.target_workitem, self.ticket)
+        self.assertEqual(relation.source_partner.id, self.org.id)
+        self.assertEqual(relation.target_workitem.id, self.ticket.id)
         self.assertEqual(relation.role, role)
         self.assertEqual(relation.tenant, self.tenant)
 

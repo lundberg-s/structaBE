@@ -5,7 +5,8 @@ from rest_framework.permissions import AllowAny
 from django.db import transaction
 from users.models import User, Tenant
 from core.models import Tenant
-from relations.models import Person, Organization, Role
+from relations.models import Person, Organization
+from core.models import Role
 from relations.choices import SystemRole
 
 from users.serializers.signup_serializers import SignupSerializer
