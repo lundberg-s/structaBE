@@ -1,119 +1,70 @@
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
 from rest_framework.filters import SearchFilter, OrderingFilter
-from rest_framework.exceptions import PermissionDenied
 from django_filters.rest_framework import DjangoFilterBackend
 
-from engagements.serializers.ticket_serializers import TicketSerializer, TicketWritableSerializer
-from engagements.serializers.job_serializers import JobSerializer
-from engagements.serializers.case_serializers import CaseSerializer
-
-from engagements.models import Ticket, Job, Case, WorkItem, ActivityLog
-
-from core.models import WorkItemType
+from engagements.models import WorkItem
+from core.views.base_views import BaseView
 
 
-class BaseWorkItemListView(ListCreateAPIView):
+class BaseWorkItemView(BaseView):
+    """Base class for work item views with tenant type checking."""
+
+    allowed_type = None  # e.g., WorkItemType.TICKET
+
+    def _get_tenant_type(self):
+        return self.get_tenant().work_item_type.lower()
+
+    def _check_tenant_type(self):
+        return self._get_tenant_type() == self.allowed_type
+
+    def _log_activity(self, instance, activity_type, action_text):
+        """Log activity for work items."""
+        self.log_activity(instance, activity_type, action_text)
+
+
+class BaseWorkItemListView(BaseWorkItemView, ListCreateAPIView):
     model = None
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    allowed_type = None
 
     def get_queryset(self):
-        if self.request.user.tenant.work_item_type.lower() != self.allowed_type:
+        if not self._check_tenant_type():
             return self.model.objects.none()
-        return self.model.objects.active().filter(tenant=self.request.user.tenant)
+        
+        # Use the serializer's optimized queryset instead of managers.py
+        base_queryset = self.model.objects.active().for_tenant(self.get_tenant())
+        return self.get_serializer_class().get_optimized_queryset(base_queryset)
 
     def perform_create(self, serializer):
-        if self.request.user.tenant.work_item_type.lower() == self.allowed_type:
-            instance = serializer.save(tenant=self.request.user.tenant, created_by=self.request.user)
-            ActivityLog.objects.create(
-                tenant=self.request.user.tenant,
-                work_item=instance,
-                user=self.request.user,
-                activity_type='created',
-                description=f'{self.model.__name__} "{instance.title}" was created.'
-            )
+        if not self._check_tenant_type():
+            return  # Optionally raise PermissionDenied
+            
+        instance = serializer.save(
+            tenant=self.get_tenant(), created_by=self.get_user()
+        )
+        self._log_activity(instance, "created", "created")
 
 
-class BaseWorkItemDetailView(RetrieveUpdateDestroyAPIView):
+class BaseWorkItemDetailView(BaseWorkItemView, RetrieveUpdateDestroyAPIView):
     model = None
     permission_classes = [IsAuthenticated]
-    allowed_type = None
 
     def get_queryset(self):
-        if self.request.user.tenant.work_item_type.lower() != self.allowed_type:
+        if not self._check_tenant_type():
             return self.model.objects.none()
-        return self.model.objects.active().filter(tenant=self.request.user.tenant)
 
-    def check_object_permissions(self, request, obj):
-        super().check_object_permissions(request, obj)
-        # Only creator can update/delete
-        if request.method in ['PUT', 'PATCH', 'DELETE'] and hasattr(obj, 'created_by') and obj.created_by != request.user:
-            raise PermissionDenied('You do not have permission to modify this resource.')
+        # Use the serializer's optimized queryset instead of managers.py
+        base_queryset = self.model.objects.active().for_tenant(self.get_tenant())
+        return self.get_serializer_class().get_optimized_queryset(base_queryset)
 
     def perform_update(self, serializer):
-        if self.request.user.tenant.work_item_type.lower() == self.allowed_type:
-            instance = serializer.save(tenant=self.request.user.tenant)
-            ActivityLog.objects.create(
-                tenant=self.request.user.tenant,
-                work_item=instance,
-                user=self.request.user,
-                activity_type='updated',
-                description=f'{self.model.__name__} "{instance.title}" was updated.'
-            )
+        if not self._check_tenant_type():
+            return  # Optionally raise PermissionDenied
+
+        instance = serializer.save(tenant=self.get_tenant())
+        self._log_activity(instance, "updated", "updated")
 
     def perform_destroy(self, instance):
-        ActivityLog.objects.create(
-            tenant=self.request.user.tenant,
-            work_item=instance,
-            user=self.request.user,
-            activity_type='deleted',
-            description=f'{self.model.__name__} "{instance.title}" was deleted.'
-        )
+        self._log_activity(instance, "deleted", "deleted")
         instance.delete()
-
-
-class TicketListView(BaseWorkItemListView):
-    model = Ticket
-    serializer_class = TicketSerializer
-    allowed_type = WorkItemType.TICKET
-    filterset_fields = ['status', 'priority']
-    search_fields = ['title', 'description']
-
-class TicketDetailView(BaseWorkItemDetailView):
-    model = Ticket
-    allowed_type = WorkItemType.TICKET
-
-    def get_serializer_class(self):
-        if self.request.method in ['PUT', 'PATCH']:
-            return TicketWritableSerializer
-        return TicketSerializer
-    serializer_class = TicketSerializer
-
-
-class CaseListView(BaseWorkItemListView):
-    model = Case
-    serializer_class = CaseSerializer
-    allowed_type = WorkItemType.CASE
-    filterset_fields = ['status', 'priority']
-    search_fields = ['title', 'description']
-
-class CaseDetailView(BaseWorkItemDetailView):
-    model = Case
-    serializer_class = CaseSerializer
-    allowed_type = WorkItemType.CASE
-
-
-class JobListView(BaseWorkItemListView):
-    model = Job
-    serializer_class = JobSerializer
-    allowed_type = WorkItemType.JOB
-    filterset_fields = ['status', 'priority']
-    search_fields = ['title', 'description']
-
-class JobDetailView(BaseWorkItemDetailView):
-    model = Job
-    serializer_class = JobSerializer
-    allowed_type = WorkItemType.JOB
-

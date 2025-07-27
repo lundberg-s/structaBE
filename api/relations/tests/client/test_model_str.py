@@ -1,5 +1,7 @@
 from relations.tests.client.test_base import FullySetupTest
-from relations.models import Partner, Person, Organization, Role, PartnerRoleTypes
+from relations.models import Partner, Person, Organization
+from core.models import Role
+from relations.choices import SystemRole
 
 class TestModelStrCoverage(FullySetupTest):
     def test_partner_str(self):
@@ -16,6 +18,5 @@ class TestModelStrCoverage(FullySetupTest):
 
     def test_role_str(self):
         person = Person.objects.create(tenant=self.tenant, first_name='John', last_name='Doe')
-        role = Role.objects.create(tenant=self.tenant, partner=person, role_type=PartnerRoleTypes.ADMIN)
-        self.assertIn('John Doe', str(role))
-        self.assertIn('admin', str(role)) 
+        role = Role.objects.create(tenant=self.tenant, key="admin", label="Admin", is_system=False)
+        self.assertIn('Admin', str(role)) 

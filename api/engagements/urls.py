@@ -1,19 +1,18 @@
 from django.urls import path
-from engagements.views.work_item_views import TicketListView, CaseListView, JobListView, TicketDetailView, CaseDetailView, JobDetailView
-from engagements.views.assignment_views import AssignmentCreateView
-from engagements.views.work_item_partner_role_views import WorkItemPartnerRoleListView, WorkItemPartnerRoleDetailView
+
+from engagements.views.ticket_views import TicketListView, TicketDetailView
+from engagements.views.case_views import CaseListView, CaseDetailView
+from engagements.views.job_views import JobListView, JobDetailView
+
 from engagements.views.attachments_views import AttachmentListView, AttachmentDetailView
 from engagements.views.comments_views import CommentListView, CommentDetailView
-from engagements.views.activity_logs_views import ActivityLogListView, ActivityLogDetailView
 from engagements.views.statistics_views import WorkItemStatisticsView
+from engagements.views.audit_views import WorkItemAuditViewSet
 
 app_name = 'engagements'
 
 
 urlpatterns = [
-    path('work_item-partner-roles/', WorkItemPartnerRoleListView.as_view(), name='work_item-partner-role-list'),
-    path('work_item-partner-roles/<uuid:pk>/', WorkItemPartnerRoleDetailView.as_view(), name='work_item-partner-role-detail'),
-
     path('tickets/', TicketListView.as_view(), name='ticket-list'),
     path('tickets/<uuid:pk>/', TicketDetailView.as_view(), name='ticket-detail'),
 
@@ -28,10 +27,10 @@ urlpatterns = [
 
     path('comments/', CommentListView.as_view(), name='comment-list'),
     path('comments/<uuid:id>/', CommentDetailView.as_view(), name='comment-detail'),
-
-    path('activity-logs/', ActivityLogListView.as_view(), name='activity-log-list'),
-    path('activity-logs/<uuid:id>/', ActivityLogDetailView.as_view(), name='activity-log-detail'),
     
     path('statistics/', WorkItemStatisticsView.as_view(), name='work_item-statistics'),
-    path('assignments/', AssignmentCreateView.as_view(), name='assignment-create'),
+    
+    # Audit logs for work items
+    path('audit-logs/', WorkItemAuditViewSet.as_view({'get': 'list'}), name='workitem-audit-list'),
+    path('audit-logs/<uuid:pk>/', WorkItemAuditViewSet.as_view({'get': 'retrieve'}), name='workitem-audit-detail'),
 ]

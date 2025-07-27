@@ -13,22 +13,32 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ['id', 'email', 'tenant', 'person']
 
+    @classmethod
+    def get_optimized_queryset(cls, queryset=None):
+        """Return queryset optimized for user serialization."""
+        if queryset is None:
+            queryset = User.objects.all()
+        
+        return queryset.select_related(
+            'tenant',
+            'partner__person'
+        )
+
 
 class UserWithPersonSerializer(serializers.ModelSerializer):
-    first_name = serializers.SerializerMethodField()
-    last_name = serializers.SerializerMethodField()
-    
+    first_name = serializers.CharField(source='partner.person.first_name', default='')
+    last_name = serializers.CharField(source='partner.person.last_name', default='')
+
     class Meta:
         model = User
         fields = ['id', 'username', 'email', 'first_name', 'last_name']
     
-    def _get_partner_person_field(self, obj, field_name):
-        if hasattr(obj, 'partner') and obj.partner and hasattr(obj.partner, 'person'):
-            return getattr(obj.partner.person, field_name)
-        return getattr(obj, field_name) or ''
-    
-    def get_first_name(self, obj):
-        return self._get_partner_person_field(obj, 'first_name')
-    
-    def get_last_name(self, obj):
-        return self._get_partner_person_field(obj, 'last_name')
+    @classmethod
+    def get_optimized_queryset(cls, queryset=None):
+        """Return queryset optimized for user with person serialization."""
+        if queryset is None:
+            queryset = User.objects.all()
+        
+        return queryset.select_related(
+            'partner__person'
+        )

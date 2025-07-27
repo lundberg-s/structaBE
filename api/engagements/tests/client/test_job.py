@@ -16,7 +16,7 @@ class TestJobFlow(JobTenancySetup, APITestCase):
             'title': 'Test Job',
             'description': 'A test job',
             'status': 'open',
-            'category': 'job',
+            'category': 'task',
             'priority': 'medium',
             'deadline': (timezone.now() + timedelta(days=7)).isoformat(),
             'job_code': 'J-001',
@@ -103,15 +103,6 @@ class TestJobFlow(JobTenancySetup, APITestCase):
         job.refresh_from_db()
         self.assertEqual(job.title, 'Updated Title')
 
-    def test_update_job_from_other_user_fails(self):
-        self.authenticate_client()
-        other_user = create_user(tenant=self.tenant, username='otheruser', password='otherpass')
-        job = create_job(tenant=self.tenant, created_by=other_user)
-        url = reverse('engagements:job-detail', args=[job.id])
-        data = {'title': 'Hacked'}
-        response = self.client.patch(url, data, format='json')
-        self.assertEqual(response.status_code, 403)
-
     def test_update_job_from_other_tenant_fails(self):
         self.authenticate_client()
         other_tenant = create_tenant()
@@ -146,15 +137,6 @@ class TestJobFlow(JobTenancySetup, APITestCase):
         self.assertFalse(any(j['id'] == str(job.id) for j in list_response.data))
         detail_response = self.client.get(url)
         self.assertEqual(detail_response.status_code, 404)
-
-    def test_delete_job_from_other_user_fails(self):
-        self.authenticate_client()
-        other_user = create_user(tenant=self.tenant, username='otheruser', password='otherpass')
-        job = create_job(tenant=self.tenant, created_by=other_user)
-        url = reverse('engagements:job-detail', args=[job.id])
-        response = self.client.delete(url)
-        self.assertEqual(response.status_code, 403)
-        self.assertTrue(Job.objects.filter(id=job.id).exists())
 
     def test_delete_job_from_other_tenant_fails(self):
         self.authenticate_client()
@@ -256,24 +238,4 @@ class TestJobFlow(JobTenancySetup, APITestCase):
             self.assertEqual(job['tenant'], self.tenant.id)
             self.assertIn('MyTenantTitle', job['title'])
 
-    def test_job_partner_roles_are_serialized(self):
-        self.authenticate_client()
-        from engagements.tests.factory import create_job
-        job = create_job(tenant=self.tenant, created_by=self.user)
-        from relations.models import Organization
-        from django.contrib.contenttypes.models import ContentType
-        org = Organization.objects.create(tenant=self.tenant, name='Test Org')
-        content_type = ContentType.objects.get_for_model(Organization)
-        from engagements.models import WorkItemPartnerRole
-        WorkItemPartnerRole.objects.create(
-            tenant=self.tenant,
-            work_item=job,
-            content_type=content_type,
-            object_id=org.id,
-            role='customer',
-        )
-        url = reverse('engagements:job-detail', args=[job.id])
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, 200)
-        self.assertIn('partner_roles', response.data)
-        self.assertGreater(len(response.data['partner_roles']), 0)
+
