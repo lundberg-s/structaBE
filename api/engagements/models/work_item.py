@@ -1,11 +1,6 @@
 from django.db import models
 from core.models import Tenant, AuditModel
 from engagements.querysets.work_item_querysets import WorkItemQuerySet
-from engagements.choices.work_item_choices import (
-    WorkItemStatusTypes,
-    WorkItemPriorityTypes,
-    WorkItemCategoryTypes,
-)
 
 
 class WorkItem(AuditModel):
@@ -14,16 +9,20 @@ class WorkItem(AuditModel):
     )
     title = models.CharField(max_length=200)
     description = models.TextField()
-    status = models.CharField(
-        max_length=20,
-        choices=WorkItemStatusTypes.choices,
-        default=WorkItemStatusTypes.OPEN,
+    status = models.ForeignKey(
+        'WorkItemStatus', 
+        on_delete=models.PROTECT, 
+        related_name='status_work_items'
     )
-    category = models.CharField(max_length=100, choices=WorkItemCategoryTypes.choices)
-    priority = models.CharField(
-        max_length=20,
-        choices=WorkItemPriorityTypes.choices,
-        default=WorkItemPriorityTypes.MEDIUM,
+    category = models.ForeignKey(
+        'WorkItemCategory', 
+        on_delete=models.PROTECT, 
+        related_name='category_work_items'
+    )
+    priority = models.ForeignKey(
+        'WorkItemPriority', 
+        on_delete=models.PROTECT, 
+        related_name='priority_work_items'
     )
     deadline = models.DateTimeField(null=True, blank=True)
     is_deleted = models.BooleanField(default=False)
@@ -66,7 +65,7 @@ class WorkItem(AuditModel):
         super().delete(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.title} - {self.status}"
+        return f"{self.title} - {self.status.get_display_name() if self.status else 'No Status'}"
 
     @property
     def assigned_to(self):

@@ -16,7 +16,7 @@ from core.choices import WorkItemType
 class TicketListView(BaseWorkItemListView):
     model = Ticket
     allowed_type = WorkItemType.TICKET
-    filterset_fields = ["status", "priority"]
+    filterset_fields = ["status__label", "priority__label", "category__label"]
     search_fields = ["title", "description"]
 
     def get_serializer_class(self):

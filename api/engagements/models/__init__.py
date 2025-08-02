@@ -4,6 +4,9 @@ from .case import Case
 from .job import Job
 from .attachment import Attachment
 from .comment import Comment
+from .workitem_status import WorkItemStatus
+from .workitem_priority import WorkItemPriority
+from .workitem_category import WorkItemCategory
 
 __all__ = [
     'WorkItem',
@@ -12,4 +15,7 @@ __all__ = [
     'Job',
     'Attachment',
     'Comment',
+    'WorkItemStatus',
+    'WorkItemPriority',
+    'WorkItemCategory',
 ] 

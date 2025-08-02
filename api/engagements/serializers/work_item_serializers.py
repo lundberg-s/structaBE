@@ -4,6 +4,10 @@ from users.serializers.user_serializers import UserWithPersonSerializer
 
 from engagements.serializers.attachment_serializers import AttachmentSerializer
 from engagements.serializers.comment_serializers import CommentSerializer
+from engagements.serializers.work_item_status_serializers import WorkItemStatusListSerializer
+from engagements.serializers.work_item_priority_serializers import WorkItemPriorityListSerializer
+from engagements.serializers.work_item_category_serializers import WorkItemCategoryListSerializer
+
 
 class AssignedUserSerializer(serializers.Serializer):
     """Custom serializer for users assigned to work items via relations"""
@@ -16,6 +20,9 @@ class WorkItemListSerializer(serializers.ModelSerializer):
     tenant = serializers.PrimaryKeyRelatedField(read_only=True)
     created_by = UserWithPersonSerializer(read_only=True)
     assigned_to = AssignedUserSerializer(many=True, read_only=True)
+    status = WorkItemStatusListSerializer(read_only=True)
+    priority = WorkItemPriorityListSerializer(read_only=True)
+    category = WorkItemCategoryListSerializer(read_only=True)
 
     class Meta:
         model = WorkItem
@@ -42,6 +49,9 @@ class WorkItemListSerializer(serializers.ModelSerializer):
         return queryset.select_related(
             'created_by__partner__person',
             'tenant',
+            'status',
+            'priority',
+            'category',
         ).prefetch_related(
             'assigned_to__user__partner__person',
         )
@@ -54,6 +64,9 @@ class WorkItemSerializer(serializers.ModelSerializer):
     comments = CommentSerializer(many=True, read_only=True)
     tenant = serializers.PrimaryKeyRelatedField(read_only=True)
     assigned_to = AssignedUserSerializer(many=True, read_only=True)
+    status = WorkItemStatusListSerializer(read_only=True)
+    priority = WorkItemPriorityListSerializer(read_only=True)
+    category = WorkItemCategoryListSerializer(read_only=True)
 
     class Meta:
         model = WorkItem
@@ -83,7 +96,10 @@ class WorkItemSerializer(serializers.ModelSerializer):
         
         return queryset.select_related(
             'created_by__partner__person',
-            'tenant'
+            'tenant',
+            'status',
+            'priority',
+            'category',
         ).prefetch_related(
             'comments__created_by__partner__person',
             'assigned_to__user__partner__person',
@@ -98,11 +114,14 @@ class WorkItemCreateSerializer(serializers.ModelSerializer):
 
     @classmethod
     def get_optimized_queryset(cls, queryset=None):
-        """Return queryset optimized for work item creation."""
+        """Return queryset optimized for ticket creation."""
         if queryset is None:
             queryset = WorkItem.objects.all()
-        return queryset
-
+        
+        return queryset.select_related(
+            'created_by__partner__person',
+            'tenant',
+        )
 
 class WorkItemUpdateSerializer(serializers.ModelSerializer):
     class Meta:
@@ -112,11 +131,14 @@ class WorkItemUpdateSerializer(serializers.ModelSerializer):
 
     @classmethod
     def get_optimized_queryset(cls, queryset=None):
-        """Return queryset optimized for work item updates."""
+        """Return queryset optimized for ticket update."""
         if queryset is None:
             queryset = WorkItem.objects.all()
-        return queryset
-
+        
+        return queryset.select_related(
+            'created_by__partner__person',
+            'tenant',
+        )
 
 class WorkItemDeleteSerializer(serializers.ModelSerializer):
     class Meta:
