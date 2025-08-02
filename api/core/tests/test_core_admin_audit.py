@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.admin.sites import AdminSite
 from core.models import AuditLog, Tenant, Role
 from core.admin import TenantAdmin, RoleAdmin
-from core.admin_mixins import AdminAuditMixin
+from core.mixins import AdminAuditMixin
 
 User = get_user_model()
 
