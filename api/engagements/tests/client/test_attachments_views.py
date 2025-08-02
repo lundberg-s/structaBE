@@ -56,7 +56,7 @@ class TestAttachmentFlow(FullySetupTest, APITestCase):
         self.assertEqual(response.status_code, 400)
         # Work item from another tenant
         other_tenant = create_tenant()
-        other_ticket = create_ticket(tenant=other_tenant, created_by=self.user)
+        other_ticket = create_ticket(tenant=other_tenant, created_by=self.user, status=self.status, category=self.category, priority=self.priority)
         file2 = SimpleUploadedFile('bad.txt', b'x', content_type='text/plain')
         data = {
             'filename': 'bad.txt',
@@ -72,7 +72,7 @@ class TestAttachmentFlow(FullySetupTest, APITestCase):
         self.authenticate_client()
         # Create attachment for another tenant
         other_tenant = create_tenant()
-        other_ticket = create_ticket(tenant=other_tenant, created_by=self.user)
+        other_ticket = create_ticket(tenant=other_tenant, created_by=self.user, status=self.status, category=self.category, priority=self.priority)
         create_attachment(work_item=other_ticket, uploaded_by=self.user, filename='other.txt')
         url = reverse('engagements:attachment-list')
         response = self.client.get(url)
@@ -91,7 +91,7 @@ class TestAttachmentFlow(FullySetupTest, APITestCase):
     def test_retrieve_attachment_from_other_tenant_fails(self):
         self.authenticate_client()
         other_tenant = create_tenant()
-        other_ticket = create_ticket(tenant=other_tenant, created_by=self.user)
+        other_ticket = create_ticket(tenant=other_tenant, created_by=self.user, status=self.status, category=self.category, priority=self.priority)
         attachment = create_attachment(work_item=other_ticket, uploaded_by=self.user, filename='forbidden.txt')
         url = reverse('engagements:attachment-detail', args=[attachment.id])
         response = self.client.get(url)
@@ -110,7 +110,7 @@ class TestAttachmentFlow(FullySetupTest, APITestCase):
     def test_update_attachment_from_other_tenant_fails(self):
         self.authenticate_client()
         other_tenant = create_tenant()
-        other_ticket = create_ticket(tenant=other_tenant, created_by=self.user)
+        other_ticket = create_ticket(tenant=other_tenant, created_by=self.user, status=self.status, category=self.category, priority=self.priority)
         attachment = create_attachment(work_item=other_ticket, uploaded_by=self.user, filename='othertenant.txt')
         url = reverse('engagements:attachment-detail', args=[attachment.id])
         response = self.client.patch(url, {'filename': 'Hacked'}, format='json')
@@ -127,7 +127,7 @@ class TestAttachmentFlow(FullySetupTest, APITestCase):
     def test_delete_attachment_from_other_tenant_fails(self):
         self.authenticate_client()
         other_tenant = create_tenant()
-        other_ticket = create_ticket(tenant=other_tenant, created_by=self.user)
+        other_ticket = create_ticket(tenant=other_tenant, created_by=self.user, status=self.status, category=self.category, priority=self.priority)
         attachment = create_attachment(work_item=other_ticket, uploaded_by=self.user, filename='othertenant.txt')
         url = reverse('engagements:attachment-detail', args=[attachment.id])
         response = self.client.delete(url)

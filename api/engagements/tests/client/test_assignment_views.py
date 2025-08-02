@@ -67,7 +67,7 @@ class TestAssignmentFlow(FullySetupTest, APITestCase):
         self.authenticate_client()
         other_tenant = create_tenant()
         other_user = create_user(tenant=other_tenant, username='otheruser', email='otheruser@example.com')
-        other_ticket = create_ticket(tenant=other_tenant, created_by=other_user)
+        other_ticket = create_ticket(tenant=other_tenant, created_by=other_user, status=self.status, category=self.category, priority=self.priority)
         # Try to assign user from another tenant
         data = {
             'work_item': str(other_ticket.id),

@@ -1,7 +1,7 @@
 from django.test import TestCase, Client
 from django.urls import reverse
 from users.tests.factory import create_user
-from engagements.tests.factory import create_ticket
+from engagements.tests.factory import create_ticket, create_default_status, create_default_category, create_default_priority, create_job
 from relations.tests.factory import create_person, create_role
 from core.enums import SystemRole
 from core.models import Tenant
@@ -36,6 +36,10 @@ class FullySetupTest(AuthMixin, TestCase):
         cls.user.partner = person
         cls.user.save()
 
+        cls.status = create_default_status(tenant=cls.tenant, label='Open', created_by=cls.user)
+        cls.category = create_default_category(tenant=cls.tenant, label='Support', created_by=cls.user)
+        cls.priority = create_default_priority(tenant=cls.tenant, label='Medium', created_by=cls.user)
+
         cls.client = Client()
         login_url = reverse('login')
         login_response = cls.client.post(
@@ -47,7 +51,7 @@ class FullySetupTest(AuthMixin, TestCase):
 
         cls.token = login_response.cookies.get('access_token').value 
 
-        cls.ticket = create_ticket(tenant=cls.tenant, created_by=cls.user)
+        cls.ticket = create_ticket(tenant=cls.tenant, created_by=cls.user, status=cls.status, category=cls.category, priority=cls.priority)
 
 
 class TicketTenancySetup(AuthMixin, TestCase):
@@ -71,6 +75,10 @@ class TicketTenancySetup(AuthMixin, TestCase):
         cls.user.partner = person
         cls.user.save()
 
+        cls.status = create_default_status(tenant=cls.tenant, label='Open', created_by=cls.user)
+        cls.category = create_default_category(tenant=cls.tenant, label='Support', created_by=cls.user)
+        cls.priority = create_default_priority(tenant=cls.tenant, label='Medium', created_by=cls.user)
+
         cls.client = Client()
         login_url = reverse('login')
         login_response = cls.client.post(
@@ -82,7 +90,7 @@ class TicketTenancySetup(AuthMixin, TestCase):
 
         cls.token = login_response.cookies.get('access_token').value 
 
-        cls.ticket = create_ticket(tenant=cls.tenant, created_by=cls.user)
+        cls.ticket = create_ticket(tenant=cls.tenant, created_by=cls.user, status=cls.status, category=cls.category, priority=cls.priority)
 
 
 
@@ -107,6 +115,10 @@ class JobTenancySetup(AuthMixin, TestCase):
         cls.user.partner = person
         cls.user.save()
 
+        cls.status = create_default_status(tenant=cls.tenant, label='Open', created_by=cls.user)
+        cls.category = create_default_category(tenant=cls.tenant, label='Support', created_by=cls.user)
+        cls.priority = create_default_priority(tenant=cls.tenant, label='Medium', created_by=cls.user)
+
         cls.client = Client()
         login_url = reverse('login')
         login_response = cls.client.post(
@@ -118,7 +130,7 @@ class JobTenancySetup(AuthMixin, TestCase):
 
         cls.token = login_response.cookies.get('access_token').value 
 
-        cls.ticket = create_ticket(tenant=cls.tenant, created_by=cls.user)
+        cls.job = create_job(tenant=cls.tenant, created_by=cls.user, status=cls.status, category=cls.category, priority=cls.priority)
 
 
 class CaseTenancySetup(AuthMixin, TestCase):
@@ -142,6 +154,10 @@ class CaseTenancySetup(AuthMixin, TestCase):
         cls.user.partner = person
         cls.user.save()
 
+        cls.status = create_default_status(tenant=cls.tenant, label='Open', created_by=cls.user)
+        cls.category = create_default_category(tenant=cls.tenant, label='Support', created_by=cls.user)
+        cls.priority = create_default_priority(tenant=cls.tenant, label='Medium', created_by=cls.user)
+
         cls.client = Client()
         login_url = reverse('login')
         login_response = cls.client.post(
@@ -153,4 +169,4 @@ class CaseTenancySetup(AuthMixin, TestCase):
 
         cls.token = login_response.cookies.get('access_token').value 
 
-        cls.ticket = create_ticket(tenant=cls.tenant, created_by=cls.user)
+        cls.ticket = create_ticket(tenant=cls.tenant, created_by=cls.user, status=cls.status, category=cls.category, priority=cls.priority)

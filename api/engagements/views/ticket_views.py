@@ -1,12 +1,13 @@
+from engagements.views.work_item_views import (
+    BaseWorkItemListView,
+    BaseWorkItemDetailView,
+)
+
 from engagements.serializers.ticket_serializers import (
     TicketSerializer,
     TicketListSerializer,
     TicketCreateSerializer,
     TicketUpdateSerializer,
-)
-from engagements.views.work_item_views import (
-    BaseWorkItemListView,
-    BaseWorkItemDetailView,
 )
 
 from engagements.models import Ticket

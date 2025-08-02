@@ -3,7 +3,7 @@ from django.test import TestCase, RequestFactory
 from django.contrib.auth import get_user_model
 from django.contrib.admin.sites import AdminSite
 from core.models import AuditLog, Tenant
-from engagements.models import WorkItem, Ticket, Case, Job, Attachment, Comment
+from engagements.models import WorkItem, Ticket, Case, Job, Attachment, Comment, WorkItemStatus, WorkItemPriority, WorkItemCategory
 from engagements.admin import WorkItemAdmin, TicketAdmin, CaseAdmin, JobAdmin, AttachmentAdmin, CommentAdmin
 
 User = get_user_model()
@@ -29,6 +29,23 @@ class EngagementsAdminAuditTestCase(TestCase):
             email='user@example.com',
             password='testpass123',
             tenant=self.tenant
+        )
+        
+        # Create default status, category, and priority
+        self.status = WorkItemStatus.objects.create(
+            tenant=self.tenant,
+            label='Open',
+            created_by=self.superuser
+        )
+        self.category = WorkItemCategory.objects.create(
+            tenant=self.tenant,
+            label='Support',
+            created_by=self.superuser
+        )
+        self.priority = WorkItemPriority.objects.create(
+            tenant=self.tenant,
+            label='Medium',
+            created_by=self.superuser
         )
         
         # Set up admin site and request factory
@@ -60,8 +77,9 @@ class EngagementsAdminAuditTestCase(TestCase):
             tenant=self.tenant,
             title='Test Work Item',
             description='Test description',
-            status='open',
-            priority='medium'
+            status=self.status,
+            category=self.category,
+            priority=self.priority
         )
         
         request = self._create_request()
@@ -86,8 +104,9 @@ class EngagementsAdminAuditTestCase(TestCase):
             tenant=self.tenant,
             title='Test Ticket',
             description='Test ticket description',
-            priority='medium',
-            status='open'
+            priority=self.priority,
+            status=self.status,
+            category=self.category
         )
         
         request = self._create_request()
@@ -113,7 +132,9 @@ class EngagementsAdminAuditTestCase(TestCase):
             title='Test Case',
             description='Test case description',
             legal_area='civil',
-            status='active'
+            status=self.status,
+            category=self.category,
+            priority=self.priority
         )
         
         request = self._create_request()
@@ -140,7 +161,9 @@ class EngagementsAdminAuditTestCase(TestCase):
             description='Test job description',
             job_code='JOB-001',
             estimated_hours=10,
-            status='pending'
+            status=self.status,
+            category=self.category,
+            priority=self.priority
         )
         
         request = self._create_request()
@@ -164,7 +187,9 @@ class EngagementsAdminAuditTestCase(TestCase):
         workitem = WorkItem(
             tenant=self.tenant,
             title='Test Work Item',
-            status='open'
+            status=self.status,
+            category=self.category,
+            priority=self.priority
         )
         
         request = self._create_request()
@@ -199,7 +224,9 @@ class EngagementsAdminAuditTestCase(TestCase):
         workitem = WorkItem(
             tenant=self.tenant,
             title='Test Work Item',
-            status='open'
+            status=self.status,
+            category=self.category,
+            priority=self.priority
         )
         
         request = self._create_request()
@@ -231,7 +258,9 @@ class EngagementsAdminAuditTestCase(TestCase):
     #     workitem = WorkItem.objects.create(
     #         tenant=self.tenant,
     #         title='Test Work Item',
-    #         status='open'
+    #         status=self.status,
+    #         category=self.category,
+    #         priority=self.priority
     #     )
         
     #     assignment = Assignment.objects.create(
@@ -256,7 +285,9 @@ class EngagementsAdminAuditTestCase(TestCase):
     #     workitem = WorkItem.objects.create(
     #         tenant=self.tenant,
     #         title='Test Work Item',
-    #         status='open'
+    #         status=self.status,
+    #         category=self.category,
+    #         priority=self.priority
     #     )
         
     #     # Clear existing audit logs
@@ -283,7 +314,9 @@ class EngagementsAdminAuditTestCase(TestCase):
     #     workitem = WorkItem.objects.create(
     #         tenant=self.tenant,
     #         title='Test Work Item',
-    #         status='open'
+    #         status=self.status,
+    #         category=self.category,
+    #         priority=self.priority
     #     )
         
     #     # Clear existing audit logs

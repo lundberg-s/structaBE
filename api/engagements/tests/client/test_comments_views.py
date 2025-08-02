@@ -49,7 +49,7 @@ class TestCommentFlow(FullySetupTest, APITestCase):
 
     def test_filtering_by_work_item_and_author(self):
         self.authenticate_client()
-        other_ticket = create_ticket(tenant=self.tenant, created_by=self.user)
+        other_ticket = create_ticket(tenant=self.tenant, created_by=self.user, status=self.status, category=self.category, priority=self.priority)
         create_comment(work_item=other_ticket, author=self.user, content='Other comment')
         url = reverse('engagements:comment-list') + f'?work_item={self.ticket.id}'
         response = self.client.get(url)
@@ -69,7 +69,7 @@ class TestCommentFlow(FullySetupTest, APITestCase):
         self.assertEqual(response.status_code, 400)
         # Work item from another tenant
         other_tenant = create_tenant()
-        other_ticket = create_ticket(tenant=other_tenant, created_by=self.user)
+        other_ticket = create_ticket(tenant=other_tenant, created_by=self.user, status=self.status, category=self.category, priority=self.priority)
         response = self.client.post(
             url,
             {'content': 'Invalid', 'work_item': other_ticket.id},
@@ -81,7 +81,7 @@ class TestCommentFlow(FullySetupTest, APITestCase):
         self.authenticate_client()
         # Create comment for another tenant
         other_tenant = create_tenant()
-        other_ticket = create_ticket(tenant=other_tenant, created_by=self.user)
+        other_ticket = create_ticket(tenant=other_tenant, created_by=self.user, status=self.status, category=self.category, priority=self.priority)
         create_comment(work_item=other_ticket, author=self.user, content='Other tenant comment')
         # Should only see comments from self.tenant
         url = reverse('engagements:comment-list')
@@ -101,7 +101,7 @@ class TestCommentFlow(FullySetupTest, APITestCase):
     def test_retrieve_comment_from_other_tenant_fails(self):
         self.authenticate_client()
         other_tenant = create_tenant()
-        other_ticket = create_ticket(tenant=other_tenant, created_by=self.user)
+        other_ticket = create_ticket(tenant=other_tenant, created_by=self.user, status=self.status, category=self.category, priority=self.priority)
         comment = create_comment(work_item=other_ticket, author=self.user, content='Forbidden')
         url = reverse('engagements:comment-detail', args=[comment.id])
         response = self.client.get(url)
@@ -119,7 +119,7 @@ class TestCommentFlow(FullySetupTest, APITestCase):
     def test_update_comment_from_other_tenant_fails(self):
         self.authenticate_client()
         other_tenant = create_tenant()
-        other_ticket = create_ticket(tenant=other_tenant, created_by=self.user)
+        other_ticket = create_ticket(tenant=other_tenant, created_by=self.user, status=self.status, category=self.category, priority=self.priority)
         comment = create_comment(work_item=other_ticket, author=self.user, content='Other tenant')
         url = reverse('engagements:comment-detail', args=[comment.id])
         response = self.client.patch(url, {'content': 'Hacked'}, format='json')
@@ -136,7 +136,7 @@ class TestCommentFlow(FullySetupTest, APITestCase):
     def test_delete_comment_from_other_tenant_fails(self):
         self.authenticate_client()
         other_tenant = create_tenant()
-        other_ticket = create_ticket(tenant=other_tenant, created_by=self.user)
+        other_ticket = create_ticket(tenant=other_tenant, created_by=self.user, status=self.status, category=self.category, priority=self.priority)
         comment = create_comment(work_item=other_ticket, author=self.user, content='Other tenant')
         url = reverse('engagements:comment-detail', args=[comment.id])
         response = self.client.delete(url)
