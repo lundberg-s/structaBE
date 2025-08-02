@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 from core.models import Role
-from core.enums.system_role_enums import SystemRole
+from core.enums import SystemRole
 
 class Command(BaseCommand):
     help = "Seed system roles into the database"

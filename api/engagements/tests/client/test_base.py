@@ -3,7 +3,7 @@ from django.urls import reverse
 from users.tests.factory import create_user
 from engagements.tests.factory import create_ticket
 from relations.tests.factory import create_person, create_role
-from relations.choices import SystemRole
+from core.enums import SystemRole
 from core.models import Tenant
 
 class AuthMixin:
@@ -30,7 +30,7 @@ class FullySetupTest(AuthMixin, TestCase):
 
         # Create a person for the user and assign tenant_employee role
         person = create_person(tenant=cls.tenant, first_name='Test', last_name='User')
-        role = create_role(tenant=cls.tenant, key=SystemRole.TENANT_EMPLOYEE.value, label=SystemRole.TENANT_EMPLOYEE.label, is_system=True)
+        role = create_role(tenant=cls.tenant, key=SystemRole.TENANT_EMPLOYEE.value, label=SystemRole.labels()[SystemRole.TENANT_EMPLOYEE.value], is_system=True)
         person.role = role
         person.save()
         cls.user.partner = person
@@ -65,7 +65,7 @@ class TicketTenancySetup(AuthMixin, TestCase):
 
         # Create a person for the user and assign tenant_employee role
         person = create_person(tenant=cls.tenant, first_name='Test', last_name='User')
-        role = create_role(tenant=cls.tenant, key=SystemRole.TENANT_EMPLOYEE.value, label=SystemRole.TENANT_EMPLOYEE.label, is_system=True)
+        role = create_role(tenant=cls.tenant, key=SystemRole.TENANT_EMPLOYEE.value, label=SystemRole.labels()[SystemRole.TENANT_EMPLOYEE.value], is_system=True)
         person.role = role
         person.save()
         cls.user.partner = person
@@ -101,7 +101,7 @@ class JobTenancySetup(AuthMixin, TestCase):
 
         # Create a person for the user and assign tenant_employee role
         person = create_person(tenant=cls.tenant, first_name='Test', last_name='User')
-        role = create_role(tenant=cls.tenant, key=SystemRole.TENANT_EMPLOYEE.value, label=SystemRole.TENANT_EMPLOYEE.label, is_system=True)
+        role = create_role(tenant=cls.tenant, key=SystemRole.TENANT_EMPLOYEE.value, label=SystemRole.labels()[SystemRole.TENANT_EMPLOYEE.value], is_system=True)
         person.role = role
         person.save()
         cls.user.partner = person
@@ -136,7 +136,7 @@ class CaseTenancySetup(AuthMixin, TestCase):
 
         # Create a person for the user and assign tenant_employee role
         person = create_person(tenant=cls.tenant, first_name='Test', last_name='User')
-        role = create_role(tenant=cls.tenant, key=SystemRole.TENANT_EMPLOYEE.value, label=SystemRole.TENANT_EMPLOYEE.label, is_system=True)
+        role = create_role(tenant=cls.tenant, key=SystemRole.TENANT_EMPLOYEE.value, label=SystemRole.labels()[SystemRole.TENANT_EMPLOYEE.value], is_system=True)
         person.role = role
         person.save()
         cls.user.partner = person
