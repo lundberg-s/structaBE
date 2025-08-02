@@ -1,49 +1,10 @@
 from django.contrib import admin
-from core.models import Tenant, Role, AuditLog
-from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from core.models import AuditLog
 from django.utils.html import format_html
 from django.urls import reverse
 from django.utils.safestring import mark_safe
-from core.admin_mixins import AdminAuditMixin
 import json
 
-@admin.register(Tenant)
-class TenantAdmin(AdminAuditMixin, admin.ModelAdmin):
-    list_display = ('id', 'subscription_plan', 'subscription_status', 'billing_email', 'created_at', 'updated_at')
-    list_filter = ('subscription_plan', 'subscription_status', 'created_at')
-    search_fields = ('billing_email',)
-    readonly_fields = ('id', 'created_at', 'updated_at')
-    
-    def get_entity_type(self, obj):
-        """Override to map Tenant model to 'tenant' entity type."""
-        return 'tenant'
-    
-    def get_compliance_category(self, obj, activity_type):
-        """Override to mark tenant operations as security-related."""
-        return 'security'
-    
-    def get_business_process(self, obj):
-        """Override to map tenant operations to Access Management."""
-        return 'Access Management'
-
-@admin.register(Role)
-class RoleAdmin(AdminAuditMixin, admin.ModelAdmin):
-    list_display = ('id', 'key', 'label', 'is_system', 'tenant', 'created_at')
-    list_filter = ('is_system', 'created_at', 'updated_at', 'tenant')
-    search_fields = ('key', 'label')
-    readonly_fields = ('id', 'created_at', 'updated_at')
-    ordering = ('-created_at',)
-    
-    fieldsets = (
-        ('Role Information', {
-            'fields': ('key', 'label', 'is_system', 'tenant'),
-            'description': 'Create roles for the system. System roles are available to all tenants.'
-        }),
-        ('Metadata', {
-            'fields': ('id', 'created_at', 'updated_at'),
-            'classes': ('collapse',)
-        }),
-    )
 
 @admin.register(AuditLog)
 class AuditLogAdmin(admin.ModelAdmin):
@@ -247,4 +208,4 @@ class AuditLogAdmin(admin.ModelAdmin):
             # Remove sensitive actions for non-superusers
             if 'mark_high_risk_reviewed' in actions:
                 del actions['mark_high_risk_reviewed']
-        return actions
+        return actions 

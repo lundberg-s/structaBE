@@ -158,9 +158,7 @@ class CacheMiddleware(MiddlewareMixin):
             '/api/engagements/tickets/',
             '/api/engagements/cases/',
             '/api/engagements/jobs/',
-        ] 
-
-
+        ]
 
 
 class PrefetchTenantMiddleware:
@@ -179,4 +177,4 @@ class PrefetchTenantMiddleware:
             )
             if user_with_tenant:
                 request.user = user_with_tenant
-        return self.get_response(request)
+        return self.get_response(request) 

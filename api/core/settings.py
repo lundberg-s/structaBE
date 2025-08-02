@@ -99,9 +99,9 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    # 'core.middleware.TenantMiddleware',  # Doesn't exist yet
-    'core.middleware.QueryCountMiddleware',  # Clean query monitoring
-    # 'core.middleware.CacheMiddleware',  # Temporarily disabled
+    # 'core.utilities.middleware.TenantMiddleware',  # Doesn't exist yet
+    'core.utilities.middleware.QueryCountMiddleware',  # Clean query monitoring
+    # 'core.utilities.middleware.CacheMiddleware',  # Temporarily disabled
 ]
 
 # Django Debug Toolbar for query monitoring
@@ -191,9 +191,9 @@ CSRF_TRUSTED_ORIGINS = [
 REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        "core.custom_auth.CookieJWTAuthentication",
+        "core.utilities.authentication.CookieJWTAuthentication",
     ),
-    "EXCEPTION_HANDLER": "core.exceptions.custom_exception_handler",
+    "EXCEPTION_HANDLER": "core.utilities.exceptions.custom_exception_handler",
     # "DEFAULT_PAGINATION_CLASS": ("rest_framework.pagination.PageNumberPagination"),
     # "PAGE_SIZE": 50,
 }
