@@ -86,7 +86,7 @@ class EngagementsAdminAuditTestCase(TestCase):
             tenant=self.tenant,
             title='Test Ticket',
             description='Test ticket description',
-            urgency='medium',
+            priority='medium',
             status='open'
         )
         

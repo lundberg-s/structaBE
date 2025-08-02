@@ -9,7 +9,9 @@ from .authentication import (
 from .pagination import OptimizedPageNumberPagination, CursorPagination, PerformancePaginator
 from .performance import QueryTimer, performance_monitor, DatabaseStats, CacheStats, log_performance_metrics
 from .middleware import QueryCountMiddleware, CacheMiddleware, PrefetchTenantMiddleware
-from .exceptions import custom_exception_handler
+from .validators import hex_color_validator
+# Import exceptions lazily to avoid circular imports
+# from .exceptions import custom_exception_handler
 
 __all__ = [
     # Authentication utilities
@@ -36,7 +38,10 @@ __all__ = [
     'QueryCountMiddleware',
     'CacheMiddleware',
     'PrefetchTenantMiddleware',
+
+    # Validator utilities
+    'hex_color_validator',
     
     # Exception utilities
-    'custom_exception_handler',
+    # 'custom_exception_handler',  # Imported lazily to avoid circular imports
 ] 
