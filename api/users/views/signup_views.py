@@ -7,7 +7,6 @@ from users.models import User, Tenant
 from core.models import Tenant
 from relations.models import Person, Organization
 from core.models import Role
-from relations.choices import SystemRole
 
 from users.serializers.signup_serializers import SignupSerializer
 from users.serializers.user_serializers import UserSerializer

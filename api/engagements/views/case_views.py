@@ -3,7 +3,7 @@ from engagements.views.work_item_views import BaseWorkItemListView, BaseWorkItem
 
 from engagements.models import Case
 
-from core.models import WorkItemType
+from core.choices import WorkItemType
 
 
 class CaseListView(BaseWorkItemListView):

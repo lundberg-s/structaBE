@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.core.exceptions import ValidationError
 from core.models import Role
-from relations.models import Partner
+from core.enums import SystemRole
 
 class RoleSerializer(serializers.ModelSerializer):
     tenant = serializers.PrimaryKeyRelatedField(read_only=True)
@@ -22,7 +22,6 @@ class RoleSerializer(serializers.ModelSerializer):
 
         if is_system:
             # System roles must have valid keys
-            from core.enums.system_role_enums import SystemRole
             if key not in [role.value for role in SystemRole]:
                 raise serializers.ValidationError(
                     f"{key} is not a valid system role key"

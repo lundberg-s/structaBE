@@ -1,10 +1,9 @@
 import uuid
 from relations.models import Person, Organization, Relation, Assignment
 from core.models import Role
-from relations.choices import RelationObjectType, SystemRole
+from relations.choices import RelationObjectType
 from core.models import Tenant
 from django.contrib.auth import get_user_model
-from engagements.models import Ticket
 
 User = get_user_model()
 

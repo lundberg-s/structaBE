@@ -10,7 +10,7 @@ from engagements.views.work_item_views import (
 )
 
 from engagements.models import Ticket
-from core.models import WorkItemType
+from core.choices import WorkItemType
 
 
 class TicketListView(BaseWorkItemListView):

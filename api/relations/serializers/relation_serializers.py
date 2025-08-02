@@ -1,7 +1,8 @@
 from rest_framework import serializers
-from django.core.exceptions import ValidationError
-from relations.models import Relation, Partner, Person, WorkItem
+
+from relations.models import Relation, Partner, Person
 from relations.choices import RelationObjectType
+from engagements.models import WorkItem
 
 
 class RelationSerializer(serializers.ModelSerializer):

@@ -4,7 +4,7 @@ from engagements.serializers.job_serializers import JobSerializer
 
 from engagements.models import Job
 
-from core.models import WorkItemType
+from core.choices import WorkItemType
 
 
 class JobListView(BaseWorkItemListView):
