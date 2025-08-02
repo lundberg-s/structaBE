@@ -1,5 +1,5 @@
 from rest_framework.permissions import BasePermission
-from core.enums.system_role_enums import SystemRole
+from core.enums import SystemRole
 
 # Helper function to check if a user has any of the allowed roles
 def user_has_role(user, roles):

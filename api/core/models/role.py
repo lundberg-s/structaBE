@@ -1,7 +1,7 @@
 from django.db import models
 from django.core.exceptions import ValidationError
-from core.enums.system_role_enums import SystemRole
-from core.managers.role_managers import RoleQuerySet
+from core.enums import SystemRole
+from core.querysets import RoleQuerySet
 from .audit_model import AuditModel
 
 

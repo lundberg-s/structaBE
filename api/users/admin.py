@@ -1,7 +1,7 @@
 from django.contrib import admin
 from users.models import User
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from core.mixins.admin_mixins import AdminAuditMixin    
+from core.mixins import AdminAuditMixin    
 
 
 @admin.register(User)

@@ -1,6 +1,6 @@
 from django.contrib import admin
 from relations.models import Relation
-from core.mixins.admin_mixins import AdminAuditMixin
+from core.mixins import AdminAuditMixin
 
 
 @admin.register(Relation)

@@ -1,6 +1,6 @@
 from django.contrib import admin
 from core.models import Role
-from core.mixins.admin_mixins import AdminAuditMixin
+from core.mixins import AdminAuditMixin
 
 
 @admin.register(Role)
