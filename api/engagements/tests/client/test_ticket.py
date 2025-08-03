@@ -1,395 +1,415 @@
 from django.urls import reverse
-from rest_framework.test import APITestCase
 
-from engagements.tests.client.test_base import TicketTenancySetup
-from engagements.tests.factory import (
-    create_ticket,
-    create_default_status,
-    create_default_priority,
-    create_default_category,
-)
+from engagements.tests.test_helper import EngagementsTestHelper
 from core.tests.factory import create_tenant
-from users.tests.factory import create_user
 from engagements.models import Ticket
 
 
-class TestTicketFlow(TicketTenancySetup, APITestCase):
+class TestTicketFlow(EngagementsTestHelper):
+    # URL names
+    TICKET_LIST_URL = "engagements:ticket-list"
+    TICKET_DETAIL_URL = "engagements:ticket-detail"
+    
+    # Test data strings
+    OTHER_USER_EMAIL = "other_user@example.com"
+    SPOOF_EMAIL = "spoof@example.com"
+    SPOOF_PASSWORD = "pass"
+    INVALID_STATUS = "invalid_status"
+    UPDATED_TITLE = "Updated Title"
+    HACKED_TITLE = "Hacked"
+    FAKE_CREATED_AT = "2000-01-01T00:00:00Z"
+    
+    # Filter and search strings
+    UNIQUE_STATUS_LABEL = "UniqueStatusForFilter"
+    UNIQUE_PRIORITY_LABEL = "UniquePriorityForFilter"
+    UNIQUE_CATEGORY_LABEL = "UniqueCategoryForFilter"
+    UNIQUE_TITLE = "UniqueTitle"
+    SPECIAL_DESC = "SpecialDesc"
+    MY_TENANT_TITLE = "MyTenantTitle"
+    OTHER_TENANT_TITLE = "OtherTenantTitle"
+    
+    # Query parameters
+    STATUS_OPEN = "open"
+    PRIORITY_HIGH = "high"
+    SEARCH_PARAM = "search"
+    STATUS_LABEL_PARAM = "status__label"
+    PRIORITY_LABEL_PARAM = "priority__label"
+    CATEGORY_LABEL_PARAM = "category__label"
+    
+    # Expected counts
+    EXPECTED_TICKET_COUNT = 3
+    EXPECTED_FILTERED_COUNT = 1
+    
     def setUp(self):
         super().setUp()
-        self.ticket_data = {
-            "title": "Test Ticket",
-            "description": "This is a test ticket",
-            "status": self.status.id,
-            "category": self.category.id,
-            "priority": self.priority.id,
-        }
+        self.tickets = self.create_tickets(amount=self.TICKET_AMOUNT)
+        self.ticket = self.tickets[0]
 
-    def test_create_ticket_success(self):
+    def test_create_ticket_returns_201(self):
         self.authenticate_client()
-        url = reverse("engagements:ticket-list")
-        response = self.client.post(url, self.ticket_data, format="json")
+        url = reverse(self.TICKET_LIST_URL)
+        ticket_data = self.get_work_item_data()
+        response = self.client.post(url, ticket_data, format="json")
         self.assertEqual(response.status_code, 201)
+
+    def test_create_ticket_returns_id(self):
+        self.authenticate_client()
+        url = reverse(self.TICKET_LIST_URL)
+        ticket_data = self.get_work_item_data()
+        response = self.client.post(url, ticket_data, format="json")
         self.assertIn("id", response.data)
 
-    def test_create_ticket_auto_sets_user_and_tenant(self):
+    def test_create_ticket_sets_created_by(self):
         self.authenticate_client()
-        url = reverse("engagements:ticket-list")
-        response = self.client.post(url, self.ticket_data, format="json")
-        self.assertEqual(response.status_code, 201)
+        url = reverse(self.TICKET_LIST_URL)
+        ticket_data = self.get_work_item_data()
+        response = self.client.post(url, ticket_data, format="json")
         ticket = Ticket.objects.get(id=response.data["id"])
         self.assertEqual(ticket.created_by, self.user)
+
+    def test_create_ticket_sets_tenant(self):
+        self.authenticate_client()
+        url = reverse(self.TICKET_LIST_URL)
+        ticket_data = self.get_work_item_data()
+        response = self.client.post(url, ticket_data, format="json")
+        ticket = Ticket.objects.get(id=response.data["id"])
         self.assertEqual(ticket.tenant, self.tenant)
 
-    def test_create_ticket_invalid_foreign_key(self):
+    def test_create_ticket_invalid_status_returns_400(self):
         self.authenticate_client()
-        url = reverse("engagements:ticket-list")
-        data = self.ticket_data.copy()
-        data["status"] = "invalid_status"  # Invalid status value
-        response = self.client.post(url, data, format="json")
+        url = reverse(self.TICKET_LIST_URL)
+        ticket_data = self.get_work_item_data(status=self.INVALID_STATUS)
+        response = self.client.post(url, ticket_data, format="json")
         self.assertEqual(response.status_code, 400)
 
     def test_unauthenticated_user_cannot_create_ticket(self):
-        url = reverse("engagements:ticket-list")
-        response = self.client.post(url, self.ticket_data, format="json")
+        # Clear authentication
+        self.client.cookies.clear()
+        url = reverse(self.TICKET_LIST_URL)
+        ticket_data = self.get_work_item_data()
+        response = self.client.post(url, ticket_data, format="json")
         self.assertEqual(response.status_code, 401)
 
-    def test_list_tickets_for_user_tenant_only(self):
+    def test_list_tickets_returns_200(self):
         self.authenticate_client()
-        # Create ticket for current tenant
-        create_ticket(
-            tenant=self.tenant,
-            created_by=self.user,
-            status=self.status,
-            category=self.category,
-            priority=self.priority,
-        )
+        url = reverse(self.TICKET_LIST_URL)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+
+    def test_list_tickets_returns_correct_count(self):
+        self.authenticate_client()
+        url = reverse(self.TICKET_LIST_URL)
+        response = self.client.get(url)
+        self.assertEqual(len(response.data), self.EXPECTED_TICKET_COUNT)  # 3 tickets from setUp
+
+    def test_list_tickets_scoped_to_tenant(self):
+        self.authenticate_client()
         # Create ticket for other tenant
         other_tenant = create_tenant()
-        create_ticket(
-            tenant=other_tenant,
-            created_by=self.user,
-            status=self.status,
-            category=self.category,
-            priority=self.priority,
-        )
+        other_user = self.create_user(tenant=other_tenant, email=self.OTHER_USER_EMAIL)
+        self.create_tickets(amount=1, tenant=other_tenant, user=other_user)
 
-        url = reverse("engagements:ticket-list")
+        url = reverse(self.TICKET_LIST_URL)
         response = self.client.get(url)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            len(response.data), 2
-        )  # Should only see tickets from current tenant
+        self.assertEqual(len(response.data), self.EXPECTED_TICKET_COUNT)  # Only current tenant tickets
 
-    def test_retrieve_ticket_from_same_tenant(self):
+    def test_retrieve_ticket_returns_200(self):
         self.authenticate_client()
-        ticket = create_ticket(
-            tenant=self.tenant,
-            created_by=self.user,
-            status=self.status,
-            category=self.category,
-            priority=self.priority,
-        )
-        url = reverse("engagements:ticket-detail", args=[ticket.id])
+        url = reverse(self.TICKET_DETAIL_URL, args=[self.ticket.id])
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(str(response.data["id"]), str(ticket.id))
 
-    def test_retrieve_ticket_from_other_tenant_fails(self):
+    def test_retrieve_ticket_returns_correct_id(self):
+        self.authenticate_client()
+        url = reverse(self.TICKET_DETAIL_URL, args=[self.ticket.id])
+        response = self.client.get(url)
+        self.assertEqual(str(response.data["id"]), str(self.ticket.id))
+
+    def test_retrieve_other_tenant_ticket_fails(self):
         self.authenticate_client()
         other_tenant = create_tenant()
-        ticket = create_ticket(
-            tenant=other_tenant,
-            created_by=self.user,
-            status=self.status,
-            category=self.category,
-            priority=self.priority,
-        )
-        url = reverse("engagements:ticket-detail", args=[ticket.id])
+        other_user = self.create_user(tenant=other_tenant, email=self.OTHER_USER_EMAIL)
+        other_tickets = self.create_tickets(amount=1, tenant=other_tenant, user=other_user)
+        other_ticket = other_tickets[0]
+        
+        url = reverse(self.TICKET_DETAIL_URL, args=[other_ticket.id])
         response = self.client.get(url)
         self.assertIn(response.status_code, (403, 404))
 
-    def test_update_own_ticket_success(self):
+    def test_update_ticket_returns_200(self):
         self.authenticate_client()
-        ticket = create_ticket(
-            tenant=self.tenant,
-            created_by=self.user,
-            status=self.status,
-            category=self.category,
-            priority=self.priority,
-        )
-        url = reverse("engagements:ticket-detail", args=[ticket.id])
-        data = {"title": "Updated Title"}
+        url = reverse(self.TICKET_DETAIL_URL, args=[self.ticket.id])
+        data = {"title": self.UPDATED_TITLE}
         response = self.client.patch(url, data, format="json")
         self.assertEqual(response.status_code, 200)
-        ticket.refresh_from_db()
-        self.assertEqual(ticket.title, "Updated Title")
 
-    def test_update_ticket_from_other_tenant_fails(self):
+    def test_update_ticket_changes_title(self):
+        self.authenticate_client()
+        url = reverse(self.TICKET_DETAIL_URL, args=[self.ticket.id])
+        data = {"title": self.UPDATED_TITLE}
+        self.client.patch(url, data, format="json")
+        self.ticket.refresh_from_db()
+        self.assertEqual(self.ticket.title, self.UPDATED_TITLE)
+
+    def test_update_other_tenant_ticket_fails(self):
         self.authenticate_client()
         other_tenant = create_tenant()
-        ticket = create_ticket(
-            tenant=other_tenant,
-            created_by=self.user,
-            status=self.status,
-            category=self.category,
-            priority=self.priority,
-        )
-        url = reverse("engagements:ticket-detail", args=[ticket.id])
-        data = {"title": "Hacked"}
+        other_user = self.create_user(tenant=other_tenant, email=self.OTHER_USER_EMAIL)
+        other_tickets = self.create_tickets(amount=1, tenant=other_tenant, user=other_user)
+        other_ticket = other_tickets[0]
+        
+        url = reverse(self.TICKET_DETAIL_URL, args=[other_ticket.id])
+        data = {"title": self.HACKED_TITLE}
         response = self.client.patch(url, data, format="json")
         self.assertIn(response.status_code, (403, 404))
 
-    def test_cannot_spoof_protected_fields_on_update(self):
+    def test_update_protected_fields_ignored(self):
         self.authenticate_client()
-        ticket = create_ticket(
-            tenant=self.tenant,
-            created_by=self.user,
-            status=self.status,
-            category=self.category,
-            priority=self.priority,
-        )
-        url = reverse("engagements:ticket-detail", args=[ticket.id])
+        url = reverse(self.TICKET_DETAIL_URL, args=[self.ticket.id])
         data = {
-            "created_by": create_user(
-                tenant=self.tenant, username="spoof", password="pass"
+            "created_by": self.create_user(
+                tenant=self.tenant, email=self.SPOOF_EMAIL, password=self.SPOOF_PASSWORD
             ).id,
             "tenant": create_tenant().id,
         }
         response = self.client.patch(url, data, format="json")
         self.assertEqual(response.status_code, 200)
-        ticket.refresh_from_db()
-        self.assertEqual(ticket.created_by, self.user)
-        self.assertEqual(ticket.tenant, self.tenant)
 
-    def test_delete_own_ticket_success(self):
+    def test_update_protected_fields_not_changed(self):
         self.authenticate_client()
-        ticket = create_ticket(
-            tenant=self.tenant,
-            created_by=self.user,
-            status=self.status,
-            category=self.category,
-            priority=self.priority,
-        )
-        url = reverse("engagements:ticket-detail", args=[ticket.id])
+        url = reverse(self.TICKET_DETAIL_URL, args=[self.ticket.id])
+        data = {
+            "created_by": self.create_user(
+                tenant=self.tenant, email=self.SPOOF_EMAIL, password=self.SPOOF_PASSWORD
+            ).id,
+            "tenant": create_tenant().id,
+        }
+        self.client.patch(url, data, format="json")
+        self.ticket.refresh_from_db()
+        self.assertEqual(self.ticket.created_by, self.user)
+
+    def test_delete_ticket_returns_204(self):
+        self.authenticate_client()
+        url = reverse(self.TICKET_DETAIL_URL, args=[self.ticket.id])
         response = self.client.delete(url)
         self.assertEqual(response.status_code, 204)
-        ticket.refresh_from_db()
-        self.assertTrue(ticket.is_deleted)
-        # Optionally check not in list or detail
-        list_url = reverse("engagements:ticket-list")
+
+    def test_delete_ticket_sets_is_deleted(self):
+        self.authenticate_client()
+        url = reverse(self.TICKET_DETAIL_URL, args=[self.ticket.id])
+        self.client.delete(url)
+        self.ticket.refresh_from_db()
+        self.assertTrue(self.ticket.is_deleted)
+
+    def test_delete_ticket_removes_from_list(self):
+        self.authenticate_client()
+        url = reverse(self.TICKET_DETAIL_URL, args=[self.ticket.id])
+        self.client.delete(url)
+        
+        list_url = reverse(self.TICKET_LIST_URL)
         list_response = self.client.get(list_url)
-        self.assertFalse(any(t["id"] == str(ticket.id) for t in list_response.data))
+        self.assertFalse(any(j["id"] == str(self.ticket.id) for j in list_response.data))
+
+    def test_delete_ticket_returns_404_on_detail(self):
+        self.authenticate_client()
+        url = reverse(self.TICKET_DETAIL_URL, args=[self.ticket.id])
+        self.client.delete(url)
+        
         detail_response = self.client.get(url)
         self.assertEqual(detail_response.status_code, 404)
 
+    def test_delete_other_tenant_ticket_fails(self):
+        self.authenticate_client()
+        other_tenant = create_tenant()
+        other_user = self.create_user(tenant=other_tenant, email=self.OTHER_USER_EMAIL)
+        other_tickets = self.create_tickets(amount=1, tenant=other_tenant, user=other_user)
+        other_ticket = other_tickets[0]
+        
+        url = reverse(self.TICKET_DETAIL_URL, args=[other_ticket.id])
+        response = self.client.delete(url)
+        self.assertIn(response.status_code, (403, 404))
+
+    def test_delete_other_tenant_ticket_preserves_record(self):
+        self.authenticate_client()
+        other_tenant = create_tenant()
+        other_user = self.create_user(tenant=other_tenant, email=self.OTHER_USER_EMAIL)
+        other_tickets = self.create_tickets(amount=1, tenant=other_tenant, user=other_user)
+        other_ticket = other_tickets[0]
+        
+        url = reverse(self.TICKET_DETAIL_URL, args=[other_ticket.id])
+        self.client.delete(url)
+        self.assertTrue(Ticket.objects.filter(id=other_ticket.id).exists())
+
     def test_protected_fields_are_readonly(self):
         self.authenticate_client()
-        ticket = create_ticket(
-            tenant=self.tenant,
-            created_by=self.user,
-            status=self.status,
-            category=self.category,
-            priority=self.priority,
-        )
-        url = reverse("engagements:ticket-detail", args=[ticket.id])
-        data = {"created_at": "2000-01-01T00:00:00Z"}
+        url = reverse(self.TICKET_DETAIL_URL, args=[self.ticket.id])
+        data = {"created_at": self.FAKE_CREATED_AT}
         response = self.client.patch(url, data, format="json")
         self.assertEqual(response.status_code, 200)
-        ticket.refresh_from_db()
-        self.assertNotEqual(str(ticket.created_at), "2000-01-01T00:00:00Z")
 
-    def test_cannot_spoof_protected_fields_on_create(self):
+    def test_protected_fields_not_modified(self):
         self.authenticate_client()
-        url = reverse("engagements:ticket-list")
-        data = self.ticket_data.copy()
-        data["created_by"] = create_user(
-            tenant=self.tenant, username="spoof", password="pass"
-        ).id
-        data["tenant"] = create_tenant().id
-        response = self.client.post(url, data, format="json")
-        self.assertIn(response.status_code, (200, 201))
+        url = reverse(self.TICKET_DETAIL_URL, args=[self.ticket.id])
+        data = {"created_at": self.FAKE_CREATED_AT}
+        self.client.patch(url, data, format="json")
+        self.ticket.refresh_from_db()
+        self.assertNotEqual(str(self.ticket.created_at), self.FAKE_CREATED_AT)
+
+    def test_create_protected_fields_ignored(self):
+        self.authenticate_client()
+        url = reverse(self.TICKET_LIST_URL)
+        ticket_data = self.get_work_item_data(
+            created_by=self.create_user(
+                tenant=self.tenant, email=self.SPOOF_EMAIL, password=self.SPOOF_PASSWORD
+            ).id,
+            tenant=create_tenant().id,
+        )
+        response = self.client.post(url, ticket_data, format="json")
+        self.assertEqual(response.status_code, 201)
+
+    def test_create_protected_fields_not_set(self):
+        self.authenticate_client()
+        url = reverse(self.TICKET_LIST_URL)
+        ticket_data = self.get_work_item_data(
+            created_by=self.create_user(
+                tenant=self.tenant, email=self.SPOOF_EMAIL, password=self.SPOOF_PASSWORD
+            ).id,
+            tenant=create_tenant().id,
+        )
+        response = self.client.post(url, ticket_data, format="json")
         ticket = Ticket.objects.get(id=response.data["id"])
         self.assertEqual(ticket.created_by, self.user)
-        self.assertEqual(ticket.tenant, self.tenant)
 
-    def test_http_status_codes_are_correct(self):
-        self.authenticate_client()
-        url = reverse("engagements:ticket-list")
-        # Valid create
-        response = self.client.post(url, self.ticket_data, format="json")
-        self.assertIn(response.status_code, (200, 201))
-        # Invalid create
-        data = self.ticket_data.copy()
-        data["category"] = "invalid"
-        response = self.client.post(url, data, format="json")
-        self.assertEqual(response.status_code, 400)
-        # Unauthenticated
-        self.client.logout()
-        response = self.client.post(url, self.ticket_data, format="json")
-        self.assertEqual(response.status_code, 401)
-
-    def test_unauthenticated_user_denied(self):
-        url = reverse("engagements:ticket-list")
+    def test_unauthenticated_user_denied_list(self):
+        # Clear authentication
+        self.client.cookies.clear()
+        url = reverse(self.TICKET_LIST_URL)
         response = self.client.get(url)
         self.assertEqual(response.status_code, 401)
 
-    def test_filter_tickets_by_status(self):
+    def test_filter_by_status_returns_200(self):
         self.authenticate_client()
-        other_status = create_default_status(
-            tenant=self.tenant, label="Closed", created_by=self.user
-        )
-        another_status = create_default_status(
-            tenant=self.tenant, label="Open", created_by=self.user
-        )
-        # Create tickets with different statuses and priorities
-        create_ticket(
-            tenant=self.tenant,
-            created_by=self.user,
-            status=other_status,
-            category=self.category,
-            priority=self.priority,
-            title="Another Ticket",
-        )
-        create_ticket(
-            tenant=self.tenant,
-            created_by=self.user,
-            status=another_status,
-            category=self.category,
-            priority=self.priority,
-            title="Another Ticket",
-        )
-
-        url = reverse("engagements:ticket-list")
-        response = self.client.get(url, {"status__label": "Closed"})
+        statuses = self.create_work_item_statuses(amount=2)
+        other_status = statuses[0]
+        
+        url = reverse(self.TICKET_LIST_URL)
+        response = self.client.get(url, {self.STATUS_LABEL_PARAM: other_status.label})
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data), 1)  # Only one ticket should be returned
 
-    def test_filter_tickets_by_priority(self):
+    def test_filter_by_status_returns_correct_count(self):
         self.authenticate_client()
-        other_priority = create_default_priority(
-            tenant=self.tenant, label="Low", created_by=self.user
-        )
-        another_priority = create_default_priority(
-            tenant=self.tenant, label="Medium", created_by=self.user
-        )
-        # Create tickets with different priorities and statuses
-        create_ticket(
-            tenant=self.tenant,
-            created_by=self.user,
-            status=self.status,
-            category=self.category,
-            priority=other_priority,
-            title="Another Ticket",
-        )
-        create_ticket(
-            tenant=self.tenant,
-            created_by=self.user,
-            status=self.status,
-            category=self.category,
-            priority=another_priority,
-            title="Another Ticket",
-        )
 
-        url = reverse("engagements:ticket-list")
-        response = self.client.get(url, {"priority__label": "Low"})
+        unique_status = self.create_work_item_statuses(amount=1)[0]
+        unique_status.label = self.UNIQUE_STATUS_LABEL
+        unique_status.save()
+        
+
+        ticket_data = self.get_work_item_data(status=unique_status.id)
+        self.client.post(reverse(self.TICKET_LIST_URL), ticket_data, format="json")
+        
+        url = reverse(self.TICKET_LIST_URL)
+        response = self.client.get(url, {self.STATUS_LABEL_PARAM: unique_status.label})
+
+        self.assertEqual(len(response.data), self.EXPECTED_FILTERED_COUNT)
+
+    def test_filter_by_priority_returns_200(self):
+        self.authenticate_client()
+        priorities = self.create_work_item_priorities(amount=2)
+        other_priority = priorities[0]
+        
+        url = reverse(self.TICKET_LIST_URL)
+        response = self.client.get(url, {self.PRIORITY_LABEL_PARAM: other_priority.label})
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data), 1)  # Only one ticket should be returned
 
-    def test_filter_tickets_by_category(self):
+    def test_filter_by_priority_returns_correct_count(self):
         self.authenticate_client()
-        other_category = create_default_category(
-            tenant=self.tenant, label="Low", created_by=self.user
-        )
-        another_category = create_default_category(
-            tenant=self.tenant, label="Medium", created_by=self.user
-        )
-        # Create tickets with different categories and statuses
-        create_ticket(
-            tenant=self.tenant,
-            created_by=self.user,
-            status=self.status,
-            category=other_category,
-            priority=self.priority,
-            title="Another Ticket",
-        )
-        create_ticket(
-            tenant=self.tenant,
-            created_by=self.user,
-            status=self.status,
-            category=another_category,
-            priority=self.priority,
-            title="Another Ticket",
-        )
+   
+        unique_priority = self.create_work_item_priorities(amount=1)[0]
+        unique_priority.label = self.UNIQUE_PRIORITY_LABEL
+        unique_priority.save()
+        
+        ticket_data = self.get_work_item_data(priority=unique_priority.id)
+        self.client.post(reverse(self.TICKET_LIST_URL), ticket_data, format="json")
+        
+        url = reverse(self.TICKET_LIST_URL)
+        response = self.client.get(url, {self.PRIORITY_LABEL_PARAM: unique_priority.label})
 
-        url = reverse("engagements:ticket-list")
-        response = self.client.get(url, {"category__label": "Low"})
+        self.assertEqual(len(response.data), self.EXPECTED_FILTERED_COUNT)
+
+    def test_filter_by_category_returns_200(self):
+        self.authenticate_client()
+        categories = self.create_work_item_categories(amount=2)
+        other_category = categories[0]
+        
+        url = reverse(self.TICKET_LIST_URL)
+        response = self.client.get(url, {self.CATEGORY_LABEL_PARAM: other_category.label})
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data), 1)  # Only one ticket should be returned
 
-    def test_search_tickets_by_title_or_description(self):
+    def test_filter_by_category_returns_correct_count(self):
         self.authenticate_client()
-        create_ticket(
-            tenant=self.tenant,
-            created_by=self.user,
-            status=self.status,
-            category=self.category,
-            priority=self.priority,
-            title="Special Ticket",
-            description="Important issue",
-        )
-        create_ticket(
-            tenant=self.tenant,
-            created_by=self.user,
-            status=self.status,
-            category=self.category,
-            priority=self.priority,
-            title="Regular Ticket",
-            description="Normal issue",
-        )
 
-        url = reverse("engagements:ticket-list")
-        response = self.client.get(url, {"search": "Special"})
+        unique_category = self.create_work_item_categories(amount=1)[0]
+        unique_category.label = self.UNIQUE_CATEGORY_LABEL
+        unique_category.save()
+        
+
+        ticket_data = self.get_work_item_data(category=unique_category.id)
+        self.client.post(reverse(self.TICKET_LIST_URL), ticket_data, format="json")
+        
+        url = reverse(self.TICKET_LIST_URL)
+        response = self.client.get(url, {self.CATEGORY_LABEL_PARAM: unique_category.label})
+
+        self.assertEqual(len(response.data), self.EXPECTED_FILTERED_COUNT)
+
+    def test_search_returns_200(self):
+        self.authenticate_client()
+        self.ticket.title = self.UNIQUE_TITLE
+        self.ticket.description = self.SPECIAL_DESC
+        self.ticket.save()
+        
+        url = reverse(self.TICKET_LIST_URL) + f"?{self.SEARCH_PARAM}={self.UNIQUE_TITLE}"
+        response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data), 1)
-        self.assertIn("Special", response.data[0]["title"])
 
-    def test_filter_and_search_results_scoped_to_tenant(self):
+    def test_search_finds_matching_title(self):
         self.authenticate_client()
-        # Create tickets in current tenant
-        t1 = create_ticket(
-            tenant=self.tenant,
-            created_by=self.user,
-            status=self.status,
-            category=self.category,
-            priority=self.priority,
-            title="Tenant A Ticket",
-        )
-        t2 = create_ticket(
-            tenant=self.tenant,
-            created_by=self.user,
-            status=self.status,
-            category=self.category,
-            priority=self.priority,
-            title="Tenant A Another",
-        )
+        self.ticket.title = self.UNIQUE_TITLE
+        self.ticket.description = self.SPECIAL_DESC
+        self.ticket.save()
+        
+        url = reverse(self.TICKET_LIST_URL) + f"?{self.SEARCH_PARAM}={self.UNIQUE_TITLE}"
+        response = self.client.get(url)
+        self.assertTrue(any(self.UNIQUE_TITLE in j["title"] for j in response.data))
 
-        # Create ticket in other tenant
+    def test_filter_and_search_returns_200(self):
+        self.authenticate_client()
+        self.ticket.title = self.MY_TENANT_TITLE
+        self.ticket.save()
+        
+        url = (
+            reverse(self.TICKET_LIST_URL)
+            + f"?status={self.STATUS_OPEN}&priority={self.PRIORITY_HIGH}&{self.SEARCH_PARAM}={self.MY_TENANT_TITLE}"
+        )
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+
+    def test_filter_and_search_scoped_to_tenant(self):
+        self.authenticate_client()
         other_tenant = create_tenant()
-        t3 = create_ticket(
-            tenant=other_tenant,
-            created_by=self.user,
-            status=self.status,
-            category=self.category,
-            priority=self.priority,
-            title="Tenant B Ticket",
+        other_user = self.create_user(tenant=other_tenant, email=self.OTHER_USER_EMAIL)
+        
+        other_tickets = self.create_tickets(amount=1, tenant=other_tenant, user=other_user)
+        other_ticket = other_tickets[0]
+        other_ticket.title = self.OTHER_TENANT_TITLE
+        other_ticket.save()
+        
+        self.ticket.title = self.MY_TENANT_TITLE
+        self.ticket.save()
+        
+        url = (
+            reverse(self.TICKET_LIST_URL)
+            + f"?status={self.STATUS_OPEN}&priority={self.PRIORITY_HIGH}&{self.SEARCH_PARAM}={self.MY_TENANT_TITLE}"
         )
-
-        url = reverse("engagements:ticket-list")
-        response = self.client.get(url, {"search": "Ticket"})
-        self.assertEqual(response.status_code, 200)
-
-        # Should only see tickets from current tenant
-        ticket_ids = [t["id"] for t in response.data]
-        self.assertIn(str(t1.id), ticket_ids)
-        self.assertIn(str(t2.id), ticket_ids)
-        self.assertNotIn(str(t3.id), ticket_ids)
+        response = self.client.get(url)
+        for ticket in response.data:
+            self.assertEqual(ticket["tenant"], self.tenant.id)

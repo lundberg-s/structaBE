@@ -2,8 +2,7 @@ from rest_framework.test import APITestCase, APIClient
 from django.urls import reverse
 from users.tests.factory import create_user
 from core.tests.factory import create_tenant
-from engagements.tests.factory import create_ticket
-from relations.tests.factory import create_assignment, create_person
+from engagements.tests.factory import TestDataFactory
 from engagements.tests.client.test_base import FullySetupTest
 from relations.models import Assignment
 
@@ -11,10 +10,11 @@ class TestAssignmentFlow(FullySetupTest, APITestCase):
     def setUp(self):
         super().setUp()
         self.client = APIClient()
-        self.work_item = self.ticket
+        self.work_item = self.work_item
         self.assignee = create_user(tenant=self.tenant, username='assignee', email='assignee@example.com')
         
         # Create a person for the assignee
+        from relations.tests.factory import create_person
         assignee_person = create_person(tenant=self.tenant, first_name='Assignee', last_name='User')
         self.assignee.partner = assignee_person
         self.assignee.save()
@@ -67,10 +67,11 @@ class TestAssignmentFlow(FullySetupTest, APITestCase):
         self.authenticate_client()
         other_tenant = create_tenant()
         other_user = create_user(tenant=other_tenant, username='otheruser', email='otheruser@example.com')
-        other_ticket = create_ticket(tenant=other_tenant, created_by=other_user, status=self.status, category=self.category, priority=self.priority)
+        other_factory = TestDataFactory(other_tenant, other_user)
+        other_work_item = other_factory.create_work_item()
         # Try to assign user from another tenant
         data = {
-            'work_item': str(other_ticket.id),
+            'work_item': str(other_work_item.id),
             'user': other_user.id,
         }
         url = reverse('relations:assignment-create')

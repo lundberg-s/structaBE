@@ -2,7 +2,7 @@ from django.urls import reverse
 from rest_framework.test import APITestCase
 from users.tests.factory import create_user
 from core.tests.factory import create_tenant
-from engagements.tests.factory import create_job, create_default_status, create_default_priority, create_default_category
+from engagements.tests.factory import TestDataFactory
 from engagements.tests.client.test_base import JobTenancySetup
 from engagements.models import Job
 from datetime import timedelta
@@ -12,15 +12,7 @@ from django.utils import timezone
 class TestJobFlow(JobTenancySetup, APITestCase):
     def setUp(self):
         super().setUp()
-        self.job_data = {
-            "title": "Test Job",
-            "description": "A test job",
-            "status": self.status.id,
-            "category": self.category.id,
-            "priority": self.priority.id,
-            "deadline": (timezone.now() + timedelta(days=7)).isoformat(),
-            "estimated_hours": "10.5",
-        }
+        self.job_data = self.get_work_item_data()
 
     def test_create_job_success(self):
         self.authenticate_client()
@@ -68,13 +60,9 @@ class TestJobFlow(JobTenancySetup, APITestCase):
         self.authenticate_client()
         # Create job for another tenant
         other_tenant = create_tenant()
-        create_job(
-            tenant=other_tenant,
-            created_by=self.user,
-            status=self.status,
-            category=self.category,
-            priority=self.priority,
-        )
+        other_user = create_user(tenant=other_tenant)
+        other_factory = TestDataFactory(other_tenant, other_user)
+        other_factory.create_job()
         url = reverse("engagements:job-list")
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
@@ -83,13 +71,7 @@ class TestJobFlow(JobTenancySetup, APITestCase):
 
     def test_retrieve_job_from_same_tenant(self):
         self.authenticate_client()
-        job = create_job(
-            tenant=self.tenant,
-            created_by=self.user,
-            status=self.status,
-            category=self.category,
-            priority=self.priority,
-        )
+        job = self.factory.create_job()
         url = reverse("engagements:job-detail", args=[job.id])
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
@@ -98,26 +80,16 @@ class TestJobFlow(JobTenancySetup, APITestCase):
     def test_retrieve_job_from_other_tenant_fails(self):
         self.authenticate_client()
         other_tenant = create_tenant()
-        job = create_job(
-            tenant=other_tenant,
-            created_by=self.user,
-            status=self.status,
-            category=self.category,
-            priority=self.priority,
-        )
+        other_user = create_user(tenant=other_tenant)
+        other_factory = TestDataFactory(other_tenant, other_user)
+        job = other_factory.create_job()
         url = reverse("engagements:job-detail", args=[job.id])
         response = self.client.get(url)
         self.assertIn(response.status_code, (403, 404))
 
     def test_update_own_job_success(self):
         self.authenticate_client()
-        job = create_job(
-            tenant=self.tenant,
-            created_by=self.user,
-            status=self.status,
-            category=self.category,
-            priority=self.priority,
-        )
+        job = self.factory.create_job()
         url = reverse("engagements:job-detail", args=[job.id])
         data = {"title": "Updated Title"}
         response = self.client.patch(url, data, format="json")
@@ -128,13 +100,9 @@ class TestJobFlow(JobTenancySetup, APITestCase):
     def test_update_job_from_other_tenant_fails(self):
         self.authenticate_client()
         other_tenant = create_tenant()
-        job = create_job(
-            tenant=other_tenant,
-            created_by=self.user,
-            status=self.status,
-            category=self.category,
-            priority=self.priority,
-        )
+        other_user = create_user(tenant=other_tenant)
+        other_factory = TestDataFactory(other_tenant, other_user)
+        job = other_factory.create_job()
         url = reverse("engagements:job-detail", args=[job.id])
         data = {"title": "Hacked"}
         response = self.client.patch(url, data, format="json")
@@ -142,13 +110,7 @@ class TestJobFlow(JobTenancySetup, APITestCase):
 
     def test_cannot_spoof_protected_fields_on_update(self):
         self.authenticate_client()
-        job = create_job(
-            tenant=self.tenant,
-            created_by=self.user,
-            status=self.status,
-            category=self.category,
-            priority=self.priority,
-        )
+        job = self.factory.create_job()
         url = reverse("engagements:job-detail", args=[job.id])
         data = {
             "created_by": create_user(
@@ -164,13 +126,7 @@ class TestJobFlow(JobTenancySetup, APITestCase):
 
     def test_delete_own_job_success(self):
         self.authenticate_client()
-        job = create_job(
-            tenant=self.tenant,
-            created_by=self.user,
-            status=self.status,
-            category=self.category,
-            priority=self.priority,
-        )
+        job = self.factory.create_job()
         url = reverse("engagements:job-detail", args=[job.id])
         response = self.client.delete(url)
         self.assertEqual(response.status_code, 204)
@@ -186,13 +142,9 @@ class TestJobFlow(JobTenancySetup, APITestCase):
     def test_delete_job_from_other_tenant_fails(self):
         self.authenticate_client()
         other_tenant = create_tenant()
-        job = create_job(
-            tenant=other_tenant,
-            created_by=self.user,
-            status=self.status,
-            category=self.category,
-            priority=self.priority,
-        )
+        other_user = create_user(tenant=other_tenant)
+        other_factory = TestDataFactory(other_tenant, other_user)
+        job = other_factory.create_job()
         url = reverse("engagements:job-detail", args=[job.id])
         response = self.client.delete(url)
         self.assertIn(response.status_code, (403, 404))
@@ -200,13 +152,7 @@ class TestJobFlow(JobTenancySetup, APITestCase):
 
     def test_protected_fields_are_readonly(self):
         self.authenticate_client()
-        job = create_job(
-            tenant=self.tenant,
-            created_by=self.user,
-            status=self.status,
-            category=self.category,
-            priority=self.priority,
-        )
+        job = self.factory.create_job()
         url = reverse("engagements:job-detail", args=[job.id])
         data = {"created_at": "2000-01-01T00:00:00Z"}
         response = self.client.patch(url, data, format="json")
@@ -259,27 +205,11 @@ class TestJobFlow(JobTenancySetup, APITestCase):
 
     def test_filter_jobs_by_status(self):
         self.authenticate_client()
-        other_status = create_default_status(
-            tenant=self.tenant, label="Closed", created_by=self.user
-        )
-        another_status = create_default_status(
-            tenant=self.tenant, label="Open", created_by=self.user
-        )
+        other_status = self.factory.create_default_status('Closed')
+        another_status = self.factory.create_default_status('Open')
 
-        create_job(
-            tenant=self.tenant,
-            created_by=self.user,
-            status=other_status,
-            category=self.category,
-            priority=self.priority,
-        )
-        create_job(
-            tenant=self.tenant,
-            created_by=self.user,
-            status=another_status,
-            category=self.category,
-            priority=self.priority,
-        )
+        self.factory.create_job(status=other_status)
+        self.factory.create_job(status=another_status)
         url = reverse("engagements:job-list")
         response = self.client.get(url, {"status__label": "Closed"})
         self.assertEqual(response.status_code, 200)
@@ -287,16 +217,10 @@ class TestJobFlow(JobTenancySetup, APITestCase):
 
     def test_search_jobs_by_title_or_description(self):
         self.authenticate_client()
-        j = create_job(
-            tenant=self.tenant,
-            created_by=self.user,
-            status=self.status,
-            category=self.category,
-            priority=self.priority,
-        )
-        j.title = "UniqueTitle"
-        j.description = "SpecialDesc"
-        j.save()
+        job = self.factory.create_job()
+        job.title = "UniqueTitle"
+        job.description = "SpecialDesc"
+        job.save()
         url = reverse("engagements:job-list") + "?search=UniqueTitle"
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
@@ -305,28 +229,17 @@ class TestJobFlow(JobTenancySetup, APITestCase):
     def test_filter_and_search_results_scoped_to_tenant(self):
         self.authenticate_client()
         other_tenant = create_tenant()
-        j1 = create_job(
-            tenant=other_tenant,
-            created_by=self.user,
-            status=self.status,
-            category=self.category,
-            priority=self.priority,
-        )
+        other_user = create_user(tenant=other_tenant)
+        other_factory = TestDataFactory(other_tenant, other_user)
+        
+        j1 = other_factory.create_job()
         j1.title = "OtherTenantTitle"
-        j1.status = self.status
-        j1.priority = self.priority
         j1.save()
-        j2 = create_job(
-            tenant=self.tenant,
-            created_by=self.user,
-            status=self.status,
-            category=self.category,
-            priority=self.priority,
-        )
+        
+        j2 = self.factory.create_job()
         j2.title = "MyTenantTitle"
-        j2.status = self.status
-        j2.priority = self.priority
         j2.save()
+        
         url = (
             reverse("engagements:job-list")
             + "?status=open&priority=high&search=MyTenantTitle"
