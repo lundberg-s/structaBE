@@ -15,6 +15,10 @@ from engagements.models import Ticket
 class TestTicketFlow(EngagementsTestHelper):
     def setUp(self):
         super().setUp()
+        self.tenant = self.create_tenant(work_item_type=WorkItemType.TICKET)
+        self.user = self.create_user(tenant=self.tenant)
+        self.token = self.authenticate_user()
+        self.authenticate_client()
         self.tickets = self.create_tickets(amount=SetupDefaults.WORK_ITEM_AMOUNT)
         self.ticket = self.tickets[0]
 

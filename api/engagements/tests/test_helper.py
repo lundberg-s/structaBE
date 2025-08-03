@@ -30,10 +30,6 @@ User = get_user_model()
 class EngagementsTestHelper(TestCase):
     def setUp(self):
         self.client = APIClient()
-        self.tenant = self.create_tenant()
-        self.user = self.create_user(tenant=self.tenant)
-        self.token = self.authenticate_user()
-        self.authenticate_client()
 
     def create_tenant(self, work_item_type=None):
         work_item_type = work_item_type or WorkItemType.TICKET
