@@ -21,8 +21,8 @@ from engagements.tests.factory import (
     WorkItemCategoryFactory,
     WorkItemPriorityFactory,
 )
-from engagements.models import Ticket
-from .test_constants import TestData, WorkItemType
+from engagements.models import Ticket, Case, Job, Comment, Attachment
+from .test_constants import TestData, WorkItemType, QueryParams
 
 User = get_user_model()
 
@@ -95,6 +95,13 @@ class EngagementsTestHelper(TestCase):
             for i in range(amount)
         ]
 
+    def get_case(self, id):
+        return Case.objects.get(id=id)
+
+    def filter_cases(self, **kwargs):
+        return Case.objects.filter(**kwargs)
+
+
     def create_jobs(self, amount=1, tenant=None, user=None):
         tenant = tenant or self.tenant
         user = user or self.user
@@ -102,6 +109,12 @@ class EngagementsTestHelper(TestCase):
             JobFactory.create(tenant=tenant, created_by=user, title=f"Test Job {i}")
             for i in range(amount)
         ]
+
+    def get_job(self, id):
+        return Job.objects.get(id=id)
+
+    def filter_jobs(self, **kwargs):
+        return Job.objects.filter(**kwargs)
 
     def create_comments(self, work_item, amount=1, tenant=None, user=None):
         tenant = tenant or self.tenant
@@ -116,6 +129,12 @@ class EngagementsTestHelper(TestCase):
             for i in range(amount)
         ]
 
+    def get_comment(self, id):
+        return Comment.objects.get(id=id)
+
+    def filter_comments(self, **kwargs):
+        return Comment.objects.filter(**kwargs)
+
     def create_attachments(self, work_item, amount=1, tenant=None, user=None):
         tenant = tenant or self.tenant
         user = user or self.user
@@ -129,6 +148,12 @@ class EngagementsTestHelper(TestCase):
             )
             for i in range(amount)
         ]
+
+    def get_attachment(self, id):
+        return Attachment.objects.get(id=id)
+
+    def filter_attachments(self, **kwargs):
+        return Attachment.objects.filter(**kwargs)
 
     def create_work_item_statuses(self, amount=1, tenant=None, user=None):
         tenant = tenant or self.tenant
@@ -216,6 +241,17 @@ class EngagementsTestHelper(TestCase):
         )
         assert response.status_code == 200, "Login failed during setup"
         return response.cookies.get("access_token").value
+
+    def build_search_url(self, base_url, search_term):
+        """Helper method to build a URL with search parameter."""
+        return f"{base_url}?{QueryParams.SEARCH}={search_term}"
+
+    def build_filter_url(self, base_url, **filters):
+        """Helper method to build a URL with filter parameters."""
+        params = []
+        for key, value in filters.items():
+            params.append(f"{key}={value}")
+        return f"{base_url}?{'&'.join(params)}"
 
     def authenticate_client(self):
         """Authenticate the client for API requests."""
