@@ -1,7 +1,7 @@
 from django.urls import reverse
 
 from engagements.tests.test_helper import EngagementsTestHelper
-from engagements.tests.test_constants import TestURLs, TestData, QueryParams, ExpectedResults, SetupDefaults
+from engagements.tests.test_constants import TestURLs, TestData, QueryParams, ExpectedResults, SetupDefaults, WorkItemType
 from engagements.models import Ticket
 
 
@@ -71,7 +71,7 @@ class TestTicketFlow(EngagementsTestHelper):
     def test_list_tickets_scoped_to_tenant(self):
         self.authenticate_client()
         # Create ticket for other tenant
-        other_tenant = self.create_tenant()
+        other_tenant = self.create_tenant(work_item_type=WorkItemType.TICKET)
         other_user = self.create_user(tenant=other_tenant, email=TestData.OTHER_USER_EMAIL)
         self.create_tickets(amount=1, tenant=other_tenant, user=other_user)
 
@@ -93,7 +93,7 @@ class TestTicketFlow(EngagementsTestHelper):
 
     def test_retrieve_other_tenant_ticket_fails(self):
         self.authenticate_client()
-        other_tenant = self.create_tenant()
+        other_tenant = self.create_tenant(work_item_type=WorkItemType.TICKET)
         other_user = self.create_user(tenant=other_tenant, email=TestData.OTHER_USER_EMAIL)
         other_tickets = self.create_tickets(amount=1, tenant=other_tenant, user=other_user)
         other_ticket = other_tickets[0]
@@ -119,7 +119,7 @@ class TestTicketFlow(EngagementsTestHelper):
 
     def test_update_other_tenant_ticket_fails(self):
         self.authenticate_client()
-        other_tenant = self.create_tenant()
+        other_tenant = self.create_tenant(work_item_type=WorkItemType.TICKET)
         other_user = self.create_user(tenant=other_tenant, email=TestData.OTHER_USER_EMAIL)
         other_tickets = self.create_tickets(amount=1, tenant=other_tenant, user=other_user)
         other_ticket = other_tickets[0]
@@ -136,7 +136,7 @@ class TestTicketFlow(EngagementsTestHelper):
             "created_by": self.create_user(
                 tenant=self.tenant, email=TestData.SPOOF_EMAIL, password=TestData.SPOOF_PASSWORD
             ).id,
-            "tenant": self.create_tenant().id,
+            "tenant": self.create_tenant(work_item_type=WorkItemType.TICKET).id,
         }
         response = self.client.patch(url, data, format="json")
         self.assertEqual(response.status_code, 200)
@@ -148,7 +148,7 @@ class TestTicketFlow(EngagementsTestHelper):
             "created_by": self.create_user(
                 tenant=self.tenant, email=TestData.SPOOF_EMAIL, password=TestData.SPOOF_PASSWORD
             ).id,
-            "tenant": self.create_tenant().id,
+            "tenant": self.create_tenant(work_item_type=WorkItemType.TICKET).id,
         }
         self.client.patch(url, data, format="json")
         self.ticket.refresh_from_db()
@@ -186,7 +186,7 @@ class TestTicketFlow(EngagementsTestHelper):
 
     def test_delete_other_tenant_ticket_fails(self):
         self.authenticate_client()
-        other_tenant = self.create_tenant()
+        other_tenant = self.create_tenant(work_item_type=WorkItemType.TICKET)
         other_user = self.create_user(tenant=other_tenant, email=TestData.OTHER_USER_EMAIL)
         other_tickets = self.create_tickets(amount=1, tenant=other_tenant, user=other_user)
         other_ticket = other_tickets[0]
@@ -197,7 +197,7 @@ class TestTicketFlow(EngagementsTestHelper):
 
     def test_delete_other_tenant_ticket_preserves_record(self):
         self.authenticate_client()
-        other_tenant = self.create_tenant()
+        other_tenant = self.create_tenant(work_item_type=WorkItemType.TICKET)
         other_user = self.create_user(tenant=other_tenant, email=TestData.OTHER_USER_EMAIL)
         other_tickets = self.create_tickets(amount=1, tenant=other_tenant, user=other_user)
         other_ticket = other_tickets[0]
@@ -228,7 +228,7 @@ class TestTicketFlow(EngagementsTestHelper):
             created_by=self.create_user(
                 tenant=self.tenant, email=TestData.SPOOF_EMAIL, password=TestData.SPOOF_PASSWORD
             ).id,
-            tenant=self.create_tenant().id,
+            tenant=self.create_tenant(work_item_type=WorkItemType.TICKET).id,
         )
         response = self.client.post(url, ticket_data, format="json")
         self.assertEqual(response.status_code, 201)
@@ -240,7 +240,7 @@ class TestTicketFlow(EngagementsTestHelper):
             created_by=self.create_user(
                 tenant=self.tenant, email=TestData.SPOOF_EMAIL, password=TestData.SPOOF_PASSWORD
             ).id,
-            tenant=self.create_tenant().id,
+            tenant=self.create_tenant(work_item_type=WorkItemType.TICKET).id,
         )
         response = self.client.post(url, ticket_data, format="json")
         ticket = self.get_ticket(response.data["id"])
@@ -361,7 +361,7 @@ class TestTicketFlow(EngagementsTestHelper):
 
     def test_filter_and_search_scoped_to_tenant(self):
         self.authenticate_client()
-        other_tenant = self.create_tenant()
+        other_tenant = self.create_tenant(work_item_type=WorkItemType.TICKET)
         other_user = self.create_user(tenant=other_tenant, email=TestData.OTHER_USER_EMAIL)
         
         other_tickets = self.create_tickets(amount=1, tenant=other_tenant, user=other_user)

@@ -22,7 +22,7 @@ from engagements.tests.factory import (
     WorkItemPriorityFactory,
 )
 from engagements.models import Ticket
-from .test_constants import TestURLs, TestData, QueryParams, ExpectedResults, SetupDefaults
+from .test_constants import TestData, WorkItemType
 
 User = get_user_model()
 
@@ -36,7 +36,7 @@ class EngagementsTestHelper(TestCase):
         self.authenticate_client()
 
     def create_tenant(self, work_item_type=None):
-        work_item_type = work_item_type or SetupDefaults.DEFAULT_TENANT_WORK_ITEM_TYPE
+        work_item_type = work_item_type or WorkItemType.TICKET
         
         tenant = TenantFactory.create(work_item_type=work_item_type)
         return tenant

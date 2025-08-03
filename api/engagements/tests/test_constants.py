@@ -68,16 +68,21 @@ class TestData:
 
 class SetupDefaults:
     """Default values for test setup."""
-    
-    DEFAULT_TENANT_WORK_ITEM_TYPE = "ticket"
-    
-    # Default amounts for creating test objects
+
     WORK_ITEM_AMOUNT = 3
     COMMENT_AMOUNT = 3
     ATTACHMENT_AMOUNT = 3
     STATUS_AMOUNT = 5
     CATEGORY_AMOUNT = 5
     PRIORITY_AMOUNT = 5
+
+
+class WorkItemType:
+    """Work item type constants."""
+    
+    TICKET = "ticket"
+    CASE = "case"
+    JOB = "job"
 
 
 class QueryParams:
