@@ -1,5 +1,6 @@
 import uuid
-from relations.models import Person, Organization, Relation, Assignment
+from partners.models import Person, Organization
+from relations.models import Relation, Assignment
 from core.models import Role
 from relations.choices import RelationObjectType
 from core.models import Tenant

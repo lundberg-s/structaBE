@@ -84,7 +84,7 @@ class Migration(migrations.Migration):
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="source_relations",
-                to="relations.partner",
+                to="partners.partner",
             ),
         ),
         migrations.AddField(
@@ -106,7 +106,7 @@ class Migration(migrations.Migration):
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="target_relations",
-                to="relations.partner",
+                to="partners.partner",
             ),
         ),
         migrations.AddField(

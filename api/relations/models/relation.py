@@ -3,7 +3,7 @@ from django.db import models
 from relations.choices import RelationObjectType
 from relations.utilities.validation_helpers import TenantValidatorMixin
 from engagements.models import WorkItem
-from relations.models.partner import Partner
+from partners.models import Partner
 from core.models import AuditModel, Tenant, Role
 from relations.querysets.relation_querysets import RelationQuerySet
 

@@ -1,7 +1,7 @@
 from django.db import models
 
 from relations.utilities.validation_helpers import TenantValidatorMixin
-from relations.models.relation import Relation
+from relations.models import Relation
 from core.models import AuditModel, Tenant
 
 

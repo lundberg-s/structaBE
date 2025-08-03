@@ -4,7 +4,7 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 
 from django_filters.rest_framework import DjangoFilterBackend
 
-from relations.models import Partner
+from partners.models import Partner
 
 from core.views.base_views import BaseView
 

@@ -1,9 +1,9 @@
 from rest_framework.generics import RetrieveUpdateDestroyAPIView
-from relations.models import Person  
+from partners.models import Person  
 
-from relations.serializers.person_serializers import PersonSerializer
+from partners.serializers import PersonSerializer
 
-from relations.views.partner_views import PartnerListView, PartnerDetailView
+from partners.views import PartnerListView, PartnerDetailView
 
 class PersonListView(PartnerListView):
     model = Person

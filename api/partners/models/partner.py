@@ -1,7 +1,7 @@
 from django.db import models
 
 from core.models import AuditModel, Tenant, Role
-from relations.querysets.partner_querysets import PartnerQuerySet
+from partners.querysets import PartnerQuerySet
 
 
 class Partner(AuditModel):

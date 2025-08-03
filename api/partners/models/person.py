@@ -1,7 +1,7 @@
 from django.db import models
 
-from relations.models.partner import Partner
-from relations.querysets.person_querysets import PersonQuerySet
+from partners.models.partner import Partner
+from partners.querysets import PersonQuerySet
 
 
 class Person(Partner):

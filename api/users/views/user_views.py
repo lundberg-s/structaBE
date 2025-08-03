@@ -8,7 +8,7 @@ from rest_framework import status
 
 from users.models import User
 from users.permissions import CanManageUsersAndRoles, CanViewContentOnly
-from relations.models import Person
+from partners.models import Person
 from users.serializers.user_serializers import UserSerializer
 from core.views.base_views import BaseView
 

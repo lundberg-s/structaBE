@@ -133,7 +133,7 @@ class Migration(migrations.Migration):
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="user",
-                        to="relations.partner",
+                        to="partners.partner",
                     ),
                 ),
                 (
