@@ -1,4 +1,5 @@
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
 
 from engagements.views.ticket_views import TicketListView, TicketDetailView
 from engagements.views.case_views import CaseListView, CaseDetailView
@@ -8,11 +9,20 @@ from engagements.views.attachments_views import AttachmentListView, AttachmentDe
 from engagements.views.comments_views import CommentListView, CommentDetailView
 from engagements.views.statistics_views import WorkItemStatisticsView
 from engagements.views.audit_views import WorkItemAuditViewSet
+from engagements.views import WorkItemStatusViewSet, WorkItemPriorityViewSet, WorkItemCategoryViewSet
 
 app_name = 'engagements'
 
+# Create router for ViewSets
+router = DefaultRouter()
+router.register(r'statuses', WorkItemStatusViewSet, basename='workitem-status')
+router.register(r'priorities', WorkItemPriorityViewSet, basename='workitem-priority')
+router.register(r'categories', WorkItemCategoryViewSet, basename='workitem-category')
 
 urlpatterns = [
+    # Include router URLs
+    path('', include(router.urls)),
+    
     path('tickets/', TicketListView.as_view(), name='ticket-list'),
     path('tickets/<uuid:pk>/', TicketDetailView.as_view(), name='ticket-detail'),
 

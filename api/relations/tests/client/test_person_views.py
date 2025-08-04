@@ -1,6 +1,6 @@
 from relations.tests.client.test_base import FullySetupTest
 from django.urls import reverse
-from relations.models import Person
+from partners.models import Person
 
 class TestPersonFlow(FullySetupTest):
     def setUp(self):

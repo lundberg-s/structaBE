@@ -84,6 +84,10 @@ class AssignmentCreateSerializer(serializers.ModelSerializer):
         # Get or create the relation using the utility function
         relation = create_or_get_assignment_relation(person, work_item, tenant, created_by)
         
+        # Check if assignment already exists for this relation
+        if Assignment.objects.filter(relation=relation).exists():
+            raise serializers.ValidationError('User is already assigned to this work item.')
+        
         # Create the assignment
         validated_data['relation'] = relation
         validated_data['tenant'] = tenant

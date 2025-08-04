@@ -72,7 +72,7 @@ def _remove_assignments(work_item, user_ids):
     
     # Find relations where this work item is the target and role is "assigned_to"
     # Get the person IDs for the users
-    from relations.models import Person
+    from partners.models import Person
     person_ids = Person.objects.filter(user__id__in=user_ids).values_list('id', flat=True)
     
     relations = Relation.objects.filter(

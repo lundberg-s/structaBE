@@ -5,7 +5,7 @@ from relations.utilities.assignment_utilities import (
     _remove_assignments,
     _add_assignments
 )
-from relations.models import Assignment
+from partners.models import Assignment
 from users.tests.factory import create_user
 from core.tests.factory import create_tenant
 from engagements.tests.factory import create_ticket

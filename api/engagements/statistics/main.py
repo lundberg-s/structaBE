@@ -24,10 +24,10 @@ def get_work_item_statistics(model, tenant, Comment, AuditLog):
     # Add model-specific stats
     if model == Ticket:
         stats['avg_resolution_time_hours'] = get_avg_resolution_time(qs, now)
-        stats['tickets_by_urgency'] = {
-            'low': qs.filter(urgency='low').count(),
-            'medium': qs.filter(urgency='medium').count(),
-            'high': qs.filter(urgency='high').count(),
+        stats['tickets_by_priority'] = {
+            'low': qs.filter(priority='low').count(),
+            'medium': qs.filter(priority='medium').count(),
+            'high': qs.filter(priority='high').count(),
         }
     elif model == Case:
         stats['cases_by_legal_area'] = {}

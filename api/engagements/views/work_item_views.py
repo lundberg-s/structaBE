@@ -27,6 +27,9 @@ class BaseWorkItemListView(BaseWorkItemView, ListCreateAPIView):
     model = None
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = []
+    search_fields = []
+    ordering_fields = []
 
     def get_queryset(self):
         if not self._check_tenant_type():

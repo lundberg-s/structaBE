@@ -2,9 +2,9 @@ from django.test import TestCase
 from django.contrib.auth import get_user_model
 from django.contrib.admin.sites import AdminSite
 from core.models import Tenant, Role, AuditLog
-from relations.models import Organization
+from partners.models import Organization
 from core.admin import TenantAdmin, RoleAdmin
-from relations.admin import OrganizationAdmin
+from partners.admin import OrganizationAdmin
 
 User = get_user_model()
 

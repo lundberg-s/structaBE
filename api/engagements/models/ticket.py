@@ -7,11 +7,6 @@ from .work_item import WorkItem
 class Ticket(WorkItem):
     # Auto-generated 7-digit unique ticket number
     ticket_number = models.CharField(max_length=50, null=True, blank=True, unique=True, editable=False)
-    urgency = models.CharField(
-        max_length=20,
-        choices=WorkItemPriorityTypes.choices,
-        default=WorkItemPriorityTypes.MEDIUM,
-    )
     # entity: typically the customer or reporter
     
     def save(self, *args, **kwargs):

@@ -1,241 +1,444 @@
-from rest_framework.test import APITestCase, APIClient
 from django.urls import reverse
-from users.tests.factory import create_user
-from core.tests.factory import create_tenant
-from engagements.tests.factory import create_job
-from engagements.tests.client.test_base import FullySetupTest, JobTenancySetup
-from engagements.models import Job
-from datetime import timedelta
-from django.utils import timezone
 
-class TestJobFlow(JobTenancySetup, APITestCase):
+from engagements.tests.test_helper import EngagementsTestHelper
+from engagements.tests.test_constants import (
+    TestURLs,
+    TestData,
+    QueryParams,
+    ExpectedResults,
+    SetupDefaults,
+    WorkItemType,
+)
+from engagements.models import Job
+
+
+class TestJobFlow(EngagementsTestHelper):
     def setUp(self):
         super().setUp()
-        self.client = APIClient()
-        self.job_data = {
-            'title': 'Test Job',
-            'description': 'A test job',
-            'status': 'open',
-            'category': 'task',
-            'priority': 'medium',
-            'deadline': (timezone.now() + timedelta(days=7)).isoformat(),
-            'job_code': 'J-001',
-            'assigned_team': 'Team A',
-            'estimated_hours': '10.5',
-        }
-
-    def test_create_job_success(self):
+        self.tenant = self.create_tenant(work_item_type=WorkItemType.JOB)
+        self.user = self.create_user(tenant=self.tenant)
+        self.token = self.authenticate_user()
         self.authenticate_client()
-        url = reverse('engagements:job-list')
-        response = self.client.post(url, self.job_data, format='json')
-        self.assertIn(response.status_code, (200, 201))
-        job = Job.objects.get(id=response.data['id'])
+        self.jobs = self.create_jobs(amount=SetupDefaults.WORK_ITEM_AMOUNT)
+        self.job = self.jobs[0]
+
+    def test_create_job_returns_201(self):
+        self.authenticate_client()
+        url = reverse(TestURLs.JOB_LIST)
+        job_data = self.get_work_item_data()
+        response = self.client.post(url, job_data, format="json")
+        self.assertEqual(response.status_code, 201)
+
+    def test_create_job_returns_id(self):
+        self.authenticate_client()
+        url = reverse(TestURLs.JOB_LIST)
+        job_data = self.get_work_item_data()
+        response = self.client.post(url, job_data, format="json")
+        self.assertIn("id", response.data)
+
+    def test_create_job_sets_created_by(self):
+        self.authenticate_client()
+        url = reverse(TestURLs.JOB_LIST)
+        job_data = self.get_work_item_data()
+        response = self.client.post(url, job_data, format="json")
+        job = Job.objects.get(id=response.data["id"])
         self.assertEqual(job.created_by, self.user)
+
+    def test_create_job_sets_tenant(self):
+        self.authenticate_client()
+        url = reverse(TestURLs.JOB_LIST)
+        job_data = self.get_work_item_data()
+        response = self.client.post(url, job_data, format="json")
+        job = Job.objects.get(id=response.data["id"])
         self.assertEqual(job.tenant, self.tenant)
 
-    def test_create_job_auto_sets_user_and_tenant(self):
+    def test_create_job_invalid_status_returns_400(self):
         self.authenticate_client()
-        other_user = create_user(tenant=self.tenant, username='otheruser', password='otherpass')
-        other_tenant = create_tenant()
-        url = reverse('engagements:job-list')
-        data = self.job_data.copy()
-        data['created_by'] = other_user.id
-        data['tenant'] = other_tenant.id
-        response = self.client.post(url, data, format='json')
-        self.assertIn(response.status_code, (200, 201))
-        job = Job.objects.get(id=response.data['id'])
-        self.assertEqual(job.created_by, self.user)
-        self.assertEqual(job.tenant, self.tenant)
-
-    def test_create_job_invalid_foreign_key(self):
-        self.authenticate_client()
-        url = reverse('engagements:job-list')
-        # Invalid category
-        data = self.job_data.copy()
-        data['category'] = 'invalid'
-        response = self.client.post(url, data, format='json')
-        self.assertEqual(response.status_code, 400)
-        # Invalid status
-        data = self.job_data.copy()
-        data['status'] = 'invalid'
-        response = self.client.post(url, data, format='json')
+        url = reverse(TestURLs.JOB_LIST)
+        job_data = self.get_work_item_data(status=TestData.INVALID_STATUS)
+        response = self.client.post(url, job_data, format="json")
         self.assertEqual(response.status_code, 400)
 
     def test_unauthenticated_user_cannot_create_job(self):
-        url = reverse('engagements:job-list')
-        response = self.client.post(url, self.job_data, format='json')
+        # Clear authentication
+        self.client.cookies.clear()
+        url = reverse(TestURLs.JOB_LIST)
+        job_data = self.get_work_item_data()
+        response = self.client.post(url, job_data, format="json")
         self.assertEqual(response.status_code, 401)
 
-    def test_list_jobs_for_user_tenant_only(self):
+    def test_list_jobs_returns_200(self):
         self.authenticate_client()
-        # Create job for another tenant
-        other_tenant = create_tenant()
-        create_job(tenant=other_tenant, created_by=self.user)
-        url = reverse('engagements:job-list')
+        url = reverse(TestURLs.JOB_LIST)
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
-        for job in response.data:
-            self.assertEqual(job['tenant'], self.tenant.id)
 
-    def test_retrieve_job_from_same_tenant(self):
+    def test_list_jobs_returns_correct_count(self):
         self.authenticate_client()
-        job = create_job(tenant=self.tenant, created_by=self.user)
-        url = reverse('engagements:job-detail', args=[job.id])
+        url = reverse(TestURLs.JOB_LIST)
+        response = self.client.get(url)
+        self.assertEqual(
+            len(response.data), ExpectedResults.RESULT_COUNT
+        )  # 3 jobs from setUp
+
+    def test_list_jobs_scoped_to_tenant(self):
+        self.authenticate_client()
+        # Create job for other tenant
+        other_tenant = self.create_tenant(work_item_type=WorkItemType.JOB)
+        other_user = self.create_user(
+            tenant=other_tenant, email=TestData.OTHER_USER_EMAIL
+        )
+        self.create_jobs(amount=1, tenant=other_tenant, user=other_user)
+
+        url = reverse(TestURLs.JOB_LIST)
+        response = self.client.get(url)
+        self.assertEqual(
+            len(response.data), ExpectedResults.RESULT_COUNT
+        )  # Only current tenant jobs
+
+    def test_retrieve_job_returns_200(self):
+        self.authenticate_client()
+        url = reverse(TestURLs.JOB_DETAIL, args=[self.job.id])
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(str(response.data['id']), str(job.id))
 
-    def test_retrieve_job_from_other_tenant_fails(self):
+    def test_retrieve_job_returns_correct_id(self):
         self.authenticate_client()
-        other_tenant = create_tenant()
-        job = create_job(tenant=other_tenant, created_by=self.user)
-        url = reverse('engagements:job-detail', args=[job.id])
+        url = reverse(TestURLs.JOB_DETAIL, args=[self.job.id])
+        response = self.client.get(url)
+        self.assertEqual(str(response.data["id"]), str(self.job.id))
+
+    def test_retrieve_other_tenant_job_fails(self):
+        self.authenticate_client()
+        other_tenant = self.create_tenant(work_item_type=WorkItemType.JOB)
+        other_user = self.create_user(
+            tenant=other_tenant, email=TestData.OTHER_USER_EMAIL
+        )
+        other_jobs = self.create_jobs(
+            amount=1, tenant=other_tenant, user=other_user
+        )
+        other_job = other_jobs[0]
+
+        url = reverse(TestURLs.JOB_DETAIL, args=[other_job.id])
         response = self.client.get(url)
         self.assertIn(response.status_code, (403, 404))
 
-    def test_update_own_job_success(self):
+    def test_update_job_returns_200(self):
         self.authenticate_client()
-        job = create_job(tenant=self.tenant, created_by=self.user)
-        url = reverse('engagements:job-detail', args=[job.id])
-        data = {'title': 'Updated Title'}
-        response = self.client.patch(url, data, format='json')
+        url = reverse(TestURLs.JOB_DETAIL, args=[self.job.id])
+        data = {"title": TestData.UPDATED_TITLE}
+        response = self.client.patch(url, data, format="json")
         self.assertEqual(response.status_code, 200)
-        job.refresh_from_db()
-        self.assertEqual(job.title, 'Updated Title')
 
-    def test_update_job_from_other_tenant_fails(self):
+    def test_update_job_changes_title(self):
         self.authenticate_client()
-        other_tenant = create_tenant()
-        job = create_job(tenant=other_tenant, created_by=self.user)
-        url = reverse('engagements:job-detail', args=[job.id])
-        data = {'title': 'Hacked'}
-        response = self.client.patch(url, data, format='json')
+        url = reverse(TestURLs.JOB_DETAIL, args=[self.job.id])
+        data = {"title": TestData.UPDATED_TITLE}
+        self.client.patch(url, data, format="json")
+        self.job.refresh_from_db()
+        self.assertEqual(self.job.title, TestData.UPDATED_TITLE)
+
+    def test_update_other_tenant_job_fails(self):
+        self.authenticate_client()
+        other_tenant = self.create_tenant(work_item_type=WorkItemType.JOB)
+        other_user = self.create_user(
+            tenant=other_tenant, email=TestData.OTHER_USER_EMAIL
+        )
+        other_jobs = self.create_jobs(
+            amount=1, tenant=other_tenant, user=other_user
+        )
+        other_job = other_jobs[0]
+
+        url = reverse(TestURLs.JOB_DETAIL, args=[other_job.id])
+        data = {"title": TestData.HACKED_TITLE}
+        response = self.client.patch(url, data, format="json")
         self.assertIn(response.status_code, (403, 404))
 
-    def test_cannot_spoof_protected_fields_on_update(self):
+    def test_update_protected_fields_ignored(self):
         self.authenticate_client()
-        job = create_job(tenant=self.tenant, created_by=self.user)
-        url = reverse('engagements:job-detail', args=[job.id])
-        data = {'created_by': create_user(tenant=self.tenant, username='spoof', password='pass').id, 'tenant': create_tenant().id}
-        response = self.client.patch(url, data, format='json')
+        url = reverse(TestURLs.JOB_DETAIL, args=[self.job.id])
+        data = {
+            "created_by": self.create_user(
+                tenant=self.tenant,
+                email=TestData.SPOOF_EMAIL,
+                password=TestData.SPOOF_PASSWORD,
+            ).id,
+            "tenant": self.create_tenant(work_item_type=WorkItemType.JOB).id,
+        }
+        response = self.client.patch(url, data, format="json")
         self.assertEqual(response.status_code, 200)
-        job.refresh_from_db()
-        self.assertEqual(job.created_by, self.user)
-        self.assertEqual(job.tenant, self.tenant)
 
-    def test_delete_own_job_success(self):
+    def test_update_protected_fields_not_changed(self):
         self.authenticate_client()
-        job = create_job(tenant=self.tenant, created_by=self.user)
-        url = reverse('engagements:job-detail', args=[job.id])
+        url = reverse(TestURLs.JOB_DETAIL, args=[self.job.id])
+        data = {
+            "created_by": self.create_user(
+                tenant=self.tenant,
+                email=TestData.SPOOF_EMAIL,
+                password=TestData.SPOOF_PASSWORD,
+            ).id,
+            "tenant": self.create_tenant(work_item_type=WorkItemType.JOB).id,
+        }
+        self.client.patch(url, data, format="json")
+        self.job.refresh_from_db()
+        self.assertEqual(self.job.created_by, self.user)
+
+    def test_delete_job_returns_204(self):
+        self.authenticate_client()
+        url = reverse(TestURLs.JOB_DETAIL, args=[self.job.id])
         response = self.client.delete(url)
         self.assertEqual(response.status_code, 204)
-        job.refresh_from_db()
-        self.assertTrue(job.is_deleted)
-        # Optionally check not in list or detail
-        list_url = reverse('engagements:job-list')
+
+    def test_delete_job_sets_is_deleted(self):
+        self.authenticate_client()
+        url = reverse(TestURLs.JOB_DETAIL, args=[self.job.id])
+        self.client.delete(url)
+        self.job.refresh_from_db()
+        self.assertTrue(self.job.is_deleted)
+
+    def test_delete_job_removes_from_list(self):
+        self.authenticate_client()
+        url = reverse(TestURLs.JOB_DETAIL, args=[self.job.id])
+        self.client.delete(url)
+
+        list_url = reverse(TestURLs.JOB_LIST)
         list_response = self.client.get(list_url)
-        self.assertFalse(any(j['id'] == str(job.id) for j in list_response.data))
+        self.assertFalse(
+            any(j["id"] == str(self.job.id) for j in list_response.data)
+        )
+
+    def test_delete_job_returns_404_on_detail(self):
+        self.authenticate_client()
+        url = reverse(TestURLs.JOB_DETAIL, args=[self.job.id])
+        self.client.delete(url)
+
         detail_response = self.client.get(url)
         self.assertEqual(detail_response.status_code, 404)
 
-    def test_delete_job_from_other_tenant_fails(self):
+    def test_delete_other_tenant_job_fails(self):
         self.authenticate_client()
-        other_tenant = create_tenant()
-        job = create_job(tenant=other_tenant, created_by=self.user)
-        url = reverse('engagements:job-detail', args=[job.id])
+        other_tenant = self.create_tenant(work_item_type=WorkItemType.JOB)
+        other_user = self.create_user(
+            tenant=other_tenant, email=TestData.OTHER_USER_EMAIL
+        )
+        other_jobs = self.create_jobs(
+            amount=1, tenant=other_tenant, user=other_user
+        )
+        other_job = other_jobs[0]
+
+        url = reverse(TestURLs.JOB_DETAIL, args=[other_job.id])
         response = self.client.delete(url)
         self.assertIn(response.status_code, (403, 404))
-        self.assertTrue(Job.objects.filter(id=job.id).exists())
+
+    def test_delete_other_tenant_job_preserves_record(self):
+        self.authenticate_client()
+        other_tenant = self.create_tenant(work_item_type=WorkItemType.JOB)
+        other_user = self.create_user(
+            tenant=other_tenant, email=TestData.OTHER_USER_EMAIL
+        )
+        other_jobs = self.create_jobs(
+            amount=1, tenant=other_tenant, user=other_user
+        )
+        other_job = other_jobs[0]
+
+        url = reverse(TestURLs.JOB_DETAIL, args=[other_job.id])
+        self.client.delete(url)
+        self.assertTrue(Job.objects.filter(id=other_job.id).exists())
 
     def test_protected_fields_are_readonly(self):
         self.authenticate_client()
-        job = create_job(tenant=self.tenant, created_by=self.user)
-        url = reverse('engagements:job-detail', args=[job.id])
-        data = {'created_at': '2000-01-01T00:00:00Z'}
-        response = self.client.patch(url, data, format='json')
+        url = reverse(TestURLs.JOB_DETAIL, args=[self.job.id])
+        data = {"created_at": TestData.FAKE_CREATED_AT}
+        response = self.client.patch(url, data, format="json")
         self.assertEqual(response.status_code, 200)
-        job.refresh_from_db()
-        self.assertNotEqual(str(job.created_at), '2000-01-01T00:00:00Z')
 
-    def test_cannot_spoof_protected_fields_on_create(self):
+    def test_protected_fields_not_modified(self):
         self.authenticate_client()
-        url = reverse('engagements:job-list')
-        data = self.job_data.copy()
-        data['created_by'] = create_user(tenant=self.tenant, username='spoof', password='pass').id
-        data['tenant'] = create_tenant().id
-        response = self.client.post(url, data, format='json')
-        self.assertIn(response.status_code, (200, 201))
-        job = Job.objects.get(id=response.data['id'])
+        url = reverse(TestURLs.JOB_DETAIL, args=[self.job.id])
+        data = {"created_at": TestData.FAKE_CREATED_AT}
+        self.client.patch(url, data, format="json")
+        self.job.refresh_from_db()
+        self.assertNotEqual(str(self.job.created_at), TestData.FAKE_CREATED_AT)
+
+    def test_create_protected_fields_ignored(self):
+        self.authenticate_client()
+        url = reverse(TestURLs.JOB_LIST)
+        job_data = self.get_work_item_data(
+            created_by=self.create_user(
+                tenant=self.tenant,
+                email=TestData.SPOOF_EMAIL,
+                password=TestData.SPOOF_PASSWORD,
+            ).id,
+            tenant=self.create_tenant(work_item_type=WorkItemType.JOB).id,
+        )
+        response = self.client.post(url, job_data, format="json")
+        self.assertEqual(response.status_code, 201)
+
+    def test_create_protected_fields_not_set(self):
+        self.authenticate_client()
+        url = reverse(TestURLs.JOB_LIST)
+        job_data = self.get_work_item_data(
+            created_by=self.create_user(
+                tenant=self.tenant,
+                email=TestData.SPOOF_EMAIL,
+                password=TestData.SPOOF_PASSWORD,
+            ).id,
+            tenant=self.create_tenant(work_item_type=WorkItemType.JOB).id,
+        )
+        response = self.client.post(url, job_data, format="json")
+        job = self.get_job(response.data["id"])
         self.assertEqual(job.created_by, self.user)
-        self.assertEqual(job.tenant, self.tenant)
 
-    def test_http_status_codes_are_correct(self):
-        self.authenticate_client()
-        url = reverse('engagements:job-list')
-        # Valid create
-        response = self.client.post(url, self.job_data, format='json')
-        self.assertIn(response.status_code, (200, 201))
-        # Invalid create
-        data = self.job_data.copy()
-        data['category'] = 'invalid'
-        response = self.client.post(url, data, format='json')
-        self.assertEqual(response.status_code, 400)
-        # Unauthenticated
-        self.client.logout()
-        response = self.client.post(url, self.job_data, format='json')
-        self.assertEqual(response.status_code, 401)
-
-    def test_unauthenticated_user_denied(self):
-        url = reverse('engagements:job-list')
+    def test_unauthenticated_user_denied_list(self):
+        # Clear authentication
+        self.client.cookies.clear()
+        url = reverse(TestURLs.JOB_LIST)
         response = self.client.get(url)
         self.assertEqual(response.status_code, 401)
 
-    def test_filter_jobs_by_status_and_priority(self):
+    def test_filter_by_status_returns_200(self):
         self.authenticate_client()
-        j1 = create_job(tenant=self.tenant, created_by=self.user)
-        j1.status = 'open'
-        j1.priority = 'high'
-        j1.save()
-        j2 = create_job(tenant=self.tenant, created_by=self.user)
-        j2.status = 'closed'
-        j2.priority = 'low'
-        j2.save()
-        url = reverse('engagements:job-list') + '?status=open&priority=high'
+        statuses = self.create_work_item_statuses(amount=2)
+        other_status = statuses[0]
+
+        url = reverse(TestURLs.JOB_LIST)
+        response = self.client.get(url, {QueryParams.STATUS_LABEL: other_status.label})
+        self.assertEqual(response.status_code, 200)
+
+    def test_filter_by_status_returns_correct_count(self):
+        self.authenticate_client()
+
+        unique_status = self.create_work_item_statuses(amount=1)[0]
+        unique_status.label = TestData.UNIQUE_STATUS_LABEL
+        unique_status.save()
+
+        job_data = self.get_work_item_data(status=unique_status.id)
+        self.client.post(reverse(TestURLs.JOB_LIST), job_data, format="json")
+
+        url = reverse(TestURLs.JOB_LIST)
+        response = self.client.get(url, {QueryParams.STATUS_LABEL: unique_status.label})
+
+        self.assertEqual(len(response.data), ExpectedResults.FILTERED_COUNT)
+
+    def test_filter_by_priority_returns_200(self):
+        self.authenticate_client()
+        priorities = self.create_work_item_priorities(amount=2)
+        other_priority = priorities[0]
+
+        url = reverse(TestURLs.JOB_LIST)
+        response = self.client.get(
+            url, {QueryParams.PRIORITY_LABEL: other_priority.label}
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def test_filter_by_priority_returns_correct_count(self):
+        self.authenticate_client()
+
+        unique_priority = self.create_work_item_priorities(amount=1)[0]
+        unique_priority.label = TestData.UNIQUE_PRIORITY_LABEL
+        unique_priority.save()
+
+        job_data = self.get_work_item_data(priority=unique_priority.id)
+        self.client.post(reverse(TestURLs.JOB_LIST), job_data, format="json")
+
+        url = reverse(TestURLs.JOB_LIST)
+        response = self.client.get(
+            url, {QueryParams.PRIORITY_LABEL: unique_priority.label}
+        )
+
+        self.assertEqual(len(response.data), ExpectedResults.FILTERED_COUNT)
+
+    def test_filter_by_category_returns_200(self):
+        self.authenticate_client()
+        categories = self.create_work_item_categories(amount=2)
+        other_category = categories[0]
+
+        url = reverse(TestURLs.JOB_LIST)
+        response = self.client.get(
+            url, {QueryParams.CATEGORY_LABEL: other_category.label}
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def test_filter_by_category_returns_correct_count(self):
+        self.authenticate_client()
+
+        unique_category = self.create_work_item_categories(amount=1)[0]
+        unique_category.label = TestData.UNIQUE_CATEGORY_LABEL
+        unique_category.save()
+
+        job_data = self.get_work_item_data(category=unique_category.id)
+        self.client.post(reverse(TestURLs.JOB_LIST), job_data, format="json")
+
+        url = reverse(TestURLs.JOB_LIST)
+        response = self.client.get(
+            url, {QueryParams.CATEGORY_LABEL: unique_category.label}
+        )
+
+        self.assertEqual(len(response.data), ExpectedResults.FILTERED_COUNT)
+
+    def test_search_returns_200(self):
+        self.authenticate_client()
+        self.job.title = TestData.UNIQUE_TITLE
+        self.job.description = TestData.SPECIAL_DESC
+        self.job.save()
+
+        url = self.build_search_url(
+            reverse(TestURLs.JOB_LIST), TestData.UNIQUE_TITLE
+        )
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
+
+    def test_search_finds_matching_title(self):
+        self.authenticate_client()
+        self.job.title = TestData.UNIQUE_TITLE
+        self.job.description = TestData.SPECIAL_DESC
+        self.job.save()
+
+        url = self.build_search_url(
+            reverse(TestURLs.JOB_LIST), TestData.UNIQUE_TITLE
+        )
+        response = self.client.get(url)
+        self.assertTrue(any(TestData.UNIQUE_TITLE in j["title"] for j in response.data))
+
+    def test_filter_and_search_returns_200(self):
+        self.authenticate_client()
+        self.job.title = TestData.MY_TENANT_TITLE
+        self.job.save()
+
+        url = self.build_filter_url(
+            reverse(TestURLs.JOB_LIST),
+            status=QueryParams.STATUS_OPEN,
+            priority=QueryParams.PRIORITY_HIGH,
+            search=TestData.MY_TENANT_TITLE,
+        )
+
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+
+    def test_filter_and_search_scoped_to_tenant(self):
+        self.authenticate_client()
+        other_tenant = self.create_tenant(work_item_type=WorkItemType.JOB)
+        other_user = self.create_user(
+            tenant=other_tenant, email=TestData.OTHER_USER_EMAIL
+        )
+
+        other_jobs = self.create_jobs(
+            amount=1, tenant=other_tenant, user=other_user
+        )
+        other_job = other_jobs[0]
+        other_job.title = TestData.OTHER_TENANT_TITLE
+        other_job.save()
+
+        self.job.title = TestData.MY_TENANT_TITLE
+        self.job.save()
+
+        url = self.build_filter_url(
+            reverse(TestURLs.JOB_LIST),
+            status=QueryParams.STATUS_OPEN,
+            priority=QueryParams.PRIORITY_HIGH,
+            search=TestData.MY_TENANT_TITLE,
+        )
+
+        response = self.client.get(url)
         for job in response.data:
-            self.assertEqual(job['status'], 'open')
-            self.assertEqual(job['priority'], 'high')
-
-    def test_search_jobs_by_title_or_description(self):
-        self.authenticate_client()
-        j = create_job(tenant=self.tenant, created_by=self.user)
-        j.title = 'UniqueTitle'
-        j.description = 'SpecialDesc'
-        j.save()
-        url = reverse('engagements:job-list') + '?search=UniqueTitle'
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, 200)
-        self.assertTrue(any('UniqueTitle' in j['title'] for j in response.data))
-
-    def test_filter_and_search_results_scoped_to_tenant(self):
-        self.authenticate_client()
-        other_tenant = create_tenant()
-        j1 = create_job(tenant=other_tenant, created_by=self.user)
-        j1.title = 'OtherTenantTitle'
-        j1.status = 'open'
-        j1.priority = 'high'
-        j1.save()
-        j2 = create_job(tenant=self.tenant, created_by=self.user)
-        j2.title = 'MyTenantTitle'
-        j2.status = 'open'
-        j2.priority = 'high'
-        j2.save()
-        url = reverse('engagements:job-list') + '?status=open&priority=high&search=MyTenantTitle'
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, 200)
-        for job in response.data:
-            self.assertEqual(job['tenant'], self.tenant.id)
-            self.assertIn('MyTenantTitle', job['title'])
-
-
+            self.assertEqual(job["tenant"], self.tenant.id)

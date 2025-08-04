@@ -1,6 +1,6 @@
 from django.test import TestCase
 from engagements.utilities.ticket_utilities import generate_ticket_number, is_valid_ticket_number
-from engagements.tests.factory import create_ticket
+from engagements.tests.factory import TestDataFactory
 from relations.tests.factory import create_tenant, create_user
 
 
@@ -10,6 +10,7 @@ class TestTicketUtilities(TestCase):
     def setUp(self):
         self.tenant = create_tenant()
         self.user = create_user(tenant=self.tenant)
+        self.factory = TestDataFactory(self.tenant, self.user)
     
     def test_generate_ticket_number_first_ticket(self):
         """Test generating ticket number for the first ticket."""
@@ -23,14 +24,14 @@ class TestTicketUtilities(TestCase):
     def test_generate_ticket_number_sequential(self):
         """Test generating sequential ticket numbers."""
         # Create first ticket
-        ticket1 = create_ticket(tenant=self.tenant, created_by=self.user, ticket_number="1000000")
+        ticket1 = self.factory.create_ticket(ticket_number="1000000")
         
         # Generate next ticket number
         ticket_number = generate_ticket_number(self.tenant)
         self.assertEqual(ticket_number, "1000001")
         
         # Create second ticket
-        ticket2 = create_ticket(tenant=self.tenant, created_by=self.user, ticket_number="1000001")
+        ticket2 = self.factory.create_ticket(ticket_number="1000001")
         
         # Generate next ticket number
         ticket_number = generate_ticket_number(self.tenant)
@@ -39,8 +40,8 @@ class TestTicketUtilities(TestCase):
     def test_generate_ticket_number_with_gaps(self):
         """Test generating ticket number when there are gaps in the sequence."""
         # Create tickets with gaps
-        ticket1 = create_ticket(tenant=self.tenant, created_by=self.user, ticket_number="1000000")
-        ticket2 = create_ticket(tenant=self.tenant, created_by=self.user, ticket_number="1000002")  # Gap at 1000001
+        ticket1 = self.factory.create_ticket(ticket_number="1000000")
+        ticket2 = self.factory.create_ticket(ticket_number="1000002")  # Gap at 1000001
         
         # Should generate the next available number
         ticket_number = generate_ticket_number(self.tenant)
@@ -49,9 +50,9 @@ class TestTicketUtilities(TestCase):
     def test_generate_ticket_number_ignores_non_7_digit_numbers(self):
         """Test that non-7-digit ticket numbers are ignored."""
         # Create tickets with non-7-digit numbers
-        ticket1 = create_ticket(tenant=self.tenant, created_by=self.user, ticket_number="12345")  # 5 digits
-        ticket2 = create_ticket(tenant=self.tenant, created_by=self.user, ticket_number="12345678")  # 8 digits
-        ticket3 = create_ticket(tenant=self.tenant, created_by=self.user, ticket_number="1000000")  # 7 digits
+        ticket1 = self.factory.create_ticket(ticket_number="12345")  # 5 digits
+        ticket2 = self.factory.create_ticket(ticket_number="12345678")  # 8 digits
+        ticket3 = self.factory.create_ticket(ticket_number="1000000")  # 7 digits
         
         # Should generate based on the 7-digit number only
         ticket_number = generate_ticket_number(self.tenant)
@@ -60,7 +61,7 @@ class TestTicketUtilities(TestCase):
     def test_generate_ticket_number_race_condition_handling(self):
         """Test handling of race conditions when generating ticket numbers."""
         # Create a ticket with a high number
-        ticket = create_ticket(tenant=self.tenant, created_by=self.user, ticket_number="1000005")
+        ticket = self.factory.create_ticket(ticket_number="1000005")
         
         # Generate next ticket number
         ticket_number = generate_ticket_number(self.tenant)
@@ -70,10 +71,11 @@ class TestTicketUtilities(TestCase):
         """Test that ticket numbers are independent across tenants."""
         tenant2 = create_tenant()
         user2 = create_user(tenant=tenant2)
+        factory2 = TestDataFactory(tenant2, user2)
         
         # Create tickets in first tenant
-        ticket1 = create_ticket(tenant=self.tenant, created_by=self.user, ticket_number="1000000")
-        ticket2 = create_ticket(tenant=self.tenant, created_by=self.user, ticket_number="1000001")
+        ticket1 = self.factory.create_ticket(ticket_number="1000000")
+        ticket2 = self.factory.create_ticket(ticket_number="1000001")
         
         # Generate ticket number for second tenant
         ticket_number = generate_ticket_number(tenant2)

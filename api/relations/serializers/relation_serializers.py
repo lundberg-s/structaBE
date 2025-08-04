@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
-from relations.models import Relation, Partner, Person
+from relations.models import Relation
+from partners.models import Partner, Person
 from relations.choices import RelationObjectType
 from engagements.models import WorkItem
 

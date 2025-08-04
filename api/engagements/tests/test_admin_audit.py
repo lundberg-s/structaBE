@@ -5,6 +5,7 @@ from django.contrib.admin.sites import AdminSite
 from core.models import AuditLog, Tenant
 from engagements.models import WorkItem, Ticket, Case, Job, Attachment, Comment
 from engagements.admin import WorkItemAdmin, TicketAdmin, CaseAdmin, JobAdmin, AttachmentAdmin, CommentAdmin
+from engagements.tests.factory import TestDataFactory
 
 User = get_user_model()
 
@@ -30,6 +31,9 @@ class EngagementsAdminAuditTestCase(TestCase):
             password='testpass123',
             tenant=self.tenant
         )
+        
+        # Create factory for test data
+        self.factory = TestDataFactory(self.tenant, self.superuser)
         
         # Set up admin site and request factory
         self.admin_site = AdminSite()
@@ -60,8 +64,9 @@ class EngagementsAdminAuditTestCase(TestCase):
             tenant=self.tenant,
             title='Test Work Item',
             description='Test description',
-            status='open',
-            priority='medium'
+            status=self.factory.status,
+            category=self.factory.category,
+            priority=self.factory.priority
         )
         
         request = self._create_request()
@@ -86,8 +91,9 @@ class EngagementsAdminAuditTestCase(TestCase):
             tenant=self.tenant,
             title='Test Ticket',
             description='Test ticket description',
-            urgency='medium',
-            status='open'
+            priority=self.factory.priority,
+            status=self.factory.status,
+            category=self.factory.category
         )
         
         request = self._create_request()
@@ -113,7 +119,9 @@ class EngagementsAdminAuditTestCase(TestCase):
             title='Test Case',
             description='Test case description',
             legal_area='civil',
-            status='active'
+            status=self.factory.status,
+            category=self.factory.category,
+            priority=self.factory.priority
         )
         
         request = self._create_request()
@@ -140,7 +148,9 @@ class EngagementsAdminAuditTestCase(TestCase):
             description='Test job description',
             job_code='JOB-001',
             estimated_hours=10,
-            status='pending'
+            status=self.factory.status,
+            category=self.factory.category,
+            priority=self.factory.priority
         )
         
         request = self._create_request()
@@ -164,7 +174,9 @@ class EngagementsAdminAuditTestCase(TestCase):
         workitem = WorkItem(
             tenant=self.tenant,
             title='Test Work Item',
-            status='open'
+            status=self.factory.status,
+            category=self.factory.category,
+            priority=self.factory.priority
         )
         
         request = self._create_request()
@@ -199,7 +211,9 @@ class EngagementsAdminAuditTestCase(TestCase):
         workitem = WorkItem(
             tenant=self.tenant,
             title='Test Work Item',
-            status='open'
+            status=self.factory.status,
+            category=self.factory.category,
+            priority=self.factory.priority
         )
         
         request = self._create_request()
@@ -228,11 +242,7 @@ class EngagementsAdminAuditTestCase(TestCase):
 
     # def test_assignment_admin_audit_logging(self):
     #     """Test that Assignment admin creates audit logs."""
-    #     workitem = WorkItem.objects.create(
-    #         tenant=self.tenant,
-    #         title='Test Work Item',
-    #         status='open'
-    #     )
+    #     workitem = self.factory.create_work_item('ticket')
         
     #     assignment = Assignment.objects.create(
     #         tenant=self.tenant,
@@ -253,11 +263,7 @@ class EngagementsAdminAuditTestCase(TestCase):
 
     # def test_engagements_admin_update_audit_logging(self):
     #     """Test that engagements admin creates audit logs for updates."""
-    #     workitem = WorkItem.objects.create(
-    #         tenant=self.tenant,
-    #         title='Test Work Item',
-    #         status='open'
-    #     )
+    #     workitem = self.factory.create_work_item('ticket')
         
     #     # Clear existing audit logs
     #     AuditLog.objects.all().delete()
@@ -280,11 +286,7 @@ class EngagementsAdminAuditTestCase(TestCase):
 
     # def test_engagements_admin_delete_audit_logging(self):
     #     """Test that engagements admin creates audit logs for deletions."""
-    #     workitem = WorkItem.objects.create(
-    #         tenant=self.tenant,
-    #         title='Test Work Item',
-    #         status='open'
-    #     )
+    #     workitem = self.factory.create_work_item('ticket')
         
     #     # Clear existing audit logs
     #     AuditLog.objects.all().delete()

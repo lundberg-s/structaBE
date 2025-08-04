@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from users.models import User
-from relations.serializers.person_serializers import PersonSerializer
+from partners.serializers import PersonSerializer
 from core.serializers.tenant_serializers import TenantSerializer
 
 
