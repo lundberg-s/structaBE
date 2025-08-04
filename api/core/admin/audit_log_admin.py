@@ -18,7 +18,7 @@ class AuditLogAdmin(admin.ModelAdmin):
     )
     search_fields = (
         'entity_name', 'description', 'business_process', 'transaction_id',
-        'session_id', 'created_by__username', 'created_by__email'
+        'session_id'
     )
     readonly_fields = (
         'id', 'created_at', 'updated_at', 'created_by', 'updated_by',
@@ -66,11 +66,16 @@ class AuditLogAdmin(admin.ModelAdmin):
     def created_by_username(self, obj):
         """Display username with link to user admin."""
         if obj.created_by:
-            url = reverse('admin:users_user_change', args=[obj.created_by.id])
-            return format_html('<a href="{}">{}</a>', url, obj.created_by.username)
+            try:
+                from users.models import User
+                user = User.objects.get(id=obj.created_by)
+                url = reverse('admin:users_user_change', args=[user.id])
+                return format_html('<a href="{}">{}</a>', url, user.username)
+            except User.DoesNotExist:
+                return f'User {obj.created_by} (not found)'
         return '-'
     created_by_username.short_description = 'Created By'
-    created_by_username.admin_order_field = 'created_by__username'
+    created_by_username.admin_order_field = 'created_by'
     
     def risk_level_badge(self, obj):
         """Display risk level as a colored badge."""
@@ -104,7 +109,7 @@ class AuditLogAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         """Optimize queryset with select_related for better performance."""
         return super().get_queryset(request).select_related(
-            'created_by', 'updated_by', 'tenant'
+            'updated_by', 'tenant'
         )
     
     def has_add_permission(self, request):
@@ -176,10 +181,20 @@ class AuditLogAdmin(admin.ModelAdmin):
             'IP Address', 'Session ID', 'Transaction ID'
         ])
         
-        for log in queryset.select_related('created_by'):
+        for log in queryset:
+            # Handle created_by as UUID
+            created_by_username = ''
+            if log.created_by:
+                try:
+                    from users.models import User
+                    user = User.objects.get(id=log.created_by)
+                    created_by_username = user.username
+                except User.DoesNotExist:
+                    created_by_username = f'User {log.created_by} (not found)'
+            
             writer.writerow([
                 log.id, log.entity_type, log.entity_name, log.activity_type,
-                log.description, log.created_by.username if log.created_by else '',
+                log.description, created_by_username,
                 log.created_at, log.risk_level, log.compliance_category,
                 log.ip_address, log.session_id, log.transaction_id
             ])

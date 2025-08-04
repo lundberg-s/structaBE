@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from engagements.models import WorkItem
-from users.serializers.user_serializers import UserWithPersonSerializer
+from users.mixins import CreatedByUserMixin
 
 from engagements.serializers.attachment_serializers import AttachmentSerializer
 from engagements.serializers.comment_serializers import CommentSerializer
@@ -16,9 +16,8 @@ class AssignedUserSerializer(serializers.Serializer):
     last_name = serializers.CharField()
 
 
-class WorkItemListSerializer(serializers.ModelSerializer):
+class WorkItemListSerializer(CreatedByUserMixin, serializers.ModelSerializer):
     tenant = serializers.PrimaryKeyRelatedField(read_only=True)
-    created_by = UserWithPersonSerializer(read_only=True)
     assigned_to = AssignedUserSerializer(many=True, read_only=True)
     status = WorkItemStatusListSerializer(read_only=True)
     priority = WorkItemPriorityListSerializer(read_only=True)
@@ -46,8 +45,10 @@ class WorkItemListSerializer(serializers.ModelSerializer):
         if queryset is None:
             queryset = WorkItem.objects.all()
         
+        # Use the mixin's optimized queryset
+        queryset = super().get_optimized_queryset(queryset)
+        
         return queryset.select_related(
-            'created_by__partner__person',
             'tenant',
             'status',
             'priority',
@@ -57,9 +58,8 @@ class WorkItemListSerializer(serializers.ModelSerializer):
         )
 
 
-class WorkItemSerializer(serializers.ModelSerializer):
+class WorkItemSerializer(CreatedByUserMixin, serializers.ModelSerializer):
     # REMOVED: assigned_to = UserWithPersonSerializer(many=True, read_only=True)
-    created_by = UserWithPersonSerializer(read_only=True)
     # attachments = AttachmentSerializer(many=True, read_only=True)
     comments = CommentSerializer(many=True, read_only=True)
     tenant = serializers.PrimaryKeyRelatedField(read_only=True)
@@ -94,14 +94,16 @@ class WorkItemSerializer(serializers.ModelSerializer):
         if queryset is None:
             queryset = WorkItem.objects.all()
         
+        # Use the mixin's optimized queryset
+        queryset = super().get_optimized_queryset(queryset)
+        
         return queryset.select_related(
-            'created_by__partner__person',
             'tenant',
             'status',
             'priority',
             'category',
         ).prefetch_related(
-            'comments__created_by__partner__person',
+            'comments',
             'assigned_to__user__partner__person',
             # 'attachments__uploaded_by__partner__person',
         )
@@ -119,7 +121,6 @@ class WorkItemCreateSerializer(serializers.ModelSerializer):
             queryset = WorkItem.objects.all()
         
         return queryset.select_related(
-            'created_by__partner__person',
             'tenant',
         )
 
@@ -136,7 +137,6 @@ class WorkItemUpdateSerializer(serializers.ModelSerializer):
             queryset = WorkItem.objects.all()
         
         return queryset.select_related(
-            'created_by__partner__person',
             'tenant',
         )
 

@@ -30,7 +30,7 @@ class BaseView:
         # For modification requests (PUT, PATCH, DELETE), check permissions
         elif request.method in ["PUT", "PATCH", "DELETE"]:
             # Users can always modify their own content
-            if hasattr(obj, 'created_by') and obj.created_by == request.user:
+            if hasattr(obj, 'created_by') and obj.created_by == request.user.id:
                 return  # Allow modification of own content
             
             # Other users need specific roles to modify content they didn't create
@@ -78,7 +78,7 @@ class BaseView:
             entity_type=entity_type,
             entity_id=instance.id,
             entity_name=entity_name,
-            created_by=self.get_user(),
+            created_by=self.get_user().id,
             activity_type=activity_type,
             description=f'{instance._meta.verbose_name.title()} "{entity_name}" was {action_text}.',
             change_summary=change_summary,

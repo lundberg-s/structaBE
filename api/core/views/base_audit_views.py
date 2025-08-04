@@ -28,7 +28,7 @@ class BaseAuditViewSet(ReadOnlyModelViewSet):
         """
         return AuditLog.objects.filter(
             tenant=self.request.user.tenant
-        ).select_related('created_by')
+        )
     
     def get_serializer_context(self):
         """Add request context to serializer."""

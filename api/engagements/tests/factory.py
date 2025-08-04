@@ -22,10 +22,7 @@ class WorkItemStatusFactory:
         return WorkItemStatus.objects.create(
             tenant=tenant,
             label=label,
-            use_translation=False,
-            is_active=True,
-            sort_order=0,
-            created_by=created_by,
+            created_by=created_by.id if created_by else None,
         )
 
 
@@ -35,10 +32,7 @@ class WorkItemCategoryFactory:
         return WorkItemCategory.objects.create(
             tenant=tenant,
             label=label,
-            use_translation=False,
-            is_active=True,
-            sort_order=0,
-            created_by=created_by,
+            created_by=created_by.id if created_by else None,
         )
 
 
@@ -48,10 +42,7 @@ class WorkItemPriorityFactory:
         return WorkItemPriority.objects.create(
             tenant=tenant,
             label=label,
-            use_translation=False,
-            is_active=True,
-            sort_order=0,
-            created_by=created_by,
+            created_by=created_by.id if created_by else None,
         )
 
 
@@ -61,7 +52,7 @@ class TicketFactory:
     @classmethod
     def _get_ticket_number(cls):
         cls._counter += 1
-        return f"TEST{cls._counter:06d}"
+        return f"T-{cls._counter:04d}"
 
     @classmethod
     def create(cls, tenant, created_by, **kwargs):
@@ -71,7 +62,7 @@ class TicketFactory:
 
         return Ticket.objects.create(
             tenant=tenant,
-            created_by=created_by,
+            created_by=created_by.id if created_by else None,
             title=kwargs.get("title", "Test Ticket"),
             description=kwargs.get("description", "This is a test ticket"),
             ticket_number=kwargs.get("ticket_number", cls._get_ticket_number()),
@@ -94,7 +85,7 @@ class CaseFactory:
 
         return Case.objects.create(
             tenant=tenant,
-            created_by=created_by,
+            created_by=created_by.id if created_by else None,
             title=kwargs.get("title", "Test Case"),
             description=kwargs.get("description", "This is a test case"),
             case_reference=kwargs.get("case_reference", cls._generate_reference()),
@@ -119,7 +110,7 @@ class JobFactory:
 
         return Job.objects.create(
             tenant=tenant,
-            created_by=created_by,
+            created_by=created_by.id if created_by else None,
             title=kwargs.get("title", "Test Job"),
             description=kwargs.get("description", "This is a test job"),
             job_code=kwargs.get("job_code", cls._generate_job_code()),
@@ -137,7 +128,7 @@ class CommentFactory:
             tenant=tenant,
             work_item=work_item,
             content=content,
-            created_by=author or created_by,
+            created_by=created_by.id,
         )
 
 
@@ -159,5 +150,5 @@ class AttachmentFactory:
             file=file,
             filename=filename,
             file_size=len(content),
-            created_by=uploaded_by or created_by,
+            created_by=created_by.id,
         )

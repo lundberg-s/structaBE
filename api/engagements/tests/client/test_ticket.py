@@ -42,7 +42,7 @@ class TestTicketFlow(EngagementsTestHelper):
         ticket_data = self.get_work_item_data()
         response = self.client.post(url, ticket_data, format="json")
         ticket = Ticket.objects.get(id=response.data["id"])
-        self.assertEqual(ticket.created_by, self.user)
+        self.assertEqual(ticket.created_by, self.user.id)
 
     def test_create_ticket_sets_tenant(self):
         self.authenticate_client()
@@ -181,7 +181,7 @@ class TestTicketFlow(EngagementsTestHelper):
         }
         self.client.patch(url, data, format="json")
         self.ticket.refresh_from_db()
-        self.assertEqual(self.ticket.created_by, self.user)
+        self.assertEqual(self.ticket.created_by, self.user.id)
 
     def test_delete_ticket_returns_204(self):
         self.authenticate_client()
@@ -287,7 +287,7 @@ class TestTicketFlow(EngagementsTestHelper):
         )
         response = self.client.post(url, ticket_data, format="json")
         ticket = self.get_ticket(response.data["id"])
-        self.assertEqual(ticket.created_by, self.user)
+        self.assertEqual(ticket.created_by, self.user.id)
 
     def test_unauthenticated_user_denied_list(self):
         # Clear authentication

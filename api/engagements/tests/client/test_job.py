@@ -42,7 +42,7 @@ class TestJobFlow(EngagementsTestHelper):
         job_data = self.get_work_item_data()
         response = self.client.post(url, job_data, format="json")
         job = Job.objects.get(id=response.data["id"])
-        self.assertEqual(job.created_by, self.user)
+        self.assertEqual(job.created_by, self.user.id)
 
     def test_create_job_sets_tenant(self):
         self.authenticate_client()
@@ -181,7 +181,7 @@ class TestJobFlow(EngagementsTestHelper):
         }
         self.client.patch(url, data, format="json")
         self.job.refresh_from_db()
-        self.assertEqual(self.job.created_by, self.user)
+        self.assertEqual(self.job.created_by, self.user.id)
 
     def test_delete_job_returns_204(self):
         self.authenticate_client()
@@ -287,7 +287,7 @@ class TestJobFlow(EngagementsTestHelper):
         )
         response = self.client.post(url, job_data, format="json")
         job = self.get_job(response.data["id"])
-        self.assertEqual(job.created_by, self.user)
+        self.assertEqual(job.created_by, self.user.id)
 
     def test_unauthenticated_user_denied_list(self):
         # Clear authentication

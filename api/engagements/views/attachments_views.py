@@ -9,7 +9,7 @@ from engagements.serializers.attachment_serializers import AttachmentSerializer
 from core.views.base_views import BaseView
 
 class AttachmentListView(BaseView, ListCreateAPIView):
-    queryset = Attachment.objects.select_related('created_by', 'work_item').all()
+    queryset = Attachment.objects.select_related('work_item').all()
     serializer_class = AttachmentSerializer
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter]
@@ -23,7 +23,7 @@ class AttachmentListView(BaseView, ListCreateAPIView):
         work_item = serializer.validated_data.get('work_item')
         if work_item.tenant != self.get_tenant():
             raise PermissionDenied('Invalid work item for this tenant.')
-        instance = serializer.save(tenant=self.get_tenant(), created_by=self.get_user())
+        instance = serializer.save(tenant=self.get_tenant(), created_by=self.get_user().id)
         self.log_activity(instance, 'created', 'created')
 
 class AttachmentDetailView(BaseView, RetrieveUpdateDestroyAPIView):

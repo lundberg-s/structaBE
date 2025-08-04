@@ -20,7 +20,7 @@ class RoleFactory:
             is_system=kwargs.get("is_system", False),
         )
         if created:
-            role.created_by = created_by
+            role.created_by = created_by.id if created_by else None
             role.save()
         return role
 
@@ -31,7 +31,7 @@ class RoleFactory:
             key=kwargs.get("key", "test_role"),
             label=kwargs.get("label", "Test Role"),
             is_system=kwargs.get("is_system", False),
-            created_by=created_by,
+            created_by=created_by.id if created_by else None,
         )
 
 
@@ -55,7 +55,7 @@ class AuditLogFactory:
             transaction_id=kwargs.get("transaction_id", "test-transaction-123"),
             compliance_category=kwargs.get("compliance_category", "operational"),
             risk_level=kwargs.get("risk_level", "low"),
-            created_by=created_by,
+            created_by=created_by.id,
         )
 
 

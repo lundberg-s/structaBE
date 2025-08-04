@@ -1,9 +1,8 @@
 from rest_framework import serializers
 from engagements.models import Attachment
-from users.serializers.user_serializers import UserWithPersonSerializer
+from users.mixins import CreatedByUserMixin
 
-class AttachmentSerializer(serializers.ModelSerializer):
-    created_by = UserWithPersonSerializer(read_only=True)
+class AttachmentSerializer(CreatedByUserMixin, serializers.ModelSerializer):
     tenant = serializers.PrimaryKeyRelatedField(read_only=True)
     
     class Meta:

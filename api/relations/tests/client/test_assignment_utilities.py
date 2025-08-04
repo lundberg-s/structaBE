@@ -33,7 +33,7 @@ class TestAssignmentUtilities(TestCase):
         self.user3.partner = self.person3
         self.user3.save()
         
-        self.work_item = create_ticket(tenant=self.tenant, created_by=self.created_by_user)
+        self.work_item = create_ticket(tenant=self.tenant, created_by=self.created_by_user.id)
 
     def test_update_work_item_assignments_add_new_users(self):
         """Test adding new users to work item assignments."""

@@ -90,5 +90,5 @@ def create_ticket(tenant, created_by, **kwargs):
 def create_assignment(relation, created_by=None):
     """Create an assignment for testing purposes"""
     return Assignment.objects.create(
-        relation=relation, tenant=relation.tenant, created_by=created_by
+        relation=relation, tenant=relation.tenant, created_by=created_by.id
     )

@@ -1,10 +1,11 @@
 from rest_framework import serializers
 from engagements.models import Comment
-from users.serializers.user_serializers import UserWithPersonSerializer
+from users.mixins import CreatedByUserMixin
 
-class CommentListSerializer(serializers.ModelSerializer):
+
+class CommentListSerializer(CreatedByUserMixin, serializers.ModelSerializer):
     tenant = serializers.PrimaryKeyRelatedField(read_only=True)
-    created_by = UserWithPersonSerializer(read_only=True)
+    
     class Meta:
         model = Comment
         fields = ['id', 'work_item', 'content', 'created_by', 'created_at', 'updated_at', 'tenant']
@@ -16,11 +17,15 @@ class CommentListSerializer(serializers.ModelSerializer):
         if queryset is None:
             queryset = Comment.objects.all()
         
-        return queryset.select_related('created_by__partner__person', 'tenant')
+        # Use the mixin's optimized queryset
+        queryset = super().get_optimized_queryset(queryset)
+        
+        return queryset.select_related('tenant')
 
-class CommentSerializer(serializers.ModelSerializer):
-    created_by = UserWithPersonSerializer(read_only=True)
+
+class CommentSerializer(CreatedByUserMixin, serializers.ModelSerializer):
     tenant = serializers.PrimaryKeyRelatedField(read_only=True)
+    
     class Meta:
         model = Comment
         fields = ['id', 'work_item', 'content', 'created_by', 'created_at', 'updated_at', 'tenant']
@@ -32,5 +37,8 @@ class CommentSerializer(serializers.ModelSerializer):
         if queryset is None:
             queryset = Comment.objects.all()
         
-        return queryset.select_related('created_by__partner__person', 'tenant')
+        # Use the mixin's optimized queryset
+        queryset = super().get_optimized_queryset(queryset)
+        
+        return queryset.select_related('tenant')
         

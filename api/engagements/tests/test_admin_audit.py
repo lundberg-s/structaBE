@@ -224,7 +224,7 @@ class EngagementsAdminAuditTestCase(TestCase):
             tenant=self.tenant,
             work_item=workitem,
             content='Test comment content',
-            created_by=self.user
+            created_by=self.user.id
         )
         
         self.comment_admin.save_model(request, comment, None, change=False)

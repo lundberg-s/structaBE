@@ -111,8 +111,8 @@ def _add_assignments(work_item, user_ids, created_by_user):
         assignment = Assignment(
             tenant=tenant,
             relation=relation,
-            created_by=created_by_user,
-            updated_by=created_by_user
+            created_by=created_by_user.id,
+            updated_by=created_by_user.id
         )
         assignments.append(assignment)
     

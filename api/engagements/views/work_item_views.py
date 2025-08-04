@@ -44,7 +44,7 @@ class BaseWorkItemListView(BaseWorkItemView, ListCreateAPIView):
             return  # Optionally raise PermissionDenied
             
         instance = serializer.save(
-            tenant=self.get_tenant(), created_by=self.get_user()
+            tenant=self.get_tenant(), created_by=self.get_user().id
         )
         self._log_activity(instance, "created", "created")
 

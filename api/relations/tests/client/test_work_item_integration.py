@@ -37,7 +37,7 @@ class TestWorkItemIntegration(TestCase):
             status=WorkItemStatusTypes.OPEN,
             category=WorkItemCategoryTypes.SUPPORT,
             priority=WorkItemPriorityTypes.MEDIUM,
-            created_by=self.user,
+            created_by=self.user.id,
             ticket_number="TICK-001",
         )
 
@@ -138,7 +138,7 @@ class TestWorkItemIntegration(TestCase):
             status=WorkItemStatusTypes.OPEN,
             category=WorkItemCategoryTypes.SUPPORT,
             priority=WorkItemPriorityTypes.MEDIUM,
-            created_by=other_user,
+            created_by=other_user.id,
             ticket_number="TICK-002",
         )
 
@@ -190,7 +190,7 @@ class TestWorkItemIntegration(TestCase):
             status=WorkItemStatusTypes.OPEN,
             category=WorkItemCategoryTypes.SUPPORT,
             priority=WorkItemPriorityTypes.HIGH,
-            created_by=self.user,
+            created_by=self.user.id,
             ticket_number="TICK-003",
         )
 
@@ -201,7 +201,7 @@ class TestWorkItemIntegration(TestCase):
             status=WorkItemStatusTypes.OPEN,
             category=WorkItemCategoryTypes.TASK,
             priority=WorkItemPriorityTypes.MEDIUM,
-            created_by=self.user,
+            created_by=self.user.id,
             ticket_number="TICK-004",
         )
 

@@ -16,7 +16,7 @@ class PartnerListView(BaseView, ListCreateAPIView):
         return self.get_tenant_queryset(Partner)
 
     def perform_create(self, serializer):
-        partner = serializer.save(tenant=self.get_tenant(), created_by=self.get_user())
+        partner = serializer.save(tenant=self.get_tenant(), created_by=self.get_user().id)
         self._log_activity(partner, "created", "created")
 
     def _log_activity(self, instance, activity_type, action_text):

@@ -13,7 +13,7 @@ class RelationListCreateView(BaseView, generics.ListCreateAPIView):
         return self.get_tenant_queryset(Relation)
 
     def perform_create(self, serializer):
-        relation = serializer.save(tenant=self.get_tenant(), created_by=self.get_user())
+        relation = serializer.save(tenant=self.get_tenant(), created_by=self.get_user().id)
         self._log_activity(relation, "created", "created")
 
     def _log_activity(self, instance, activity_type, action_text):
