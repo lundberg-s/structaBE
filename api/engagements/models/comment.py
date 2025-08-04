@@ -19,8 +19,8 @@ class Comment(AuditModel, TenantValidatorMixin):
             models.Index(fields=["work_item"]),
             models.Index(fields=["created_by"]),
             models.Index(fields=["created_at"]),
-            models.Index(fields=["tenant", "work_item"]),
-            models.Index(fields=["tenant", "created_by"]),
+                    models.Index(fields=["tenant", "work_item"]),
+        models.Index(fields=["tenant", "created_by"]),
         ]
 
     def clean(self):
@@ -35,5 +35,7 @@ class Comment(AuditModel, TenantValidatorMixin):
         self.clean()
         super().save(*args, **kwargs)
 
+
+
     def __str__(self):
-        return f"Comment by {self.created_by.username} on {self.work_item.title}" 
+        return f"Comment by {self.created_by} on {self.work_item.title}" 

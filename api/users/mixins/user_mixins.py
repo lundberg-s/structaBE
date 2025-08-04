@@ -23,13 +23,11 @@ class CreatedByUserField(serializers.Field):
             except User.DoesNotExist:
                 return {
                     'id': value,
-                    'username': f'User {value} (not found)',
-                    'email': '',
+                    'email': f'User {value} (not found)',
                 }
         
         return {
             'id': user.id,
-            'username': user.username,
             'email': user.email,
         }
     
@@ -62,7 +60,7 @@ class CreatedByUserMixin:
                 fields = ['id', 'title', 'created_by', ...]
         
         # The mixin automatically:
-        # 1. Adds a 'created_by' field that returns user data (id, username, email)
+        # 1. Adds a 'created_by' field that returns user data (id, email)
         # 2. Provides get_optimized_queryset() method for prefetching users
         
         # In your view, use:

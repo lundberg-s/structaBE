@@ -5,35 +5,37 @@ from django.contrib.admin.sites import AdminSite
 from core.models import AuditLog, Tenant
 from engagements.models import WorkItem, Ticket, Case, Job, Attachment, Comment
 from engagements.admin import WorkItemAdmin, TicketAdmin, CaseAdmin, JobAdmin, AttachmentAdmin, CommentAdmin
-from engagements.tests.factory import TestDataFactory
+from engagements.tests.test_helper import EngagementsTestHelper
+from engagements.tests.test_constants import WorkItemType, TestData
 
 User = get_user_model()
 
 
-class EngagementsAdminAuditTestCase(TestCase):
+class EngagementsAdminAuditTestCase(EngagementsTestHelper):
     def setUp(self):
         """Set up test data."""
-        # Create a tenant
-        self.tenant = Tenant.objects.create()
+        super().setUp()
         
-        # Create a superuser
-        self.superuser = User.objects.create_superuser(
-            username='admin',
+        # Create a tenant
+        self.tenant = self.create_tenant(work_item_type=WorkItemType.TICKET)
+        
+        # Create a superuser with proper Person/Role setup
+        self.superuser = self.create_user(
             email='admin@example.com',
             password='testpass123',
             tenant=self.tenant
         )
+        # Make superuser
+        self.superuser.is_staff = True
+        self.superuser.is_superuser = True
+        self.superuser.save()
         
-        # Create a regular user
-        self.user = User.objects.create_user(
-            username='user',
+        # Create a regular user with proper Person/Role setup
+        self.user = self.create_user(
             email='user@example.com',
             password='testpass123',
             tenant=self.tenant
         )
-        
-        # Create factory for test data
-        self.factory = TestDataFactory(self.tenant, self.superuser)
         
         # Set up admin site and request factory
         self.admin_site = AdminSite()
@@ -64,9 +66,10 @@ class EngagementsAdminAuditTestCase(TestCase):
             tenant=self.tenant,
             title='Test Work Item',
             description='Test description',
-            status=self.factory.status,
-            category=self.factory.category,
-            priority=self.factory.priority
+            status=self.create_work_item_statuses(amount=1)[0],
+            category=self.create_work_item_categories(amount=1)[0],
+            priority=self.create_work_item_priorities(amount=1)[0],
+            created_by=self.superuser.id
         )
         
         request = self._create_request()
@@ -91,9 +94,10 @@ class EngagementsAdminAuditTestCase(TestCase):
             tenant=self.tenant,
             title='Test Ticket',
             description='Test ticket description',
-            priority=self.factory.priority,
-            status=self.factory.status,
-            category=self.factory.category
+            priority=self.create_work_item_priorities(amount=1)[0],
+            status=self.create_work_item_statuses(amount=1)[0],
+            category=self.create_work_item_categories(amount=1)[0],
+            created_by=self.superuser.id
         )
         
         request = self._create_request()
@@ -119,9 +123,10 @@ class EngagementsAdminAuditTestCase(TestCase):
             title='Test Case',
             description='Test case description',
             legal_area='civil',
-            status=self.factory.status,
-            category=self.factory.category,
-            priority=self.factory.priority
+            status=self.create_work_item_statuses(amount=1)[0],
+            category=self.create_work_item_categories(amount=1)[0],
+            priority=self.create_work_item_priorities(amount=1)[0],
+            created_by=self.superuser.id
         )
         
         request = self._create_request()
@@ -148,9 +153,10 @@ class EngagementsAdminAuditTestCase(TestCase):
             description='Test job description',
             job_code='JOB-001',
             estimated_hours=10,
-            status=self.factory.status,
-            category=self.factory.category,
-            priority=self.factory.priority
+            status=self.create_work_item_statuses(amount=1)[0],
+            category=self.create_work_item_categories(amount=1)[0],
+            priority=self.create_work_item_priorities(amount=1)[0],
+            created_by=self.superuser.id
         )
         
         request = self._create_request()
@@ -174,9 +180,10 @@ class EngagementsAdminAuditTestCase(TestCase):
         workitem = WorkItem(
             tenant=self.tenant,
             title='Test Work Item',
-            status=self.factory.status,
-            category=self.factory.category,
-            priority=self.factory.priority
+            status=self.create_work_item_statuses(amount=1)[0],
+            category=self.create_work_item_categories(amount=1)[0],
+            priority=self.create_work_item_priorities(amount=1)[0],
+            created_by=self.superuser.id
         )
         
         request = self._create_request()
@@ -188,7 +195,8 @@ class EngagementsAdminAuditTestCase(TestCase):
             work_item=workitem,
             filename='test.pdf',
             file_size=1024,
-            mime_type='application/pdf'
+            mime_type='application/pdf',
+            created_by=self.superuser.id
         )
         
         self.attachment_admin.save_model(request, attachment, None, change=False)
@@ -211,9 +219,10 @@ class EngagementsAdminAuditTestCase(TestCase):
         workitem = WorkItem(
             tenant=self.tenant,
             title='Test Work Item',
-            status=self.factory.status,
-            category=self.factory.category,
-            priority=self.factory.priority
+            status=self.create_work_item_statuses(amount=1)[0],
+            category=self.create_work_item_categories(amount=1)[0],
+            priority=self.create_work_item_priorities(amount=1)[0],
+            created_by=self.superuser.id
         )
         
         request = self._create_request()

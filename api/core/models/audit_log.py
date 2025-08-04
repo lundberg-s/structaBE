@@ -109,7 +109,7 @@ class AuditLog(AuditModel):
         ]
 
     def __str__(self):
-        return f"{self.activity_type} on {self.entity_type} '{self.entity_name}' by {self.created_by.username}"
+        return f"{self.activity_type} on {self.entity_type} '{self.entity_name}' by {self.created_by}"
     
     def save(self, *args, **kwargs):
         """Ensure audit logs are immutable once created."""
