@@ -56,13 +56,16 @@ class UserListView(BaseView, ListCreateAPIView):
             phone=serializer.validated_data.get('phone', ''),
             tenant=self.get_tenant()
         )
-        # Create a User instance and associate with the Person
+        # Create a User instance
         user = User.objects.create_user(
             email=person.email,
             password=serializer.validated_data.get('password', ''),
             tenant=self.get_tenant(),
-            partner=person
         )
+        # Link Person to User (new relationship direction)
+        person.user = user
+        person.save()
+        
         serializer.instance = user
 
         return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)

@@ -5,20 +5,20 @@ Core Layer (Zero Dependencies)
 ├── BaseOption ✅
 └── AuditLog ✅
 
-Authentication Layer (Minimal Dependencies)
+User (Authentication) Layer (Tenant)
 └── User ✅ (only Django auth dependencies)
 
-Business Layer (Clean Dependencies)
-├── Partner (inherits AuditModel  + links to User) ✅
+Partner Layer (Audit, Tenant, Role, User)
+├── Partner (inherits AuditModel, FK to User) ✅
 ├── Person (inherits Partner) ✅
 └── Organization (inherits Partner) ✅
 
-Relationship Layer (Clean Dependencies)
-├── Relation (inherits AuditModel) ✅
-└── Assignment (inherits AuditModel) ✅
-
-Work Management Layer (Clean Dependencies)
+Engagements Layer (Audit, Tenant, BaseOption)
 ├── WorkItem (inherits AuditModel) ✅
 ├── Ticket/Case/Job (inherit WorkItem) ✅
-├── Comment (inherits AuditModel) ✅
-└── Attachment (inherits AuditModel) ✅
+├── Comment (inherits AuditModel, FK to WorkItem) ✅
+└── Attachment (inherits AuditModel, FK to WorkItem) ✅
+
+Relationship Layer (Audit, Tenant, Role, Partner, Engagements)
+├── Relation (inherits AuditModel, FK to WorkItem + Partner) ✅
+└── Assignment (inherits AuditModel, FK to Relation) ✅
