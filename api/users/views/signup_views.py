@@ -5,7 +5,7 @@ from rest_framework.permissions import AllowAny
 from django.db import transaction
 from users.models import User, Tenant
 from core.models import Tenant
-from relations.models import Person, Organization
+from partners.models import Person, Organization
 from core.models import Role
 
 from users.serializers.signup_serializers import SignupSerializer
@@ -48,8 +48,12 @@ class SignupView(CreateAPIView):
             email=serializer.validated_data['email'],
             password=serializer.validated_data['password'],
             tenant=tenant,
-            partner=person,
         )
+        
+        # 4b. Link Person to User (new relationship direction)
+        person.user = user
+        person.save()
+        
         # 5. Assign admin role to person
         # Create or get admin role
         admin_role, created = Role.objects.get_or_create(

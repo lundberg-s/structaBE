@@ -1,8 +1,8 @@
 from rest_framework.serializers import ModelSerializer
 
-from relations.serializers.partner_serializers import PartnerSerializer
+from partners.serializers import PartnerSerializer
 
-from relations.models import Organization
+from partners.models import Organization
 
 class OrganizationSerializer(PartnerSerializer):
     class Meta(PartnerSerializer.Meta):

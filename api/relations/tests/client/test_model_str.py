@@ -1,5 +1,5 @@
 from relations.tests.client.test_base import FullySetupTest
-from relations.models import Partner, Person, Organization
+from partners.models import Partner, Person, Organization
 from core.models import Role
 
 class TestModelStrCoverage(FullySetupTest):

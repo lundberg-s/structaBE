@@ -1,6 +1,6 @@
 from rest_framework.serializers import ModelSerializer, SerializerMethodField
 
-from relations.models import Partner
+from partners.models import Partner
 
 class PartnerSerializer(ModelSerializer):
     content_type = SerializerMethodField()

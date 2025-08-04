@@ -1,5 +1,5 @@
 from django.contrib import admin
-from relations.models import Organization
+from partners.models import Organization
 from core.mixins import AdminAuditMixin
 
 

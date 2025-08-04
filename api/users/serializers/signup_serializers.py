@@ -2,7 +2,7 @@ from rest_framework.serializers import Serializer, ValidationError, CharField, E
 
 from users.models import User
 
-from relations.models import Organization
+from partners.models import Organization
 
 class SignupSerializer(Serializer):
     company_name = CharField()

@@ -63,8 +63,8 @@ class EngagementsTestHelper(TestCase):
         person.role = role
         person.save()
 
-        user.partner = person
-        user.save()
+        person.user = user
+        person.save()
         return user
 
     def create_tickets(self, amount=1, tenant=None, user=None):

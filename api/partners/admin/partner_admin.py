@@ -1,5 +1,5 @@
 from django.contrib import admin
-from relations.models import Partner
+from partners.models import Partner
 
 
 @admin.register(Partner)

@@ -1,9 +1,9 @@
 from rest_framework.generics import RetrieveUpdateDestroyAPIView
-from relations.models import Organization  
+from partners.models import Organization  
 
-from relations.serializers.organization_serializers import OrganizationSerializer
+from partners.serializers import OrganizationSerializer
 
-from relations.views.partner_views import PartnerListView, PartnerDetailView
+from partners.views import PartnerListView, PartnerDetailView
 
 class OrganizationListView(PartnerListView):
     model = Organization

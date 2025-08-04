@@ -1,7 +1,7 @@
 from rest_framework.test import APITestCase, APIClient
 from relations.tests.client.test_base import FullySetupTest
 from django.urls import reverse
-from relations.models import Organization
+from partners.models import Organization
 
 class TestOrganizationFlow(FullySetupTest):
     def setUp(self):

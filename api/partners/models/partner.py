@@ -1,7 +1,7 @@
 from django.db import models
 
 from core.models import AuditModel, Tenant, Role
-from relations.querysets.partner_querysets import PartnerQuerySet
+from partners.querysets import PartnerQuerySet
 
 
 class Partner(AuditModel):
@@ -14,6 +14,13 @@ class Partner(AuditModel):
         Tenant, on_delete=models.CASCADE, related_name="partners"
     )
     role = models.ForeignKey(Role, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.OneToOneField(
+        "users.User",
+        on_delete=models.CASCADE,
+        related_name="partner",
+        null=True,
+        blank=True,
+    )
 
     objects = PartnerQuerySet.as_manager()
 
