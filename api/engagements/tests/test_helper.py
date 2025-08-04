@@ -3,14 +3,12 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
 
-from rest_framework import status
 from rest_framework.test import APIClient
 
 from core.enums import SystemRole
-from core.models import Tenant
-from core.tests.factory import TenantFactory, RoleFactory
+from core.tests.factories import RoleFactory
 from users.tests.factory import UserFactory
-from relations.tests.factory import PersonFactory
+from partners.tests.factory import PersonFactory
 from engagements.tests.factory import (
     TicketFactory,
     CaseFactory,
@@ -23,49 +21,55 @@ from engagements.tests.factory import (
 )
 from engagements.models import Ticket, Case, Job, Comment, Attachment
 from .test_constants import TestData, WorkItemType, QueryParams
+from users.tests.test_helper import UserTestHelper
 
 User = get_user_model()
 
 
-class EngagementsTestHelper(TestCase):
-    def setUp(self):
-        self.client = APIClient()
-
+class EngagementsTestHelper(UserTestHelper):
+    work_item_type = WorkItemType.TICKET
+    
     def create_tenant(self, work_item_type=None):
-        work_item_type = work_item_type or WorkItemType.TICKET
+        # Use the class-specific work_item_type if none provided
+        work_item_type = work_item_type or self.work_item_type
+        return super().create_tenant(work_item_type=work_item_type)
+    
+    def setUp(self):
+        # Let parent classes create tenant and user first
+        super().setUp()
         
-        tenant = TenantFactory.create(work_item_type=work_item_type)
-        return tenant
-
-    def create_user(self, email=None, password=None, tenant=None):
-        email = email or TestData.DEFAULT_USER_EMAIL
-        password = password or TestData.DEFAULT_USER_PASSWORD
-        tenant = tenant or self.tenant
-
-        user = UserFactory.create(
-            tenant=tenant,
-            username=email.split("@")[0],
-            password=password,
-            email=email,
-        )
-
-        person = PersonFactory.create(
-            tenant=tenant,
-            first_name=TestData.DEFAULT_USER_FIRST_NAME,
-            last_name=TestData.DEFAULT_USER_LAST_NAME,
-        )
-        role = RoleFactory.get_or_create(
-            created_by=user,
+        # Now add role and person for engagement-specific permissions
+        self.role = self.create_role(
             key=SystemRole.TENANT_EMPLOYEE.value,
             label=SystemRole.labels()[SystemRole.TENANT_EMPLOYEE.value],
             is_system=True,
+            tenant=self.tenant,
+            created_by=self.user,
         )
-        person.role = role
-        person.save()
+        
+        # Create a Person (which is a Partner) and link it to the user with the role
+        self.person = PersonFactory.create(
+            tenant=self.tenant,
+            created_by=self.user,
+            first_name=self.user.email.split("@")[0],
+            last_name="Test",
+            user=self.user,
+            role=self.role,
+        )
 
-        person.user = user
-        person.save()
-        return user
+    def create_person(self, first_name=None, last_name=None, tenant=None, user=None, **kwargs):
+        tenant = tenant or self.tenant
+        user = user or self.user
+        
+        person = PersonFactory.create(
+            tenant=tenant,
+            created_by=user,
+            first_name=first_name or "John",
+            last_name=last_name or "Doe",
+            **kwargs
+        )
+        
+        return person
 
     def create_tickets(self, amount=1, tenant=None, user=None):
         tenant = tenant or self.tenant
@@ -226,18 +230,6 @@ class EngagementsTestHelper(TestCase):
         response = self.client.post(reverse("login"), payload)
         return response
 
-    def authenticate_user(self, email=None, password=None):
-        email = email or TestData.DEFAULT_USER_EMAIL
-        password = password or TestData.DEFAULT_USER_PASSWORD
-        
-        response = self.client.post(
-            reverse("login"),
-            {"email": email, "password": password},
-            format="json",
-        )
-        assert response.status_code == 200, "Login failed during setup"
-        return response.cookies.get("access_token").value
-
     def build_search_url(self, base_url, search_term):
         """Helper method to build a URL with search parameter."""
         return f"{base_url}?{QueryParams.SEARCH}={search_term}"
@@ -252,3 +244,19 @@ class EngagementsTestHelper(TestCase):
     def authenticate_client(self):
         """Authenticate the client for API requests."""
         self.client.cookies["access_token"] = self.token
+
+
+# Specific test helpers for each work item type
+class TicketTestHelper(EngagementsTestHelper):
+    """Test helper specifically for ticket tests."""
+    work_item_type = WorkItemType.TICKET
+
+
+class CaseTestHelper(EngagementsTestHelper):
+    """Test helper specifically for case tests."""
+    work_item_type = WorkItemType.CASE
+
+
+class JobTestHelper(EngagementsTestHelper):
+    """Test helper specifically for job tests."""
+    work_item_type = WorkItemType.JOB

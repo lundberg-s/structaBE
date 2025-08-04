@@ -1,6 +1,6 @@
 from django.urls import reverse
 
-from engagements.tests.test_helper import EngagementsTestHelper
+from engagements.tests.test_helper import TicketTestHelper
 from engagements.tests.test_constants import (
     TestURLs,
     TestData,
@@ -12,12 +12,10 @@ from engagements.tests.test_constants import (
 from engagements.models import Ticket
 
 
-class TestTicketFlow(EngagementsTestHelper):
+class TestTicketFlow(TicketTestHelper):
     def setUp(self):
         super().setUp()
-        self.tenant = self.create_tenant(work_item_type=WorkItemType.TICKET)
-        self.user = self.create_user(tenant=self.tenant)
-        self.token = self.authenticate_user()
+
         self.authenticate_client()
         self.tickets = self.create_tickets(amount=SetupDefaults.WORK_ITEM_AMOUNT)
         self.ticket = self.tickets[0]
@@ -127,14 +125,16 @@ class TestTicketFlow(EngagementsTestHelper):
         self.authenticate_client()
         url = reverse(TestURLs.TICKET_DETAIL, args=[self.ticket.id])
         data = {"title": TestData.UPDATED_TITLE}
-        response = self.client.patch(url, data, format="json")
+        response = self.client.patch(
+            url, data, format="json", content_type="application/json"
+        )
         self.assertEqual(response.status_code, 200)
 
     def test_update_ticket_changes_title(self):
         self.authenticate_client()
         url = reverse(TestURLs.TICKET_DETAIL, args=[self.ticket.id])
         data = {"title": TestData.UPDATED_TITLE}
-        self.client.patch(url, data, format="json")
+        self.client.patch(url, data, format="json", content_type="application/json")
         self.ticket.refresh_from_db()
         self.assertEqual(self.ticket.title, TestData.UPDATED_TITLE)
 
@@ -151,7 +151,7 @@ class TestTicketFlow(EngagementsTestHelper):
 
         url = reverse(TestURLs.TICKET_DETAIL, args=[other_ticket.id])
         data = {"title": TestData.HACKED_TITLE}
-        response = self.client.patch(url, data, format="json")
+        response = self.client.patch(url, data, format="json", content_type="application/json")
         self.assertIn(response.status_code, (403, 404))
 
     def test_update_protected_fields_ignored(self):
@@ -165,7 +165,7 @@ class TestTicketFlow(EngagementsTestHelper):
             ).id,
             "tenant": self.create_tenant(work_item_type=WorkItemType.TICKET).id,
         }
-        response = self.client.patch(url, data, format="json")
+        response = self.client.patch(url, data, format="json", content_type="application/json")
         self.assertEqual(response.status_code, 200)
 
     def test_update_protected_fields_not_changed(self):
@@ -179,7 +179,7 @@ class TestTicketFlow(EngagementsTestHelper):
             ).id,
             "tenant": self.create_tenant(work_item_type=WorkItemType.TICKET).id,
         }
-        self.client.patch(url, data, format="json")
+        self.client.patch(url, data, format="json", content_type="application/json")
         self.ticket.refresh_from_db()
         self.assertEqual(self.ticket.created_by, self.user.id)
 
@@ -249,14 +249,14 @@ class TestTicketFlow(EngagementsTestHelper):
         self.authenticate_client()
         url = reverse(TestURLs.TICKET_DETAIL, args=[self.ticket.id])
         data = {"created_at": TestData.FAKE_CREATED_AT}
-        response = self.client.patch(url, data, format="json")
+        response = self.client.patch(url, data, format="json", content_type="application/json")
         self.assertEqual(response.status_code, 200)
 
     def test_protected_fields_not_modified(self):
         self.authenticate_client()
         url = reverse(TestURLs.TICKET_DETAIL, args=[self.ticket.id])
         data = {"created_at": TestData.FAKE_CREATED_AT}
-        self.client.patch(url, data, format="json")
+        self.client.patch(url, data, format="json", content_type="application/json")
         self.ticket.refresh_from_db()
         self.assertNotEqual(str(self.ticket.created_at), TestData.FAKE_CREATED_AT)
 

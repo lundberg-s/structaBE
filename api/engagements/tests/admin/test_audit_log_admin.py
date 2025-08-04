@@ -11,7 +11,7 @@ from engagements.tests.test_constants import WorkItemType, TestData
 User = get_user_model()
 
 
-class EngagementsAdminAuditTestCase(EngagementsTestHelper):
+class TestAuditLogAdmin(EngagementsTestHelper):
     def setUp(self):
         """Set up test data."""
         super().setUp()

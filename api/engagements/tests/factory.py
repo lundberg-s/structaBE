@@ -1,4 +1,3 @@
-
 import uuid
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.contrib.auth import get_user_model
@@ -57,8 +56,12 @@ class TicketFactory:
     @classmethod
     def create(cls, tenant, created_by, **kwargs):
         status = kwargs.pop("status", WorkItemStatusFactory.create(tenant, created_by))
-        category = kwargs.pop("category", WorkItemCategoryFactory.create(tenant, created_by))
-        priority = kwargs.pop("priority", WorkItemPriorityFactory.create(tenant, created_by))
+        category = kwargs.pop(
+            "category", WorkItemCategoryFactory.create(tenant, created_by)
+        )
+        priority = kwargs.pop(
+            "priority", WorkItemPriorityFactory.create(tenant, created_by)
+        )
 
         return Ticket.objects.create(
             tenant=tenant,
@@ -80,8 +83,12 @@ class CaseFactory:
     @classmethod
     def create(cls, tenant, created_by, **kwargs):
         status = kwargs.pop("status", WorkItemStatusFactory.create(tenant, created_by))
-        category = kwargs.pop("category", WorkItemCategoryFactory.create(tenant, created_by))
-        priority = kwargs.pop("priority", WorkItemPriorityFactory.create(tenant, created_by))
+        category = kwargs.pop(
+            "category", WorkItemCategoryFactory.create(tenant, created_by)
+        )
+        priority = kwargs.pop(
+            "priority", WorkItemPriorityFactory.create(tenant, created_by)
+        )
 
         return Case.objects.create(
             tenant=tenant,
@@ -105,8 +112,12 @@ class JobFactory:
     @classmethod
     def create(cls, tenant, created_by, **kwargs):
         status = kwargs.pop("status", WorkItemStatusFactory.create(tenant, created_by))
-        category = kwargs.pop("category", WorkItemCategoryFactory.create(tenant, created_by))
-        priority = kwargs.pop("priority", WorkItemPriorityFactory.create(tenant, created_by))
+        category = kwargs.pop(
+            "category", WorkItemCategoryFactory.create(tenant, created_by)
+        )
+        priority = kwargs.pop(
+            "priority", WorkItemPriorityFactory.create(tenant, created_by)
+        )
 
         return Job.objects.create(
             tenant=tenant,

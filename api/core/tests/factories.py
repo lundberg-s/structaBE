@@ -1,5 +1,4 @@
 from core.models import Tenant, Role, AuditLog
-from core.enums import SystemRole
 
 
 class TenantFactory:
